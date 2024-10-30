@@ -1,0 +1,3 @@
+(library
+ (name regexes)
+ (libraries base))
