@@ -39,7 +39,8 @@ let omatchtop (r : re) (cs : char list) : bool =
 (*                          2.1 Ensuring termination                          *)
 (* -------------------------------------------------------------------------- *)
 
-(** A termination-augmented matcher *)
+(* --------------------- A termination-augmented matcher -------------------- *)
+
 let rec re_match (r : re) (k : bool -> char list -> bool) 
   (b : bool) (cs : char list) : bool = 
   match r, cs with 
@@ -61,6 +62,17 @@ let rec re_match (r : re) (k : bool -> char list -> bool)
 (** Determines whether a string matches a regex *)    
 let re_matchtop (r : re) (cs : char list) : bool = 
   re_match r (fun _ xs -> List.is_empty xs) true cs
+
+(* ------------ A defunctionalized termination-augmented matcher ------------ *)
+
+type cont = 
+  | CInit 
+  | CThen of re * cont 
+  | CStar of re * cont 
+
+let fmatch (r : re) (k : cont) (b : bool) (cs : char list) : bool = 
+  failwith "TODO: fmatch "
+
 
 (* TODO: look at fig 3 in the Filinski paper (defunctionalized matcher) *)  
 
