@@ -35,6 +35,12 @@ let rec omatch (r : re) (k : char list -> bool) (cs : char list) : bool =
 let omatchtop (r : re) (cs : char list) : bool = 
   omatch r List.is_empty cs
 
+(* Problem: this matcher can loop forever when the [r0] in [Star r0] is 
+   {i nullable} (i.e. it accepts the empty string). 
+
+   We want a frugal way of detecting / preventing loops! This is addressed in 
+   the next section. *)
+
 (* -------------------------------------------------------------------------- *)
 (*                          2.1 Ensuring termination                          *)
 (* -------------------------------------------------------------------------- *)
@@ -104,4 +110,83 @@ and apply (k : cont) (b : bool) (s : char list) : bool =
 (** Top-level regex matcher *)
 let fmatchtop (r : re) (s : char list) : bool = fmatch r CInit true s 
 
+(* -------------------------------------------------------------------------- *)
+(*                   3: Specializing the matcher to a regex                   *)
+(* -------------------------------------------------------------------------- *)
 
+(* To improve efficiency, we {i stage} the matching process 
+  by compiling the regex to abstract machine code and pass the code label 
+  (the {i continuation number}) around. Instead of applying the continuation, 
+  we just generate code for a call.Caml *)
+
+(** [contno] represents {i continuation numbers}, i.e. the code label *)
+type contno = CN of int 
+
+(** [comp] is the type of possible continuation bodies:   
+    - [AtEnd]: the computation that succeeds iff there are no chars 
+      left in the string 
+    - [Expect (c, i)]: checks that the first char (if any) of the string is [c],
+      and invokes continuation [i] on the remainder of the string, 
+      with the flag set to true. If the first char isn't [c], 
+      the computation fails. 
+    - [Cont (p, i)]: invokes continuation [i] on the current string. 
+      If [p] is false, the flag bit is set to false, 
+      otherwise it is passed along unmodified. 
+    - [Fail]: always fails 
+    - [Or (f1, f2)]: succeeds if at least one of [f1] & [f2] succeeds, 
+      fails otherwise *)
+type comp = 
+  | AtEnd 
+  | Expect of char * contno 
+  | Cont of bool * contno 
+  | Fail 
+  | Or of comp * comp 
+
+(** [ccomp] is a pair consisting of a [bool] and a [comp]utation. 
+    The bool specifies whether the computation is [unconditional]: 
+    - unconditional computations are always evaluated
+    - conditional computations are only evaluated if the character-consumption 
+      flag is currently true, and fails immediately otherwise *)
+type ccomp = bool * comp 
+
+(** [pgm] is the type of {i programs}. A program is consists of a [ccomp] 
+    for each continuation position *)
+type pgm = ccomp list * contno 
+
+(** [trans] takes as arguments:
+    - a regex [r]
+    - the continuation number [i] to be invoked on success
+    - an allocation counter [n] (the first unused continuation number)
+
+    [trans] returns a triple consisting of:
+    - the computation [f] representing the regex 
+    - a (possibly empty) list [gs] of generated continuation definitions 
+    - the updated allocation counter [n'], where [n' = n + |gs| ] *)
+let rec trans (r : re) (i : contno) (n : int) : comp * ccomp list * int = 
+  match r with 
+  | Char c -> (Expect (c, i), [], n)
+  | Eps -> (Cont (true, i), [], n)
+  | Seq (r1, r2) -> 
+    let (f2, gs2, n2) = trans r2 i n in 
+    let (f1, gs1, n1) = trans r1 (CN n2) (n2 + 1) in 
+    (f1, gs2 @ [(true, f2)] @ gs1, n1)
+  | Void -> (Fail, [], n)
+  | Alt (r1, r2) -> 
+    let (f1, gs1, n1) = trans r1 i n in 
+    let (f2, gs2, n2) = trans r2 i n1 in 
+    (Or (f1, f2), gs1 @ gs2, n2)
+  | Star r0 -> 
+    let (f0, gs0, n0) = trans r0 (CN n) (n + 1) in 
+    let f1 = Or (Cont (true, i), Cont (false, CN n0)) in 
+    (f1, [(false, f1)] @ gs0 @ [(true, f0)], n0 + 1)
+
+(** [transtop] compiles a regex to a program: 
+    it defines continuation number 0 to be the {i initial continuation} 
+    (i.e. the one that checks that nothing is left), 
+    and also generates an explicit definition for the main continuation 
+    so that it can be referenced by a number. *)
+let transtop (r : re) : pgm = 
+  let (f, gs, n) = trans r (CN 0) 1 in 
+  ([(true, AtEnd)] @ gs @ [(true, f)], CN n) 
+
+  
