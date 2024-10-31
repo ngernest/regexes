@@ -70,9 +70,22 @@ type cont =
   | CThen of re * cont 
   | CStar of re * cont 
 
-let fmatch (r : re) (k : cont) (b : bool) (cs : char list) : bool = 
-  failwith "TODO: fmatch "
+let rec fmatch (r : re) (k : cont) (b : bool) (s : char list) : bool = 
+  match r, s with 
+  | Char _, [] -> false 
+  | Char c, c' :: s' -> Char.equal c c' && apply k true s' 
+  | Eps, _ -> apply k b s 
+  | Seq (r1, r2), _ -> fmatch r1 (CThen (r2, k)) b s
+  | Void, _ -> false 
+  | Alt (r1, r2), _ -> fmatch r1 k b s || fmatch r2 k b s 
+  | Star r0, _ -> 
+    apply k b s || apply (CThen (r0, CStar (r0, k))) false s 
+
+and apply (k : cont) (b : bool) (s : char list) : bool = 
+  match k, s with 
+  | CInit, _ -> false 
+  | CThen (r, k), _ -> fmatch r k b s 
+  | CStar (r, k), _ -> b && fmatch (Star r) k b s
 
 
-(* TODO: look at fig 3 in the Filinski paper (defunctionalized matcher) *)  
 
