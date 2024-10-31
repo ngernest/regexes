@@ -41,6 +41,12 @@ let omatchtop (r : re) (cs : char list) : bool =
 
 (* --------------------- A termination-augmented matcher -------------------- *)
 
+(** Same as [omatch], but with an extra argument [b], which tracks whether 
+    the character has been consumed since the start of the current iteration. 
+    Intuition: 
+    - [b] is set to true after a successful [Char c] match 
+    - [b] is cleared before matching the body [r0] of an iteration [Star r0] 
+    - [b] is passed along unchanged for all other cases *)
 let rec re_match (r : re) (k : bool -> char list -> bool) 
   (b : bool) (cs : char list) : bool = 
   match r, cs with 
@@ -53,7 +59,9 @@ let rec re_match (r : re) (k : bool -> char list -> bool)
   | Seq (r1, r2), _ -> 
     re_match r1 (fun s' -> re_match r2 k s') b cs
   | Star r0, _ -> 
-    (* [k'] is a single-use continuation, used only in the [Star] case *)
+    (* [k'] is a single-use continuation, used only in the [Star] case 
+       (Filinski says the purpose of [k'] is to satsify some syntactic property 
+        later on in the paper) *)
     let k' (bf : bool) (ss : char list) : bool = 
       re_match r0 (fun b' s' -> b' && re_match (Star r0) k b' s') bf ss in 
     k b cs || k' false cs 
@@ -65,9 +73,14 @@ let re_matchtop (r : re) (cs : char list) : bool =
 
 (* ------------ A defunctionalized termination-augmented matcher ------------ *)
 
+(** Datatype for defunctionalized continuations: 
+    these keep track of the free variables in the body of the continuation *)
 type cont = 
   | CInit 
+  (* [CThen (r, k)] corresponds to [fun b s -> match r k b s] *)
   | CThen of re * cont 
+  (* [CStar (r, k)] represents [CThen (Star r, k)], but also checks whether 
+     the guard [b] is true, i.e. [fun b s -> b && match r k b s] *)
   | CStar of re * cont 
 
 let rec fmatch (r : re) (k : cont) (b : bool) (s : char list) : bool = 
@@ -81,11 +94,14 @@ let rec fmatch (r : re) (k : cont) (b : bool) (s : char list) : bool =
   | Star r0, _ -> 
     apply k b s || apply (CThen (r0, CStar (r0, k))) false s 
 
+(** Builds up the body of the continuation *)    
 and apply (k : cont) (b : bool) (s : char list) : bool = 
   match k, s with 
   | CInit, _ -> false 
   | CThen (r, k), _ -> fmatch r k b s 
   | CStar (r, k), _ -> b && fmatch (Star r) k b s
 
+(** Top-level regex matcher *)
+let fmatchtop (r : re) (s : char list) : bool = fmatch r CInit true s 
 
 
