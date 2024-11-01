@@ -189,4 +189,40 @@ let transtop (r : re) : pgm =
   let (f, gs, n) = trans r (CN 0) 1 in 
   ([(true, AtEnd)] @ gs @ [(true, f)], CN n) 
 
+  (* TODO: 
+    - transcribe [interp]
+    - check what happens to Star* -- does it terminate? does Utop hang? *)
+
+(* -------------------------------------------------------------------------- *)
+(*                         A backtracking interpreter                         *)
+(* -------------------------------------------------------------------------- *)
+
+(** Interprets a list of instructions [gs], a continuation [comp], 
+    the flag [b] and matches the compiled regex against the string [s] *)    
+let rec interp (gs : ccomp list) (comp : comp) (b : bool) (s : char list) : bool = 
+  match comp, s with 
+  | AtEnd, [] -> true 
+  | AtEnd, _ -> false 
+  | Expect (_, _), [] -> false 
+  | Expect (c, i), c' :: s' -> 
+    Char.equal c c' && interpi gs i true s' 
+  | Cont (true, i), _ -> interpi gs i b s 
+  | Cont (false, i), _ -> interpi gs i false s 
+  | Fail, _ -> false 
+  | Or (f1, f2), _ -> interp gs f1 b s || interp gs f2 b s 
+  and interpc (gs : ccomp list) (ccomp : ccomp) (b : bool) (s : char list) : bool = 
+    match ccomp with 
+    | (true, f) -> interp gs f b s 
+    | (false, f) -> b && interp gs f b s 
+  and interpi (gs : ccomp list) (CN n : contno) (b : bool) (s : char list) : bool = 
+    interpc gs (List.nth_exn gs n) b s 
+
+(** Runs the result of compiling a regex to a staged computation *)    
+let irun ((gs, i1) : ccomp list * contno) (s : char list) : bool = 
+  interpi gs i1 true s
+
+(** Top-level regex matcher *)  
+let imatchtop (r : re) (s : char list) : bool = 
+  irun (transtop r) s  
+
   
