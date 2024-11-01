@@ -1,4 +1,4 @@
 (executable
- (public_name regexes)
+ (public_name main)
  (name main)
- (libraries regexes))
+ (libraries lib base stdio))
