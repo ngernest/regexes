@@ -4,16 +4,16 @@ open! Base
 (*                               1.1 Background                               *)
 (* -------------------------------------------------------------------------- *)
 
-(* The stuff in this section is largely the same as [harper.ml], modulo some
-   renaming *)
+(* The stuff in this section is largely the same as [harper.ml], 
+  modulo some renaming *)
 
 (** A datatype for regular expressions *)
-type re =
-  | Void
-  | Eps
-  | Char of char
-  | Seq of re * re
-  | Alt of re * re
+type re = 
+  | Void 
+  | Eps 
+  | Char of char 
+  | Seq of re * re 
+  | Alt of re * re 
   | Star of re
 
 (** [omatch] matches some initial segment of [cs] against the regex [r],
@@ -29,13 +29,14 @@ let rec omatch (r : re) (k : char list -> bool) (cs : char list) : bool =
   | Star r0, _ -> k cs || omatch r0 (fun s' -> omatch r k s') cs
 
 (** Determines whether a string matches a regex *)
-let omatchtop (r : re) (cs : char list) : bool = omatch r List.is_empty cs
+let omatchtop (r : re) (cs : char list) : bool = 
+  omatch r List.is_empty cs
 
-(* Problem: this matcher can loop forever when the [r0] in [Star r0] is {i
-   nullable} (i.e. it accepts the empty string).
+(* Problem: this matcher can loop forever when the [r0] in [Star r0] is 
+  {i nullable} (i.e. it accepts the empty string).
 
-   We want a frugal way of detecting / preventing loops! This is addressed in
-   the next section. *)
+   We want a frugal way of detecting / preventing loops! 
+   This is addressed in the next section. *)
 
 (* -------------------------------------------------------------------------- *)
 (*                          2.1 Ensuring termination                          *)
@@ -49,8 +50,8 @@ let omatchtop (r : re) (cs : char list) : bool = omatch r List.is_empty cs
     - [b] is set to true after a successful [Char c] match 
     - [b] is cleared before matching the body [r0] of an iteration [Star r0] 
     - [b] is passed along unchanged for all other cases *)
-let rec re_match (r : re) (k : bool -> char list -> bool) (b : bool)
-  (cs : char list) : bool =
+let rec re_match (r : re) (k : bool -> char list -> bool) 
+  (b : bool) (cs : char list) : bool =
   match (r, cs) with
   | Void, _ -> false
   | Eps, _ -> k b cs
@@ -59,9 +60,9 @@ let rec re_match (r : re) (k : bool -> char list -> bool) (b : bool)
   | Alt (r1, r2), _ -> re_match r1 k b cs || re_match r2 k b cs
   | Seq (r1, r2), _ -> re_match r1 (fun s' -> re_match r2 k s') b cs
   | Star r0, _ ->
-    (* [k'] is a single-use continuation, used only in the [Star] case (Filinski
-       says the purpose of [k'] is to satsify some syntactic property later on
-       in the paper) *)
+    (* [k'] is a single-use continuation, used only in the [Star] case 
+      (Filinski says the purpose of [k'] is to satsify some syntactic 
+      property later on in the paper) *)
     let k' (bf : bool) (ss : char list) : bool =
       re_match r0 (fun b' s' -> b' && re_match (Star r0) k b' s') bf ss in
     k b cs || k' false cs
@@ -78,8 +79,8 @@ type cont =
   | CInit
   (* [CThen (r, k)] corresponds to [fun b s -> match r k b s] *)
   | CThen of re * cont
-  (* [CStar (r, k)] represents [CThen (Star r, k)], but also checks whether the
-     guard [b] is true, i.e. [fun b s -> b && match r k b s] *)
+  (* [CStar (r, k)] represents [CThen (Star r, k)], but also checks whether 
+     the guard [b] is true, i.e. [fun b s -> b && match r k b s] *)
   | CStar of re * cont
 
 let rec fmatch (r : re) (k : cont) (b : bool) (s : char list) : bool =
@@ -106,10 +107,10 @@ let fmatchtop (r : re) (s : char list) : bool = fmatch r CInit true s
 (*                   3: Specializing the matcher to a regex                   *)
 (* -------------------------------------------------------------------------- *)
 
-(* To improve efficiency, we {i stage} the matching process by compiling the
-   regex to abstract machine code and pass the code label (the {i continuation
-   number}) around. Instead of applying the continuation, we just generate code
-   for a call.Caml *)
+(* To improve efficiency, we {i stage} the matching process by compiling the 
+   regex to abstract machine code and pass the code label 
+   (the {i continuation number}) around.
+   Instead of applying the continuation, we just generate code for a call *)
 
 (** [contno] represents {i continuation numbers}, i.e. the code label *)
 type contno = CN of int
@@ -181,8 +182,6 @@ let transtop (r : re) : pgm =
   let f, gs, n = trans r (CN 0) 1 in
   ([ (true, AtEnd) ] @ gs @ [ (true, f) ], CN n)
 
-(* TODO: - transcribe [interp] - check what happens to Star* -- does it
-   terminate? does Utop hang? *)
 
 (* -------------------------------------------------------------------------- *)
 (*                         A backtracking interpreter                         *)
@@ -190,8 +189,8 @@ let transtop (r : re) : pgm =
 
 (** Interprets a list of instructions [gs], a continuation [comp], 
     the flag [b] and matches the compiled regex against the string [s] *)
-let rec interp (gs : ccomp list) (comp : comp) (b : bool) (s : char list) : bool
-    =
+let rec interp (gs : ccomp list) (comp : comp) 
+  (b : bool) (s : char list) : bool =
   match (comp, s) with
   | AtEnd, [] -> true
   | AtEnd, _ -> false
@@ -202,20 +201,20 @@ let rec interp (gs : ccomp list) (comp : comp) (b : bool) (s : char list) : bool
   | Fail, _ -> false
   | Or (f1, f2), _ -> interp gs f1 b s || interp gs f2 b s
 
-and interpc (gs : ccomp list) (ccomp : ccomp) (b : bool) (s : char list) : bool
-    =
+and interpc (gs : ccomp list) (ccomp : ccomp) 
+  (b : bool) (s : char list) : bool =
   match ccomp with
   | true, f -> interp gs f b s
   | false, f -> b && interp gs f b s
 
-and interpi (gs : ccomp list) (CN n : contno) (b : bool) (s : char list) : bool
-    =
+and interpi (gs : ccomp list) (CN n : contno) (b : bool) 
+  (s : char list) : bool =
   interpc gs (List.nth_exn gs n) b s
 
 (** Runs the result of compiling a regex to a staged computation *)
-let irun ((gs, i1) : ccomp list * contno) (s : char list) : bool =
+let irun ((gs, i1) : ccomp list * contno) (s : char list) : bool = 
   interpi gs i1 true s
 
 (** Top-level regex matcher *)
-let imatchtop (r : re) (s : string) : bool =
+let imatchtop (r : re) (s : string) : bool = 
   irun (transtop r) (String.to_list s)

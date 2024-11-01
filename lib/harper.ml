@@ -24,5 +24,4 @@ let rec acc (r : regexp) (cs : char list) (k : char list -> bool) : bool =
   | Star r1, _ -> k cs || acc r1 cs (fun cs' -> acc r cs' k)
 
 (** Determines whether a string matches a regex *)
-let accept (r : regexp) (s : string) : bool =
-  acc r (String.to_list s) List.is_empty
+let accept (r : regexp) (s : string) : bool = acc r (String.to_list s) List.is_empty
