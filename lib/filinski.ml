@@ -1,4 +1,4 @@
-open! Base
+open Base
 
 (* -------------------------------------------------------------------------- *)
 (*                               1.1 Background                               *)
@@ -15,6 +15,7 @@ type re =
   | Seq of re * re 
   | Alt of re * re 
   | Star of re
+[@@deriving sexp]  
 
 (** [omatch] matches some initial segment of [cs] against the regex [r],
     and pases the corresponding final segment to the continuation [k] *)
@@ -114,6 +115,7 @@ let fmatchtop (r : re) (s : char list) : bool = fmatch r CInit true s
 
 (** [contno] represents {i continuation numbers}, i.e. the code label *)
 type contno = CN of int
+[@@deriving sexp]
 
 (** [comp] is the type of possible continuation bodies:   
     - [AtEnd]: the computation that succeeds iff there are no chars 
@@ -134,6 +136,7 @@ type comp =
   | Cont of bool * contno
   | Fail
   | Or of comp * comp
+[@@deriving sexp]  
 
 (** [ccomp] is a pair consisting of a [bool] and a [comp]utation. 
     The bool specifies whether the computation is [unconditional]: 
@@ -141,10 +144,12 @@ type comp =
     - conditional computations are only evaluated if the character-consumption 
       flag is currently true, and fails immediately otherwise *)
 type ccomp = bool * comp
+[@@deriving sexp]
 
 (** [pgm] is the type of {i programs}. A program is consists of a [ccomp] 
     for each continuation position *)
 type pgm = ccomp list * contno
+[@@deriving sexp]
 
 (** [trans] takes as arguments:
     - a regex [r]
@@ -217,4 +222,7 @@ let irun ((gs, i1) : ccomp list * contno) (s : char list) : bool =
 
 (** Top-level regex matcher *)
 let imatchtop (r : re) (s : string) : bool = 
+  let pgm = transtop r in 
+  Stdio.printf "Compiled program:\n";
+  Stdio.printf "%s\n" (Sexp.to_string_hum (sexp_of_pgm pgm));
   irun (transtop r) (String.to_list s)
