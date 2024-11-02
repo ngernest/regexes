@@ -2,6 +2,7 @@ Require Import List.
 Import ListNotations.
 From stdpp Require Import gmap.
 
+(* Custom Ltac to simplify goals *)
 Ltac simp tac :=
   repeat match goal with
   | |- ?x = ?x => reflexivity
@@ -53,19 +54,38 @@ Inductive re : Type :=
 Inductive matches : re -> list T -> Prop :=
   | matches_epsilon : matches Epsilon []
   | matches_atom a : matches (Atom a) [a]
-  | matches_union_l r1 r2 s : matches r1 s -> matches (Union r1 r2) s
-  | matches_union_r r1 r2 s : matches r2 s -> matches (Union r1 r2) s
-  | matches_concat r1 r2 s1 s2 s3 : matches r1 s1 -> matches r2 s2 -> s3 = s1 ++ s2 -> matches (Concat r1 r2) s3
-  | matches_star_empty r : matches (Star r) []
-  | matches_star_step r s1 s2 s3 : matches r s1 -> matches (Star r) s2 -> s3 = s1 ++ s2 -> matches (Star r) s3.
+  | matches_union_l r1 r2 s : 
+      matches r1 s -> 
+      matches (Union r1 r2) s
+  | matches_union_r r1 r2 s : 
+      matches r2 s -> 
+      matches (Union r1 r2) s
+  | matches_concat r1 r2 s1 s2 s3 : 
+      matches r1 s1 -> 
+      matches r2 s2 ->
+      s3 = s1 ++ s2 -> 
+    matches (Concat r1 r2) s3
+  | matches_star_empty r : 
+      matches (Star r) []
+  | matches_star_step r s1 s2 s3 : 
+      matches r s1 -> 
+      matches (Star r) s2 -> 
+      s3 = s1 ++ s2 -> 
+      matches (Star r) s3.
 
-Lemma cons_eq_app {A} (a : A) x y z : a :: x = y ++ z -> (y = [] ∧ z = a :: x) ∨ (∃ y', y = a :: y' ∧ x = y' ++ z).
+(* A lemma relating cons and [++] *)
+Lemma cons_eq_app {A} (a : A) x y z : 
+  a :: x = y ++ z -> (y = [] ∧ z = a :: x) ∨ (∃ y', y = a :: y' ∧ x = y' ++ z).
 Proof.
   intros H. replace (a :: x) with ([a] ++ x) in H; last done.
   apply app_eq_app in H. simp eauto. destruct y; simp eauto.
 Qed.
 
-Lemma star_inv r s : s ≠ [] -> matches (Star r) s -> ∃ s1 s2, s1 ≠ [] ∧ s = s1 ++ s2 ∧ matches r s1 ∧ matches (Star r) s2.
+(* Inversion lemma for [Star] *)
+Lemma star_inv r s : 
+  s ≠ [] -> 
+  matches (Star r) s -> 
+  ∃ s1 s2, s1 ≠ [] ∧ s = s1 ++ s2 ∧ matches r s1 ∧ matches (Star r) s2.
 Proof.
   intros Hs Hr. remember (Star r). revert r Heqr0. induction Hr; simp eauto.
   destruct s1; simp eauto. exists (t :: s1). simp eauto.
@@ -116,7 +136,10 @@ Fixpoint der (r : re) (a : T) : re :=
   | Epsilon => Empty
   | Atom b => if eq_dec a b then Epsilon else Empty
   | Union r1 r2 => Union (der r1 a) (der r2 a)
-  | Concat r1 r2 => if eps r1 then Union (Concat (der r1 a) r2) (der r2 a) else Concat (der r1 a) r2
+  | Concat r1 r2 => 
+    if eps r1 
+      then Union (Concat (der r1 a) r2) (der r2 a) 
+    else Concat (der r1 a) r2
   | Star r => Concat (der r a) (Star r)
   end.
 
@@ -133,3 +156,16 @@ Definition matches' (r : re) (s : list T) : bool :=
 
 Lemma matches'_matches r s : matches' r s = true <-> matches r s.
 Proof. unfold matches'. split; revert r; induction s; X. Qed.
+
+(* From Jules:
+
+  This could be extended in various ways:
+  - Other logical operators (negation, intersection, xor)
+  - Weighted version
+  - Antimirov derivatives
+  - Apply simplification rules to regexes, prove that derivatives only 
+    generate finitely many regexes up to the simplification rules 
+    (so that you could build a DFA with it)
+
+*)
+
