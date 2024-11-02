@@ -8,6 +8,9 @@ opam repo add coq-released https://coq.inria.fr/opam/released
 opam install coq-stdpp
 ```
 
+### Environment setup
+- This project compiles with Coq 8.19.2 and OCaml 5.2.0. We recommend setting up a fresh Opam switch with these versions, and use the [coq-lsp](https://github.com/ejgallego/coq-lsp) VS Code extension (instead of VSCoq). 
+
 ## OCaml code 
 The `ocaml` subdirectory contains executable implementations of regex matchers:
 - [`harper.ml`](./ocaml/lib/harper.ml) contains the code from "Proof-directed debugging" (Harper 1998), translated from SML to OCaml
