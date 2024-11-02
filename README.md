@@ -1,5 +1,14 @@
 # Verified Regular Expression Matching (WIP)
 
+## Coq code 
+The `coq` subdirectory contains Jules' code for verified regex derivatives -- 
+to run it, we need to install the following library:
+```
+opam repo add coq-released https://coq.inria.fr/opam/released
+opam install coq-stdpp
+```
+
+## OCaml code 
 The `ocaml` subdirectory contains executable implementations of regex matchers:
 - [`harper.ml`](.ocaml//lib/harper.ml) contains the code from "Proof-directed debugging" (Harper 1998), translated from SML to OCaml
 - [`filinski.ml`](.ocaml//lib/filinski.ml) contains the code from "Proof-directed program transformation: A functional account of efficient regular expression matching" (Filinski 2021), also translated from SML to OCaml 
