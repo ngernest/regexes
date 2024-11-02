@@ -97,8 +97,10 @@ let dfa (r : re) : dfa =
       - [s] is the state parameter for [find]
       - [v] is the set of states ([int]s) we've visited so far
       - [t] is the list of transitions we've built so far 
-      - [f] is the final states we've generated so far *)
-  let rec loop (s : int * int M.t) (v : I.t) t f rs =
+      - [f] is the final states we've generated so far 
+      - [rs] is the current working set of regexes *)
+  let rec loop (s : int * int M.t) (v : I.t) (t : (int * char * int) list) 
+    (f : int list) (rs : R.t) =
     let (x, s) = find rs s in
     if I.mem x v then (s, v, t, f)
     else charfold (fun c (s, v, t, f) ->
@@ -108,17 +110,27 @@ let dfa (r : re) : dfa =
            (s, I.add x v, t, if R.exists null rs then x :: f else f) in
   let (s, v, t, f) = loop (0, M.empty) I.empty [] [] (R.singleton r) in
   let (fail, (n, m)) = find R.empty s in 
-  { size = n; fail = fail; trans= t; final = f }
-      
-type table = { m : int array array; accept : bool array; error : int }
+  { size = n; 
+    fail = fail; 
+    trans = t; 
+    final = f }
 
-let table d = 
+(** A datatype for regex matching tables *)    
+type table = { 
+  m : int array array; 
+  accept : bool array; 
+  error : int 
+}
+
+(** Builds a table-based matcher from a [dfa] *)
+let table (d : dfa) : table = 
   { error = d.fail;
     accept = Array.init d.size (fun i -> List.mem i d.final);
     m = (let a = Array.init d.size (fun _ -> Array.make 256 0) in
          List.iter (fun (x, c, y) -> a.(x).(Char.code c) <- y) d.trans; a) }
 
-let rec matches' t s i x =
+
+let rec matches' (t : table) (s : string) (i : int) (x : int) : bool =
   if i < String.length s && x != t.error 
   then matches' t s (i+1) t.m.(x).(Char.code s.[i])
   else t.accept.(x)
