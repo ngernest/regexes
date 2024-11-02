@@ -168,4 +168,3 @@ Proof. unfold matches'. split; revert r; induction s; X. Qed.
     (so that you could build a DFA with it)
 
 *)
-
