@@ -57,9 +57,9 @@ let rec re_match (r : re) (k : bool -> char list -> bool)
   | Void, _ -> false
   | Eps, _ -> k b cs
   | Char _, [] -> false
-  | Char c, c' :: cs -> if Char.equal c c' then k b cs else false
+  | Char c, c' :: s' -> Char.equal c c' && k true s'
   | Alt (r1, r2), _ -> re_match r1 k b cs || re_match r2 k b cs
-  | Seq (r1, r2), _ -> re_match r1 (fun s' -> re_match r2 k s') b cs
+  | Seq (r1, r2), _ -> re_match r1 (fun b' s' -> re_match r2 k b' s') b cs
   | Star r0, _ ->
     (* [k'] is a single-use continuation, used only in the [Star] case 
       (Filinski says the purpose of [k'] is to satsify some syntactic 
