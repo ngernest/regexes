@@ -115,37 +115,73 @@ let dfa (r : re) : dfa =
     trans = t; 
     final = f }
 
-(** A datatype for regex matching tables *)    
+(** A datatype for regex matching tables:
+    - [m] is the transition table 
+    - [accept] is an array of [bool]s indicating 
+      if the state is an accepting state 
+    - [error] is the index of the error state *)    
 type table = { 
   m : int array array; 
   accept : bool array; 
   error : int 
 }
 
-(** Builds a table-based matcher from a [dfa] *)
+(** Builds a table-based matcher from a [dfa] (it builds a nested array of [int]s
+    and initializes it using the list of transitions) *)
 let table (d : dfa) : table = 
   { error = d.fail;
     accept = Array.init d.size (fun i -> List.mem i d.final);
     m = (let a = Array.init d.size (fun _ -> Array.make 256 0) in
          List.iter (fun (x, c, y) -> a.(x).(Char.code c) <- y) d.trans; a) }
 
-
+(** [matches'] takes a table [t], a string [s], an index [i] and 
+   a current state [x]. It keeps calling itself so long as we haven't consumed
+   the entirety of the string or hit the error state, and it reports whether it 
+   ends in an accepting state or not.  *)
 let rec matches' (t : table) (s : string) (i : int) (x : int) : bool =
   if i < String.length s && x != t.error 
   then matches' t s (i+1) t.m.(x).(Char.code s.[i])
   else t.accept.(x)
 
-let re_match t s = matches' t s 0 0
+(** [re_match] calls [matches'] at index 0, in state 0 *)  
+let re_match (t : table) (s : string) : bool = 
+  matches' t s 0 0
 
-let charset s = enum (fun i r -> Alt(C s.[i], r)) Bot 0 (String.length s)
-let string s = enum (fun i r -> Seq(r, C s.[i])) Nil 0 (String.length s)
-let seq rs = List.fold_right (fun r rs -> Seq(r, rs)) rs Nil
-let alt rs = List.fold_right (fun r rs -> Alt(r, rs)) rs Bot
-let opt r = Alt(r, Nil)
-let star r = Star r
-let plus r = Seq(r, star r)
+(* -------------------------------------------------------------------------- *)
+(*                   Helper functions for regex constructors                  *)
+(* -------------------------------------------------------------------------- *)
 
-let print_table out t =
+(** Constructs a regex that a set of characters in a string *)
+let charset (s : string) : re = 
+  enum (fun i r -> Alt(C s.[i], r)) Bot 0 (String.length s)
+
+(** Constructs a regex that matches exactly the string [s] *)  
+let string (s : string) : re = 
+  enum (fun i r -> Seq(r, C s.[i])) Nil 0 (String.length s)
+
+(** Folds [Seq] over a list of regexes *)  
+let seq (rs : re list) : re = 
+  List.fold_right (fun r rs -> Seq(r, rs)) rs Nil
+
+(** Folds [Alt] over a list of regexes *)
+let alt (rs : re list) : re = 
+  List.fold_right (fun r rs -> Alt(r, rs)) rs Bot
+
+(** Regex indicating that [r] is optional *)
+let opt (r : re) : re = Alt (r, Nil)
+
+(** Kleene star *)
+let star (r : re) : re = Star r
+
+(** Matches one or more occurrences of a regex [r] *)
+let plus (r : re) : re = Seq (r, star r)
+
+(* -------------------------------------------------------------------------- *)
+(*                               Pretty-printing                              *)
+(* -------------------------------------------------------------------------- *)
+
+(** Pretty-prints a table [t] using the formatter [out] *)
+let print_table (out : Format.formatter) (t : table) : unit =
   Array.iteri (fun x row ->
     Array.iteri (fun c y ->
       if x != t.error && y != t.error then
@@ -154,6 +190,10 @@ let print_table out t =
          Format.fprintf out "\n"))
       row)
     t.m
+
+(* -------------------------------------------------------------------------- *)
+(*                                    Tests                                   *)
+(* -------------------------------------------------------------------------- *)
    
 module Test = struct
   let digit = charset "0123456789"
