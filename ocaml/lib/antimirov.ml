@@ -46,8 +46,8 @@ let rec aderiv (c : char) (r : re) : R.t =
   match r with
   | C c' when c = c' -> R.singleton Nil 
   | C _ | Nil | Bot -> R.empty
-  | Alt(r, r') -> R.union (aderiv c r) (aderiv c r')
-  | Seq(r1, r2) -> R.union (rmap (fun r1' -> Seq(r1', r2)) (aderiv c r1))
+  | Alt (r, r') -> R.union (aderiv c r) (aderiv c r')
+  | Seq (r1, r2) -> R.union (rmap (fun r1' -> Seq(r1', r2)) (aderiv c r1))
                            (if null r1 then aderiv c r2 else R.empty)
   | Star r -> rmap (fun r' -> Seq(r', Star r)) (aderiv c r)
 
@@ -56,7 +56,17 @@ let rec aderiv (c : char) (r : re) : R.t =
 let deriv (c : char) (rs : R.t) : R.t = 
   R.fold (fun r acc -> R.union (aderiv c r) acc) rs R.empty
 
-(** A datatype for DFAs *)
+(* Since the set of partial derivatives is finite, 
+  this means that the powerset of this set is also finite, 
+   and so by treating sets of partial derivatives as states,
+   we can construct a DFA for matching regexes *)
+
+(** A datatype for DFAs:
+    - [size] is the no. of states 
+      (we index states using [int]s from [0] to [size - 1]) 
+    - [fail] is the sink state for non-matching strings
+    - [trans] is a list of transitions 
+    - [final] is a list of accepting states *)
 type dfa = {
   size : int; 
   fail : int; 
@@ -64,12 +74,31 @@ type dfa = {
   final : int list
 }
 
-let rec enum f v i max = if i < max then enum f (f i v) (i+1) max else v
-let charfold f init  = enum (fun i -> f (Char.chr i)) init 0 256
-    
-let dfa r =
-  let find rs (n,m) = try M.find rs m, (n,m) with _ -> n, (n+1, M.add rs n m) in
-  let rec loop s v t f rs =
+(** [enum] is a for-loop ranging from [i] to [max] *)
+let rec enum (f : int -> 'a -> 'a) (v : 'a) (i : int) (max : int) : 'a = 
+  if i < max 
+    then enum f (f i v) (i + 1) max 
+  else v
+
+(** Folds a function [f] over all of the ASCII characters *)
+let charfold (f : char -> 'a -> 'a) (init : 'a) : 'a = 
+  enum (fun i -> f (Char.chr i)) init 0 256
+
+(** Constructs a DFA from a regex *)
+let dfa (r : re) : dfa =
+  (** Takes a set [rs] of regexes and returns a numeric index for it. 
+     - It uses a state [(n, m)], where [n] is a counter for generating 
+       fresh variables, and [m] is a map which maps sets of regexes 
+       to their indices *)
+  let find (rs : R.t) ((n, m) : int * int M.t) : int * (int * int M.t) = 
+    try M.find rs m, (n, m) with 
+    _ -> n, (n + 1, M.add rs n m) in
+  (** [loop] is where the main work happens: 
+      - [s] is the state parameter for [find]
+      - [v] is the set of states ([int]s) we've visited so far
+      - [t] is the list of transitions we've built so far 
+      - [f] is the final states we've generated so far *)
+  let rec loop (s : int * int M.t) (v : I.t) t f rs =
     let (x, s) = find rs s in
     if I.mem x v then (s, v, t, f)
     else charfold (fun c (s, v, t, f) ->
