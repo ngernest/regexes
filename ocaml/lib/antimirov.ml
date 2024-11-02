@@ -4,21 +4,46 @@
    https://semantic-domain.blogspot.com/2013/11/antimirov-derivatives-for-regular.html
 *)
 
-type re = C of char | Nil | Seq of re * re | Bot | Alt of re * re | Star of re
+type re = 
+  | C of char 
+  | Nil 
+  | Seq of re * re 
+  | Bot 
+  | Alt of re * re 
+  | Star of re
 
-let rec null = function
+(** Checks if a regex accepts the empty string *)
+let rec null (r : re) : bool = 
+  match r with 
   | C _ | Bot -> false
   | Nil | Star _ -> true
   | Alt(r1, r2) -> null r1 || null r2
   | Seq(r1, r2) -> null r1 && null r2
 
-module R = Set.Make(struct type t = re let compare = compare end)
-let rmap f rs = R.fold (fun r -> R.add (f r)) rs R.empty
+(** [R] is the type of finite sets of regexes *)  
+module R = Set.Make(struct 
+  type t = re 
+  let compare = compare 
+end)
 
+(** [rmap] maps a function over a set of regexes, building a new regex *)
+let rmap (f : re -> re) (rs : R.t) : R.t = 
+  R.fold (fun r -> R.add (f r)) rs R.empty
+
+(** [M] is the type of finite maps where the keys are sets of regexes *)
 module M = Map.Make(R)
-module I = Set.Make(struct type t = int let compare = compare end)
 
-let rec aderiv c = function
+(** [I] is the type of sets of [int]s *)
+module I = Set.Make(struct 
+  type t = int 
+  let compare = compare 
+end)
+
+(** [aderiv c r] is the Antimirov derivative of the regex [r] with respect 
+    to the character [c]. This returns a set of partial derivatives, which 
+    collectively accept the same strings as the Brzozowski derivative. *)
+let rec aderiv (c : char) (r : re) : R.t = 
+  match r with
   | C c' when c = c' -> R.singleton Nil 
   | C _ | Nil | Bot -> R.empty
   | Alt(r, r') -> R.union (aderiv c r) (aderiv c r')
@@ -26,9 +51,18 @@ let rec aderiv c = function
                            (if null r1 then aderiv c r2 else R.empty)
   | Star r -> rmap (fun r' -> Seq(r', Star r)) (aderiv c r)
 
-let deriv c rs = R.fold (fun r acc -> R.union (aderiv c r) acc) rs R.empty
+(** Applies the Antimirov derivative to a whole set of regexes, 
+    and takes the union *)
+let deriv (c : char) (rs : R.t) : R.t = 
+  R.fold (fun r acc -> R.union (aderiv c r) acc) rs R.empty
 
-type dfa = {size : int; fail : int; trans : (int * char * int) list; final : int list}
+(** A datatype for DFAs *)
+type dfa = {
+  size : int; 
+  fail : int; 
+  trans : (int * char * int) list; 
+  final : int list
+}
 
 let rec enum f v i max = if i < max then enum f (f i v) (i+1) max else v
 let charfold f init  = enum (fun i -> f (Char.chr i)) init 0 256
