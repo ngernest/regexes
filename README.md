@@ -14,6 +14,8 @@ opam install coq-stdpp
 - [`Antimirov.v`](./coq/Antimirov.v): Antimirov derivatives
 - [`Brzozowski.v`](./coq/Brzozowski.v): Brzozowski derivatives
 - [`Filinski.v`](./coq/Filinski.v): Our attempt at mechanizing the Filinski paper mentioned below
+- [`Regex_lecture.v`](./coq/Regex_lecture.v): The code from the CS 6115 lecture (Fall 2017) on regexes ([link](https://www.cs.cornell.edu/courses/cs6115/2017fa/notes/SimpleLex.html))
+ 
 
 ## OCaml code 
 The `ocaml` subdirectory contains executable implementations of regex matchers:
