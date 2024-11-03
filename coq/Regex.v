@@ -40,9 +40,7 @@ Ltac simp tac :=
 Definition char := ascii.
 Definition string := list ascii.
 
-Definition eq_dec := ascii_dec.
-Definition char_eqb (a b : char) :=
-  if eq_dec a b then true else false.
+Definition char_dec := ascii_dec.
 
 (* Regular expressions *)
 Inductive re :=
@@ -75,6 +73,7 @@ Inductive matches : re -> string -> Prop :=
       matches (Star r) s2 -> 
       s3 = s1 ++ s2 -> 
       matches (Star r) s3.
+
 Hint Constructors matches : core.
 
 (* A lemma relating cons and [++] *)
@@ -130,30 +129,43 @@ Proof. remember []. induction 1; X. Qed.
 
 Hint Resolve eps_matches_1 eps_matches_2 : core.
 
-(* Decision procedure for equality of two regexes *)
-(* Naive equality, though we could use an equivalence relation,
-   for ex. Union r r = r *)
+(* Decision procedure for equality of two regexes.
+   Naive equality, though we could use an equivalence relation,
+   for example Union r r ≅ r *)
 Fixpoint re_eqb (r1 r2 : re) : bool :=
   match (r1, r2) with
   | (Empty, Empty) => true
   | (Epsilon, Epsilon) => true
-  | (Atom a1, Atom a2) => char_eqb a1 a2
+  | (Atom a1, Atom a2) => (a1 =? a2)%char
   | (Union r3 r4, Union r5 r6) => re_eqb r3 r5 && re_eqb r4 r6
   | (Concat r3 r4, Concat r5 r6) => re_eqb r3 r5 && re_eqb r4 r6
   | (Star r3, Star r4) => re_eqb r3 r4
   | _ => false
   end.
 
-Lemma eq_re_eqb : forall r1 r2 : re, r1 = r2 <-> re_eqb r1 r2 = true.
+Check Ascii.eqb.
+
+Lemma re_eqb_eq : forall r1 r2 : re, r1 = r2 <-> re_eqb r1 r2 = true.
 Proof. 
   split; intros. 
-  - rewrite H. induction r2; simpl; eauto.
-    + unfold char_eqb. unfold eq_dec. 
-Admitted.
+  - rewrite H. generalize dependent r1. 
+    induction r2; intros; simpl; eauto.
+    + rewrite Ascii.eqb_refl. reflexivity.
+    + apply andb_true_iff. split; eauto.
+    + apply andb_true_iff. split; eauto.
+  - generalize dependent r1. induction r2; intros; simpl;
+    destruct r1; inversion H; try reflexivity.
+    + apply Ascii.eqb_eq in H1. rewrite H1. reflexivity.
+    + apply andb_true_iff in H1. destruct H1.
+      apply IHr2_1 in H0. apply IHr2_2 in H1. f_equal; assumption.
+    + apply andb_true_iff in H1. destruct H1. 
+      apply IHr2_1 in H0. apply IHr2_2 in H1. f_equal; assumption.
+    + apply IHr2 in H1. f_equal; assumption.
+Qed.
 
-Lemma re_eq_dec : forall r1 r2 : re, {r1 = r2} + {r1 <> r2}.
+Lemma re_dec : forall r1 r2 : re, {r1 = r2} + {r1 <> r2}.
 Proof. 
   intros. destruct (re_eqb r1 r2) eqn:H.
-  - left. apply eq_re_eqb. apply H.
-  - right. intros Hneq. apply eq_re_eqb in Hneq. congruence.
+  - left. apply re_eqb_eq. apply H.
+  - right. intros Hneq. apply re_eqb_eq in Hneq. congruence.
 Qed.

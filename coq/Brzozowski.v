@@ -6,7 +6,7 @@ Fixpoint b_der (r : re) (a : char) : re :=
   match r with
   | Empty => Empty
   | Epsilon => Empty
-  | Atom b => if eq_dec a b then Epsilon else Empty
+  | Atom b => if char_dec a b then Epsilon else Empty
   | Union r1 r2 => Union (b_der r1 a) (b_der r2 a)
   | Concat r1 r2 => 
     if eps r1 
