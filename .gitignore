@@ -1,4 +1,12 @@
 _build
 .DS_Store
 .vscode/*
+coq/.vscode/*
 .lia.cache
+.Makefile.D
+Makefile.conf
+*.glob
+*.vo
+*.vok
+*.aux
+*.vos
