@@ -1,5 +1,9 @@
 # Verified Regular Expression Matching (WIP)
 
+## Environment setup
+- This project compiles with Coq 8.19.2 and OCaml 5.2.0. We recommend setting up a fresh Opam switch with these versions, and use the [coq-lsp](https://github.com/ejgallego/coq-lsp) VS Code extension (instead of VSCoq). 
+- **Note**: if you are using VS Code, please open VS Code in the `coq` subdirectory (otherwise `coq-lsp` won't work properly). 
+
 ## Coq code 
 The `coq` subdirectory contains Jules' code for verified regex derivatives 
 (see [`Regex.v`](./coq/Regex.v)). This file requires installing the `coq-stdpp` library:
@@ -7,11 +11,9 @@ The `coq` subdirectory contains Jules' code for verified regex derivatives
 opam repo add coq-released https://coq.inria.fr/opam/released
 opam install coq-stdpp
 ```
-
-Our attempt at mechanizing the Filinski paper can be found in [`filinski.v`](./coq/filinski.v).
-
-### Environment setup
-- This project compiles with Coq 8.19.2 and OCaml 5.2.0. We recommend setting up a fresh Opam switch with these versions, and use the [coq-lsp](https://github.com/ejgallego/coq-lsp) VS Code extension (instead of VSCoq). 
+- [`Antimirov.v`](./coq/Antimirov.v): Antimirov derivatives
+- [`Brzozowski.v`](./coq/Brzozowski.v): Brzozowski derivatives
+- [`Filinski.v`](./coq/Filinski.v): Our attempt at mechanizing the Filinski paper mentioned below
 
 ## OCaml code 
 The `ocaml` subdirectory contains executable implementations of regex matchers:
