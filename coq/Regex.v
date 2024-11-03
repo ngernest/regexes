@@ -41,6 +41,8 @@ Definition char := ascii.
 Definition string := list ascii.
 
 Definition eq_dec := ascii_dec.
+Definition char_eqb (a b : char) :=
+  if eq_dec a b then true else false.
 
 (* Regular expressions *)
 Inductive re :=
@@ -127,3 +129,31 @@ Lemma eps_matches_2 r : matches r [] -> eps r = true.
 Proof. remember []. induction 1; X. Qed.
 
 Hint Resolve eps_matches_1 eps_matches_2 : core.
+
+(* Decision procedure for equality of two regexes *)
+(* Naive equality, though we could use an equivalence relation,
+   for ex. Union r r = r *)
+Fixpoint re_eqb (r1 r2 : re) : bool :=
+  match (r1, r2) with
+  | (Empty, Empty) => true
+  | (Epsilon, Epsilon) => true
+  | (Atom a1, Atom a2) => char_eqb a1 a2
+  | (Union r3 r4, Union r5 r6) => re_eqb r3 r5 && re_eqb r4 r6
+  | (Concat r3 r4, Concat r5 r6) => re_eqb r3 r5 && re_eqb r4 r6
+  | (Star r3, Star r4) => re_eqb r3 r4
+  | _ => false
+  end.
+
+Lemma eq_re_eqb : forall r1 r2 : re, r1 = r2 <-> re_eqb r1 r2 = true.
+Proof. 
+  split; intros. 
+  - rewrite H. induction r2; simpl; eauto.
+    + unfold char_eqb. unfold eq_dec. 
+Admitted.
+
+Lemma re_eq_dec : forall r1 r2 : re, {r1 = r2} + {r1 <> r2}.
+Proof. 
+  intros. destruct (re_eqb r1 r2) eqn:H.
+  - left. apply eq_re_eqb. apply H.
+  - right. intros Hneq. apply eq_re_eqb in Hneq. congruence.
+Qed.

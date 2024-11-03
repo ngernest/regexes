@@ -2,7 +2,7 @@
 
 ## Coq code 
 The `coq` subdirectory contains Jules' code for verified regex derivatives 
-(see [`jules_regex_derivatives.v`](./coq/jules_regex_derivatives.v)). This file requires installing the `coq-stdpp` library:
+(see [`Regex.v`](./coq/Regex.v)). This file requires installing the `coq-stdpp` library:
 ```
 opam repo add coq-released https://coq.inria.fr/opam/released
 opam install coq-stdpp
