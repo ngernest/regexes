@@ -111,7 +111,7 @@ Ltac auto_inv :=
   end; eauto.
 Ltac X := simp auto_inv.
 
-(* True if the regular expression matches the empty string *)
+(** True if the regular expression matches the empty string *)
 Fixpoint eps (r : re) : bool :=
   match r with
   | Empty => false
