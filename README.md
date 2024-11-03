@@ -2,7 +2,7 @@
 
 ## Environment setup
 - This project compiles with Coq 8.19.2 and OCaml 5.2.0. We recommend setting up a fresh Opam switch with these versions, and use the [coq-lsp](https://github.com/ejgallego/coq-lsp) VS Code extension (instead of VSCoq). 
-- **Note**: if you are using VS Code, please open VS Code in the `coq` subdirectory (otherwise `coq-lsp` won't work properly). 
+- **Note**: if you are using VS Code, please open VS Code in the `coq` subdirectory by `cd`-ing to the `coq` subdirectory and running `code .` in the terminal (this is needed for `coq-lsp` to work properly). 
 
 ## Coq code 
 The `coq` subdirectory contains Jules' code for verified regex derivatives 
