@@ -13,6 +13,9 @@ opam install coq-stdpp
 ```
 - [`Antimirov.v`](./coq/Antimirov.v): Antimirov derivatives
 - [`Brzozowski.v`](./coq/Brzozowski.v): Brzozowski derivatives
+- [`ReCountable.v`](./coq/ReCountable.v): Proving that regexes are countable
+- [`Regex_opt.v`](./coq/Regex_opt.v): Smart constructors for regexes
+- [`ListMonad.v`](./coq/ListMonad.v) : The list monad
 - [`Filinski.v`](./coq/Filinski.v): Our attempt at mechanizing the Filinski paper mentioned below
 
 We also referenced the code from the CS 6115 lecture (Fall 2017) on regexes ([link](https://www.cs.cornell.edu/courses/cs6115/2017fa/notes/SimpleLex.html))
