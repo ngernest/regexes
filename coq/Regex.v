@@ -143,41 +143,7 @@ Fixpoint isVoid (r : re) : bool :=
   | Epsilon => false 
   end.
 
-(* Decision procedure for naive equality of two regexes *)
-Fixpoint re_eqb (r1 r2 : re) : bool :=
-  match (r1, r2) with
-  | (Void, Void) => true
-  | (Epsilon, Epsilon) => true
-  | (Atom a1, Atom a2) => (a1 =? a2)%char
-  | (Union r3 r4, Union r5 r6) => re_eqb r3 r5 && re_eqb r4 r6
-  | (Concat r3 r4, Concat r5 r6) => re_eqb r3 r5 && re_eqb r4 r6
-  | (Star r3, Star r4) => re_eqb r3 r4
-  | _ => false
-  end.
-
-Lemma re_eqb_eq : forall r1 r2 : re, r1 = r2 <-> re_eqb r1 r2 = true.
-Proof. 
-  split; intros. 
-  - rewrite H. generalize dependent r1. 
-    induction r2; intros; simpl; eauto.
-    + rewrite Ascii.eqb_refl. reflexivity.
-    + apply andb_true_iff. split; eauto.
-    + apply andb_true_iff. split; eauto.
-  - generalize dependent r1. induction r2; intros; simpl;
-    destruct r1; inversion H; try reflexivity.
-    + apply Ascii.eqb_eq in H1. rewrite H1. reflexivity.
-    + apply andb_true_iff in H1. destruct H1.
-      apply IHr2_1 in H0. apply IHr2_2 in H1. f_equal; assumption.
-    + apply andb_true_iff in H1. destruct H1. 
-      apply IHr2_1 in H0. apply IHr2_2 in H1. f_equal; assumption.
-    + apply IHr2 in H1. f_equal; assumption.
-Qed.
-
 Lemma re_dec : forall r1 r2 : re, {r1 = r2} + {r1 <> r2}.
-Proof. 
-  intros. destruct (re_eqb r1 r2) eqn:H.
-  - left. apply re_eqb_eq. apply H.
-  - right. intros Hneq. apply re_eqb_eq in Hneq. congruence.
-Qed.
+Proof. decide equality. apply char_dec. Qed.
 
 Instance ReDecidable : EqDecision re := re_dec.
