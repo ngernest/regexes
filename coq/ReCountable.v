@@ -11,52 +11,48 @@ Definition decode_ascii (p : positive) : option ascii := decode p.
 
 Fixpoint encode_regex (r : re) : positive :=
   match r with
-  | Void => encode_pair_pos (1%positive, 1%positive)
-  | Epsilon => encode_pair_pos (2%positive, 2%positive)
-  | Atom a => encode_pair_pos (3%positive, encode_ascii a)
-  | Union r1 r2 => encode_pair_pos
-    (4%positive, (encode_pair_pos (encode_regex r1, encode_regex r2)))
-  | Concat r1 r2 => encode_pair_pos 
-    (5%positive, (encode_pair_pos (encode_regex r1, encode_regex r2)))
-  | Star r' => encode_pair_pos (6%positive, (encode_regex r'))
+  | Void => encode (1, 1, 1)
+  | Epsilon => encode (2, 2, 2)
+  | Atom a => encode (3, a, 3)
+  | Union r1 r2 => encode (4, encode_regex r1, encode_regex r2)
+  | Concat r1 r2 => encode (5, encode_regex r1, encode_regex r2)
+  | Star r' => encode (6, encode_regex r', 6)
   end.
 
-Definition decode_regex (n : positive) : option re := 
-  match (decode_pair_pos n) with
-  | Some (1%positive, 1%positive) => Some Void
-  | Some (2%positive, 2%positive) => Some Epsilon
-  | Some (3%positive, rest) =>
-    match (decode_ascii rest) with
+Lemma encode_regex_injective :
+  forall r1 r2 : re, encode_regex r1 = encode_regex r2 -> r1 = r2.
+Proof. Admitted.
+
+Search "Countable".
+
+
+Definition my_decode (n : positive) : option (positive * positive * positive) := decode n.
+Definition char_decode (n : positive) : option char := decode n.
+
+Search (ascii).
+Fixpoint decode_regex (n : positive) : option re := 
+  match (decode n) with
+  | Some (1%positive, 1%positive, 1%positive) => Some Void
+  | Some (2%positive, 2%positive, 2%positive) => Some Epsilon
+  | Some (3%positive, a', 3%positive) => 
+    match decode a' with
     | Some a => Some (Atom a)
-    | None => None
-    end
-    (* | Some (4, rest) =>
-      let (enc_r1, enc_r2) := decode rest in
-      match decode_regex enc_r1, decode_regex enc_r2 with
-      | Some r1, Some r2 => Some (Union r1 r2)
-      | _, _ => None
-      end
-    | Some (5, rest) =>
-      let (enc_r1, enc_r2) := decode rest in
-      match decode_regex enc_r1, decode_regex enc_r2 with
-      | Some r1, Some r2 => Some (Concat r1 r2)
-      | _, _ => None
-      end
-    | Some (6, rest) =>
-      match decode_regex rest with
-      | Some r => Some (Star r)
-      | None => None
-      end *)
     | _ => None
+    end
+  (* | Some (4%positive, n1, n2) => 
+    match (decode_regex n1, decode_regex n2) with
+    | (Some r1, Some r2) => Some (Union r1 r2)
+    | _ => None
+    end *)
+  | _ => None
   end.
 
 Definition decode_encode_regex (r : re) : 
   decode_regex (encode_regex r) = Some r.
 Proof. 
   unfold decode_regex, encode_regex. induction r; 
-  unfold encode_pair_pos, decode_pair_pos, encode_ascii, decode_ascii;
-  rewrite ! decode_encode; eauto.
-  - 
+  unfold encode_pair_pos, decode_pair_pos, 
+  encode_ascii, decode_ascii; eauto.
 Admitted.
 
 Instance ReCountable : Countable re := {
