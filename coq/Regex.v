@@ -44,7 +44,7 @@ Definition char_dec := ascii_dec.
 
 (* Regular expressions *)
 Inductive re :=
-  | Empty : re
+  | Void : re
   | Epsilon : re
   | Atom : char -> re
   | Union : re -> re -> re
@@ -53,7 +53,7 @@ Inductive re :=
 
 (* Matching relation *)
 Inductive matches : re -> string -> Prop :=
-  | matches_epsilon : matches Epsilon []
+  | matches_isEpsilon : matches Epsilon []
   | matches_atom a : matches (Atom a) [a]
   | matches_union_l r1 r2 s :
       matches r1 s -> 
@@ -100,7 +100,7 @@ Qed.
 Ltac inv' H := inversion H; clear H; simplify_eq.
 Ltac auto_inv :=
   try match goal with
-  | [ H : matches Empty _ |- _ ] => inv' H
+  | [ H : matches Void _ |- _ ] => inv' H
   | [ H : matches (Epsilon) _ |- _ ] => inv' H
   | [ H : matches (Atom _) _ |- _ ] => inv' H
   | [ H : matches (Union _ _) _ |- _ ] => inv' H
@@ -111,30 +111,32 @@ Ltac auto_inv :=
 Ltac X := simp auto_inv.
 
 (** True if the regular expression matches the empty string *)
-Fixpoint eps (r : re) : bool :=
+Fixpoint isEmpty (r : re) : bool :=
   match r with
-  | Empty => false
+  | Void => false
   | Epsilon => true
   | Atom _ => false
-  | Union r1 r2 => eps r1 || eps r2
-  | Concat r1 r2 => eps r1 && eps r2
+  | Union r1 r2 => isEmpty r1 || isEmpty r2
+  | Concat r1 r2 => isEmpty r1 && isEmpty r2
   | Star _ => true
   end.
 
-Lemma eps_matches_1 r : eps r = true -> matches r [].
+Lemma isEmpty_matches_1 r : isEmpty r = true -> matches r [].
 Proof. induction r; X. Qed.
 
-Lemma eps_matches_2 r : matches r [] -> eps r = true.
+Lemma isEmpty_matches_2 r : matches r [] -> isEmpty r = true.
 Proof. remember []. induction 1; X. Qed.
 
-Hint Resolve eps_matches_1 eps_matches_2 : core.
+Hint Resolve isEmpty_matches_1 isEmpty_matches_2 : core.
 
-(* Decision procedure for equality of two regexes.
-   Naive equality, though we could use an equivalence relation,
-   for example Union r r ≅ r *)
+(******************************************************************************)
+
+(* Decision procedure for equality of two regexes *)
+(* Naive equality, though we could use an equivalence relation,
+   for ex. Union r r = r *)
 Fixpoint re_eqb (r1 r2 : re) : bool :=
   match (r1, r2) with
-  | (Empty, Empty) => true
+  | (Void, Void) => true
   | (Epsilon, Epsilon) => true
   | (Atom a1, Atom a2) => (a1 =? a2)%char
   | (Union r3 r4, Union r5 r6) => re_eqb r3 r5 && re_eqb r4 r6

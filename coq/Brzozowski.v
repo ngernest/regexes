@@ -4,12 +4,12 @@ Require Import Regex.
   with respect to a character *)
 Fixpoint b_der (r : re) (a : char) : re :=
   match r with
-  | Empty => Empty
-  | Epsilon => Empty
-  | Atom b => if char_dec a b then Epsilon else Empty
+  | Void => Void
+  | Epsilon => Void
+  | Atom b => if char_dec a b then Epsilon else Void
   | Union r1 r2 => Union (b_der r1 a) (b_der r2 a)
   | Concat r1 r2 => 
-    if eps r1 
+    if isEmpty r1 
       then Union (Concat (b_der r1 a) r2) (b_der r2 a) 
     else Concat (b_der r1 a) r2
   | Star r => Concat (b_der r a) (Star r)
@@ -19,12 +19,12 @@ Lemma b_der_matches_1 a r s : matches (b_der r a) s -> matches r (a :: s).
 Proof. revert s. induction r; X. Qed.
 
 Lemma b_der_matches_2 a r s : matches r (a :: s) -> matches (b_der r a) s.
-Proof. revert s. induction r; X. apply eps_matches_2 in H2. X. Qed.
+Proof. revert s. induction r; X. apply isEmpty_matches_2 in H2. X. Qed.
 
 Hint Resolve b_der_matches_1 b_der_matches_2 : core.
 
 Definition matches' (r : re) (s : string) : bool :=
-  eps (fold_left b_der s r).
+  isEmpty (fold_left b_der s r).
 
 Lemma matches'_matches r s : matches' r s = true <-> matches r s.
 Proof. unfold matches'. split; revert r; induction s; X. Qed.

@@ -11,7 +11,7 @@ Definition decode_ascii (p : positive) : option ascii := decode p.
 
 Fixpoint encode_regex (r : re) : positive :=
   match r with
-  | Empty => encode_pair_pos (1%positive, 1%positive)
+  | Void => encode_pair_pos (1%positive, 1%positive)
   | Epsilon => encode_pair_pos (2%positive, 2%positive)
   | Atom a => encode_pair_pos (3%positive, encode_ascii a)
   | Union r1 r2 => encode_pair_pos
@@ -23,7 +23,7 @@ Fixpoint encode_regex (r : re) : positive :=
 
 Definition decode_regex (n : positive) : option re := 
   match (decode_pair_pos n) with
-  | Some (1%positive, 1%positive) => Some Empty
+  | Some (1%positive, 1%positive) => Some Void
   | Some (2%positive, 2%positive) => Some Epsilon
   | Some (3%positive, rest) =>
     match (decode_ascii rest) with

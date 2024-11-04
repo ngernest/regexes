@@ -1,4 +1,5 @@
 Require Import Regex ReCountable.
+Generalizable All Variables.
 
 (* If r is a regex and a is a char, then a partial derivative
    is a regex r' such that if r' accepts word s, then r accepts a ⋅ s.
@@ -7,24 +8,38 @@ Require Import Regex ReCountable.
 (* Antimirov derivative of a regex [re] with respect to a char [a] *)
 Fixpoint a_der (r : re) (a : char) `{Countable re} : gset re :=
   match r with
-  | Empty => gset_empty
+  | Void => gset_empty
   | Epsilon => gset_empty
   | Atom b => if char_dec a b then gset_singleton Epsilon else gset_empty
   | Union r1 r2 => gset_union (a_der r1 a) (a_der r2 a)
   | Concat r1 r2 => 
-    if eps r1 
+    if isEmpty r1 
       then gset_union (set_map (fun r => Concat r r2) (a_der r1 a)) (a_der r2 a) 
     else (set_map (fun r => Concat r r2) (a_der r1 a))
   | Star r => set_map (fun r' => Concat r' (Star r)) (a_der r a)
   end.
 
+(*  *)
+
+Definition ReDecidable : EqDecision re := re_dec.
+Definition ReCountable : Countable re := re_countable.
+
+Definition empty_re_set := @gset_empty re re_dec re_countable.
+
+(* TODO: figure out how to make this a non-trivial instance of the elements typeclass *)
+(* [elements : gset re -> list re] *)
+Instance elements_re_set : Elements re (gset re) := 
+  {
+     elements := fun _ => []
+  }.
+
 (* TODO: not sure how to define the following function which applies the 
    Antimirov derivative to a whole set of regexes and takes the union 
    (see [antimirov.ml])
-
-Definition aderiv (c : char) (rs : gset re) : gset re :=
-  set_fold (fun r acc => gset_union (a_der r c) acc) rs empty_re_set. *)
-
+   - The following definition only compiles when we give it a bogus instance of the [Elements] typeclass! *)
+Definition aderiv (c : char) (rs : gset re) `{Decidable re} `{Countable re}  :=
+  @set_fold re (gset re) elements_re_set (gset re) (fun r acc => gset_union (a_der r c) acc) rs empty_re_set.
+  
 
 (** An [Inductive] saying what it means for a string to match a set of regexes 
    - [matches_set_here]: if [s] matches [r], then [s] matches any regex set 
