@@ -33,4 +33,25 @@ Definition star_opt (r : re) :=
   | _ => Star r
   end.
 
+(* Returns [Epsilon] if [r] matches the empty string, 
+   otherwise matches [Void] *)
+Definition E (r : re) : re :=
+  if isEmpty r then Epsilon else Void.
+
+(* Helper function for standardizing regexes -- computes L(r) ∖ {∊}
+   - TODO: figure out why this works *)
+Fixpoint N (r : re) : re :=
+  match r with 
+  | Void => Void 
+  | Epsilon => Epsilon 
+  | Atom c => Atom c 
+  | Union r1 r2 => union_opt (N r1) (N r2)
+  | Concat r1 r2 => 
+    union_opt 
+      (union_opt (concat_opt (E r1) (N r2)) (concat_opt (N r1) (E r2)))
+      (concat_opt (N r1) (N r2))
+  | Star r' => concat_opt (N r') (star_opt (N r'))
+  end.
+
+
 
