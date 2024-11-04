@@ -130,6 +130,18 @@ Proof. remember []. induction 1; X. Qed.
 Hint Resolve isEmpty_matches_1 isEmpty_matches_2 : core.
 
 (******************************************************************************)
+(* Our code below *)
+
+(* Checks if this is a regex that never matches any string *)
+Fixpoint isVoid (r : re) : bool :=
+  match r with 
+  | Void => true 
+  | Concat r1 r2 => isVoid r1 || isVoid r2 
+  | Union r1 r2 => isVoid r1 && isVoid r2 
+  | Star _ => false  (* Star can always match the empty string *)
+  | Atom _ => false 
+  | Epsilon => false 
+  end.
 
 (* Decision procedure for equality of two regexes *)
 (* Naive equality, though we could use an equivalence relation,

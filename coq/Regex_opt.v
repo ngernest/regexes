@@ -1,6 +1,5 @@
 Require Export List Bool Ascii String Arith Lia Nat.
 Export ListNotations BoolNotations.
-
 Require Import Regex.
 
 (* Smart constructors for regexes *)
@@ -23,9 +22,12 @@ Definition concat_opt (r1 : re) (r2 : re) : re :=
   | (_, _) => Concat r1 r2 
   end.
 
-(* Smart constructor for [Star] *)
+(* Smart constructor for [Star]. Note:
+   - Iterating the empty string gives us the empty string
+   - Zero or more occurrences of Void is empty
+   - Two iterations of [Star] is the same as one *)
 Definition star_opt (r : re) := 
-  if isEmpty r then Epsilon 
+  if isEmpty r || isVoid r then Epsilon 
   else match r with 
   | Star r' => Star r' 
   | _ => Star r
