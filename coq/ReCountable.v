@@ -59,8 +59,7 @@ Proof.
   - 
 Admitted.
 
-
-Instance re_countable : @Countable re re_dec := {
+Instance ReCountable : Countable re := {
   encode := encode_regex;
   decode := decode_regex;
   decode_encode := decode_encode_regex

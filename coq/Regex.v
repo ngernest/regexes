@@ -143,9 +143,7 @@ Fixpoint isVoid (r : re) : bool :=
   | Epsilon => false 
   end.
 
-(* Decision procedure for equality of two regexes *)
-(* Naive equality, though we could use an equivalence relation,
-   for ex. Union r r = r *)
+(* Decision procedure for naive equality of two regexes *)
 Fixpoint re_eqb (r1 r2 : re) : bool :=
   match (r1, r2) with
   | (Void, Void) => true
@@ -156,8 +154,6 @@ Fixpoint re_eqb (r1 r2 : re) : bool :=
   | (Star r3, Star r4) => re_eqb r3 r4
   | _ => false
   end.
-
-Check Ascii.eqb.
 
 Lemma re_eqb_eq : forall r1 r2 : re, r1 = r2 <-> re_eqb r1 r2 = true.
 Proof. 
@@ -183,3 +179,5 @@ Proof.
   - left. apply re_eqb_eq. apply H.
   - right. intros Hneq. apply re_eqb_eq in Hneq. congruence.
 Qed.
+
+Instance ReDecidable : EqDecision re := re_dec.
