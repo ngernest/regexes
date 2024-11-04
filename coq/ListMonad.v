@@ -82,7 +82,7 @@ Proof.
     f_equal. apply IHxs'.
 Qed.    
 
-(* Proving that [(xs >>= f) >>= g === xs >>= (\x -> f x >>= g)] *)
+(* Proof that [(xs >>= f) >>= g === xs >>= (\x -> f x >>= g)] holds for lists *)
 Lemma list_assoc : forall {A B C} 
   (xs : list A) (f : A -> list B) (g : B -> list C),
   bind (bind xs f) g = bind xs (fun x => bind (f x) g).
@@ -101,7 +101,7 @@ Proof.
 Qed.    
 
 (* The list monad satisfies the monad laws! *)
-Instance ListMonadLaws : @Monad_with_Laws list _ := {
+Instance ListMonadLaws : @Monad_with_Laws list listMonad := {
     m_left_id := @list_left_id;
     m_right_id := @list_right_id;
     m_assoc := @list_assoc
