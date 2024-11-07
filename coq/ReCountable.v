@@ -9,54 +9,55 @@ Definition encode_ascii (p : ascii) : positive := encode p.
 Definition decode_pair_pos (p : positive) : option (positive * positive) := decode p.
 Definition decode_ascii (p : positive) : option ascii := decode p.
 
-Fixpoint encode_regex (r : re) : positive :=
+Fixpoint encode_regex (r : re) : gen_tree nat :=
   match r with
-  | Void => encode (1, 1, 1)
-  | Epsilon => encode (2, 2, 2)
-  | Atom a => encode (3, a, 3)
-  | Union r1 r2 => encode (4, encode_regex r1, encode_regex r2)
-  | Concat r1 r2 => encode (5, encode_regex r1, encode_regex r2)
-  | Star r' => encode (6, encode_regex r', 6)
+  | Void => GenLeaf 1
+  | Epsilon => GenLeaf 2
+  | Atom a => GenNode 3 [GenLeaf (nat_of_ascii a)]
+  | Union r1 r2 => GenNode 4 [encode_regex r1; encode_regex r2]
+  | Concat r1 r2 => GenNode 5 [encode_regex r1; encode_regex r2]
+  | Star r' => GenNode 6 [encode_regex r']
   end.
 
-Lemma encode_regex_injective :
-  forall r1 r2 : re, encode_regex r1 = encode_regex r2 -> r1 = r2.
-Proof. Admitted.
+Search "gen_tree".
+Check (gen_tree_countable).
+Search "ascii".
 
-Search "Countable".
-
-
-Definition my_decode (n : positive) : option (positive * positive * positive) := decode n.
-Definition char_decode (n : positive) : option char := decode n.
-
-Search (ascii).
-Fixpoint decode_regex (n : positive) : option re := 
-  match (decode n) with
-  | Some (1%positive, 1%positive, 1%positive) => Some Void
-  | Some (2%positive, 2%positive, 2%positive) => Some Epsilon
-  | Some (3%positive, a', 3%positive) => 
-    match decode a' with
-    | Some a => Some (Atom a)
+Fixpoint decode_regex (t : gen_tree nat) : option re := 
+  match t with
+  | GenLeaf 1 => Some Void
+  | GenLeaf 2 => Some Epsilon
+  | GenNode 3 [GenLeaf n] => Some (Atom (ascii_of_nat n))
+  | GenNode 4 [r1; r2] =>
+    match decode_regex r1, decode_regex r2 with
+    | Some r1', Some r2' => Some (Union r1' r2')
+    | _, _ => None
+    end
+  | GenNode 5 [r1; r2] => 
+    match decode_regex r1, decode_regex r2 with
+    | Some r1', Some r2' => Some (Concat r1' r2')
+    | _, _ => None
+    end
+  | GenNode 6 [r] => 
+    match decode_regex r with
+    | Some r' => Some (Star r')
     | _ => None
     end
-  (* | Some (4%positive, n1, n2) => 
-    match (decode_regex n1, decode_regex n2) with
-    | (Some r1, Some r2) => Some (Union r1 r2)
-    | _ => None
-    end *)
   | _ => None
   end.
 
-Definition decode_encode_regex (r : re) : 
-  decode_regex (encode_regex r) = Some r.
+Theorem decode_encode_regex (r : re) : decode_regex (encode_regex r) = Some r.
 Proof. 
-  unfold decode_regex, encode_regex. induction r; 
-  unfold encode_pair_pos, decode_pair_pos, 
-  encode_ascii, decode_ascii; eauto.
-Admitted.
+  induction r; unfold decode_regex; unfold encode_regex; 
+  eauto; fold decode_regex; fold encode_regex.
+  - rewrite ascii_nat_embedding. reflexivity.
+  - rewrite IHr1, IHr2. reflexivity.
+  - rewrite IHr1, IHr2. reflexivity.
+  - rewrite IHr. reflexivity.
+Qed.
 
-Instance ReCountable : Countable re := {
-  encode := encode_regex;
-  decode := decode_regex;
-  decode_encode := decode_encode_regex
-}.
+Instance ReCountable : Countable re.
+Proof. 
+  apply inj_countable with (f := encode_regex) (g := decode_regex). 
+  intros. apply decode_encode_regex.
+Qed.

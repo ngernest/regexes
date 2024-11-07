@@ -6,6 +6,7 @@ Generalizable All Variables.
    We can construct sets of partial derivatives (Antimirov derivatives). *)
 
 (* Antimirov derivative of a regex [re] with respect to a char [a] *)
+(* Note that gsets are finite *)
 Fixpoint a_der (r : re) (a : char) : gset re :=
   match r with
   | Void => ∅
@@ -18,6 +19,34 @@ Fixpoint a_der (r : re) (a : char) : gset re :=
     else (set_map (fun r => Concat r r2) (a_der r1 a))
   | Star r => set_map (fun r' => Concat r' (Star r)) (a_der r a)
   end.
+
+(* Fixpoint a_der_str (r : re) (s : string) : gset re :=
+  match s with
+  | [] => ∅
+  | (c :: cs) => set_map (fun r => a_der r) *)
+
+(* gsets are finite *)
+
+(* A(r) = all possible antimirov ders of r (list), wrt any word *)
+(* A(c) = {0, e, c} A(0) = {0} A(e) = {0, e} 
+   A(a + b) = A(a) ∪ A(b) + {a + b} *)
+(* A(ab) = A(b) ∪ {a'b | a' ∈ A(a)} ∪ {ab} *)
+(* A(a^#) = {a'a^* | a' ∈ A(a)} ∪ {a*} *)
+(* A' is same except can't take der wrt e *)
+(* then a_der r a subset A(r) *)
+(* wts that antimirov ⊂ A *)
+(* forall s, a_der s r ⊂ A(r) *)
+(* therefore, finitely many possible antimirov ders *)
+
+(* a ∈ A(r) -> ∀ c, A_c(a) ⊆ A(r) *)
+
+(* B(r) : list re := {fold sum a | a ⊂ A(r)} *)
+(* if a string matches the antimirov, it matches wrt matching *)
+(*  *)
+
+(* antimirov generates finite sets. can sum them together to get brzozowski *)
+(* finitely many b ders: for all r, |{B_w(r) | w word}| is finite *)
+(* a brzozowski der is a sum of antimirov derivatves *)
 
 (* Applies the Antimirov derivative to a whole set of regexes and takes the union *)
 Definition aderiv (c : char) (rs : gset re) : gset re :=
