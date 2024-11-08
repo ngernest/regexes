@@ -74,6 +74,9 @@ Fixpoint A_der (r : re) : gset re :=
     ∪ {[ Star r ]}
   end.
 
+Lemma re_in_A_der : forall (r : re), r ∈ A_der r.
+Proof. induction r; simpl; set_solver. Qed.
+
 (* Let r be a regex. We know that A_der r is finite.
    With this lemma, we show that the set of Antimirov derivatives of r 
    with respect to any nonempty word is finite. 
@@ -89,7 +92,9 @@ Proof.
   induction r; destruct s; eauto; try set_solver.
   - remember (a_der_str_atom c (a :: s)) as H1. 
     simpl. eapply elem_of_weaken. apply H. apply H1.
-  - simpl in *. destruct (isEmpty r1).
+  - simpl in H. destruct (isEmpty r1). admit. admit.
+  - simpl. specialize (re_in_A_der (Star r)) as H1.
+    admit.
 Admitted.
 
 (* B(r) : list re := {fold sum a | a ⊂ A(r)} *)
