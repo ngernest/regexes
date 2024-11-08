@@ -1,5 +1,4 @@
 Require Import Regex ReCountable.
-Generalizable All Variables.
 
 (* If r is a regex and a is a char, then a partial derivative
    is a regex r' such that if r' accepts word s, then r accepts a ⋅ s.
@@ -20,33 +19,92 @@ Fixpoint a_der (r : re) (a : char) : gset re :=
   | Star r => set_map (fun r' => Concat r' (Star r)) (a_der r a)
   end.
 
-(* Fixpoint a_der_str (r : re) (s : string) : gset re :=
+(* Takes the Antimirov derivative wrt a string *)
+Fixpoint a_der_str (r : re) (s : string) : gset re :=
   match s with
-  | [] => ∅
-  | (c :: cs) => set_map (fun r => a_der r) *)
+  | [] => {[ r ]}
+  | (c :: cs) => set_bind (fun r => a_der_str r cs) (a_der r c)
+  end.
 
-(* gsets are finite *)
+Lemma a_der_str_eps : forall (c : char) (s : string),
+  a_der_str Epsilon s ⊆ {[ Epsilon ]}.
+Proof. 
+  induction s.
+  - simpl. set_solver. 
+  - simpl. unfold set_bind. rewrite elements_empty. 
+    simpl. set_solver.
+Qed.
 
-(* A(r) = all possible antimirov ders of r (list), wrt any word *)
-(* A(c) = {0, e, c} A(0) = {0} A(e) = {0, e} 
-   A(a + b) = A(a) ∪ A(b) + {a + b} *)
-(* A(ab) = A(b) ∪ {a'b | a' ∈ A(a)} ∪ {ab} *)
-(* A(a^#) = {a'a^* | a' ∈ A(a)} ∪ {a*} *)
-(* A' is same except can't take der wrt e *)
-(* then a_der r a subset A(r) *)
-(* wts that antimirov ⊂ A *)
-(* forall s, a_der s r ⊂ A(r) *)
-(* therefore, finitely many possible antimirov ders *)
+Lemma subset_trans (A B C : gset re) : A ⊆ B -> B ⊆ C -> A ⊆ C.
+Proof. set_solver. Qed.
 
-(* a ∈ A(r) -> ∀ c, A_c(a) ⊆ A(r) *)
+Lemma a_der_str_atom : forall (c : char) (s : string),
+  a_der_str (Atom c) s ⊆ {[ Epsilon; Atom c]}.
+Proof. 
+  induction s.
+  - simpl. set_solver. 
+  - simpl. destruct (char_dec a c);
+    unfold set_bind. 
+    + rewrite elements_singleton. simpl. 
+      remember a_der_str_eps as H. 
+      apply subset_trans with (B := {[ Epsilon ]}).
+      * replace (a_der_str Epsilon s ∪ ∅) with (a_der_str Epsilon s) by set_solver.
+        apply (H c s). 
+      * apply union_subseteq_l. 
+    + rewrite elements_empty. simpl. 
+      set_solver.
+Qed.
+
+
+(* Definition a := ascii_of_nat 1.
+Definition b := ascii_of_nat 2. *)
+(* Compute (a_der_str (Union (Atom a) (Atom b)) [a]). *)
+
+(* Generates the (overestimated) set of all possible antimirov derivatives of r, 
+   with respect to any word *)
+Fixpoint A_der (r : re) : gset re :=
+  match r with
+  | Void => {[ Void ]}
+  | Epsilon => {[ Epsilon ]}
+  | Atom b => {[ Epsilon; Atom b ]}
+  | Union r1 r2 => (A_der r1) ∪ (A_der r2) ∪ {[ Union r1 r2 ]}
+  | Concat r1 r2 => (A_der r2) ∪ (set_map (fun r' => Concat r' r2) (A_der r1))
+    ∪ {[ Concat r1 r2 ]}
+  | Star r => (set_map (fun r' => Concat r' (Star r)) (A_der r))
+    ∪ {[ Star r ]}
+  end.
+
+(* Let r be a regex. We know that A_der r is finite.
+   With this lemma, we show that the set of Antimirov derivatives of r 
+   with respect to any nonempty word is finite. 
+   i.e. {a_der r w | w ∈ Σ+} is finite *)
+Theorem a_finite (r : re) : forall (a : re), a ∈ A_der r -> 
+  forall (c : char), a_der r c ⊆ A_der r.
+Proof. intros. Admitted.
+
+(* Alternate statement *)
+Theorem a_finite' (r : re) : forall (s : string), a_der_str r s ⊆ A_der r.
+Proof. 
+  unfold "⊆", set_subseteq_instance. intros. 
+  induction r; destruct s; eauto; try set_solver.
+  - remember (a_der_str_atom c (a :: s)) as H1. 
+    simpl. eapply elem_of_weaken. apply H. apply H1.
+  - simpl in *. destruct (isEmpty r1).
+Admitted.
 
 (* B(r) : list re := {fold sum a | a ⊂ A(r)} *)
 (* if a string matches the antimirov, it matches wrt matching *)
-(*  *)
 
 (* antimirov generates finite sets. can sum them together to get brzozowski *)
 (* finitely many b ders: for all r, |{B_w(r) | w word}| is finite *)
 (* a brzozowski der is a sum of antimirov derivatves *)
+(* wrt these rewrite rules:
+a + a = a
+A + b = b + a if a < b
+A + (b + c) = (a + b) + c
+(A + b) + b -> a + b
+(A + c) + b -> (a + b) + c
+ *)
 
 (* Applies the Antimirov derivative to a whole set of regexes and takes the union *)
 Definition aderiv (c : char) (rs : gset re) : gset re :=

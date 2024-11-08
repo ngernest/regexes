@@ -1,14 +1,8 @@
 Require Import Regex.
 
-(* In order to use sets, we need to prove that regexes have 
-   decidable equality and are countable *)
+(* In order to use sets, we need to prove that regexes are countable *)
 
-(* Injection from re to nat *)
-Definition encode_pair_pos (p : positive * positive) : positive := encode p.
-Definition encode_ascii (p : ascii) : positive := encode p.
-Definition decode_pair_pos (p : positive) : option (positive * positive) := decode p.
-Definition decode_ascii (p : positive) : option ascii := decode p.
-
+(* Injection into gen_trees, which are countable *)
 Fixpoint encode_regex (r : re) : gen_tree nat :=
   match r with
   | Void => GenLeaf 1
@@ -18,10 +12,6 @@ Fixpoint encode_regex (r : re) : gen_tree nat :=
   | Concat r1 r2 => GenNode 5 [encode_regex r1; encode_regex r2]
   | Star r' => GenNode 6 [encode_regex r']
   end.
-
-Search "gen_tree".
-Check (gen_tree_countable).
-Search "ascii".
 
 Fixpoint decode_regex (t : gen_tree nat) : option re := 
   match t with

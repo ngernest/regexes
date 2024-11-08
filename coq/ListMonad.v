@@ -106,7 +106,3 @@ Instance ListMonadLaws : @Monad_with_Laws list listMonad := {
     m_right_id := @list_right_id;
     m_assoc := @list_assoc
   }.
-
-
-    
-  
