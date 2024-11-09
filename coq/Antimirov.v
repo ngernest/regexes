@@ -1,4 +1,5 @@
 Require Import Regex ReCountable.
+Require Export Lia Nat.
 
 (* If r is a regex and a is a char, then a partial derivative
    is a regex r' such that if r' accepts word s, then r accepts a ⋅ s.
@@ -141,3 +142,54 @@ Proof.
     replace (rs' ∪ rs) with (rs ∪ rs') by set_solver.
     apply IHmatches_set.
 Qed.
+
+(******************************************************************************)
+(* Examining the size of Antimirov derivatives 
+   Inspired by https://www.weaselhat.com/post-819.html *)
+
+(* Computes the size of a regex (no. of AST nodes) *)
+Fixpoint re_size (r : re) : nat :=
+  match r with
+  | Void => 0
+  | Epsilon => 1
+  | Atom _ => 1
+  | Concat re1 re2 => 1 + re_size re1 + re_size re2
+  | Union re1 re2 => 1 + re_size re1 + re_size re2
+  | Star re' => 1 + re_size re'
+  end.
+
+(* Computes the height of a regex 
+   (height of the binary tree formed by the AST) *)
+Fixpoint re_height (r : re) : nat :=
+  match r with
+  | Void => 0
+  | Epsilon => 1
+  | Atom _ => 1
+  | Concat re1 re2 => 1 + max (re_height re1) (re_height re2)
+  | Union re1 re2 => 1 + max (re_height re1) (re_height re2)
+  | Star re' => 1 + re_height re'
+  end.
+
+(* Computes the maximum height of a set of regexes *)
+Definition max_height_re_set (rs : gset re) : nat := 
+  set_fold (fun r acc => max (re_height r) acc) 0 rs.
+
+(* Empty set has [max_height = 0] *)
+Lemma max_height_empty_set : 
+  max_height_re_set gset_empty = 0. 
+Proof.
+  unfold max_height_re_set.
+  apply set_fold_empty.
+Qed.
+
+(* The max height of an Antimirov derivative is at most twice the height
+   of the original regex. *)
+Lemma a_deriv_height : forall (c : char) (r : re),
+  max_height_re_set (a_der r c) <= 2 * re_height r.
+Proof.
+  induction r; simpl in *.
+  - (* Void *)
+    unfold "∅".
+    rewrite max_height_empty_set. lia.
+Admitted. (* TODO *)
+
