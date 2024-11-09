@@ -174,6 +174,13 @@ Fixpoint re_height (r : re) : nat :=
 Definition max_height_re_set (rs : gset re) : nat := 
   set_fold (fun r acc => max (re_height r) acc) 0 rs.
 
+(* The max height over a union of two sets is just the max height of each 
+   of the constituent subsets *)
+Lemma max_height_union (s1 s2 : gset re) :
+  max_height_re_set (s1 ∪ s2) = max (max_height_re_set s1) (max_height_re_set s2).
+Proof.
+  Admitted. (* TODO *)
+
 (* Empty set has [max_height = 0] *)
 Lemma max_height_empty_set : 
   max_height_re_set gset_empty = 0. 
@@ -202,7 +209,7 @@ Qed.
   
 (* The max height of a singleton regex set is just the height of the 
     regex contained in the set *)  
-Lemma max_height_epsilon_singleton : forall (r : re),
+Lemma max_height_singleton : forall (r : re),
   max_height_re_set {[r]} = re_height r.
 Proof.
   induction r; unfold max_height_re_set; simpl in *. 
@@ -238,7 +245,7 @@ Qed.
 Lemma a_deriv_height : forall (c : char) (r : re),
   max_height_re_set (a_der r c) <= 2 * re_height r.
 Proof.
-  induction r; simpl in *; try unfold "∅".
+  induction r; simpl; try unfold "∅".
   - (* Void *)
     rewrite max_height_empty_set. lia.
   - (* Epsilon *)
@@ -247,7 +254,24 @@ Proof.
     destruct (char_dec c c0).
     + (* c = c0 *)
       unfold max_height_re_set.
-      simpl.
-
-Admitted. (* TODO *)
+      rewrite max_height_singleton.
+      simpl. lia.
+    + (* c <> c0 *)
+      rewrite max_height_empty_set.
+      lia.
+  - (* Union *)
+    rewrite max_height_union.
+    lia.
+  - (* Concat *)
+    destruct (isEmpty r1) eqn:E.
+    (* TODO: need to come up with a lemma that says how [max_height_re_set]
+       commutes with [set_map] *)
+    + (* isEmpty r1 = true *)
+      admit. (* TODO *)
+    + (* isEmpty r1 = false *) 
+      admit. (* TODO *)
+  - (* Star *) 
+    admit. (* TODO *)
+  
+  
 
