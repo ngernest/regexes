@@ -144,7 +144,7 @@ Proof.
 Qed.
 
 (******************************************************************************)
-(* Examining the size of Antimirov derivatives 
+(* Examining the height of Antimirov derivatives 
    Inspired by https://www.weaselhat.com/post-819.html *)
 
 (* Computes the size of a regex (no. of AST nodes) *)
@@ -275,3 +275,13 @@ Proof.
   
   
 
+(******************************************************************************)
+(* Other things we could prove:
+   - given a regular expression 𝑟, 
+     the number of Antimirov word derivatives is linear in the size of 𝑟.
+    - Up to similarity, the union of the set of Antimirov partial derivatives 
+    of a regular expression and the Brzozowski derivative are the same.
+
+https://cstheory.stackexchange.com/questions/41939/time-complexity-of-derivative-based-regex-matchers
+
+*)
