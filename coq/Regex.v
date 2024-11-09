@@ -1,6 +1,6 @@
 Require Export List Bool Ascii String Arith Lia Nat.
 Export ListNotations BoolNotations.
-From stdpp Require Export gmap.
+From stdpp Require Export gmap sets.
 Open Scope list_scope.
 
 Ltac simp tac :=

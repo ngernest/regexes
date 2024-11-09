@@ -182,14 +182,72 @@ Proof.
   apply set_fold_empty.
 Qed.
 
+Lemma gset_elements_singleton {A : Type} `{Countable A} (x : A) :
+  gset_elements (gset_singleton x) = [x].
+Proof.
+  eapply set_eq.
+  split; intros.
+Admitted. (* TODO *)
+
+
+(** Folding a function [f] over a singleton set is just the same as applying 
+    [f] to the element in the set, along with the base case *)
+Lemma set_fold_singleton (f : re -> nat -> nat) (b : nat) (r : re) :
+  set_fold f b (gset_singleton r) = f r b.
+Proof.
+  unfold set_fold, elements; simpl.
+  rewrite gset_elements_singleton.
+  simpl. reflexivity.
+Qed.  
+  
+(* The max height of a singleton regex set is just the height of the 
+    regex contained in the set *)  
+Lemma max_height_epsilon_singleton : forall (r : re),
+  max_height_re_set {[r]} = re_height r.
+Proof.
+  induction r; unfold max_height_re_set; simpl in *. 
+  - (* Void *)
+    replace {[ Void ]} with (gset_singleton Void) by set_solver.
+    rewrite set_fold_singleton.
+    reflexivity.
+  - (* Epsilon *)
+    replace {[ Epsilon ]} with (gset_singleton Epsilon) by set_solver.
+    rewrite set_fold_singleton.
+    reflexivity.
+  - (* Atom *)
+    replace {[ Atom c ]} with (gset_singleton (Atom c)) by set_solver.
+    rewrite set_fold_singleton.
+    reflexivity.
+  - (* Union *) 
+    replace {[ Union r1 r2 ]} with (gset_singleton (Union r1 r2)) by set_solver.
+    rewrite set_fold_singleton.
+    reflexivity.
+  - (* Concat *)
+    replace {[ Concat r1 r2 ]} with (gset_singleton (Concat r1 r2)) by set_solver.
+    rewrite set_fold_singleton.
+    reflexivity.
+  - (* Star *)
+    replace {[ Star r ]} with (gset_singleton (Star r)) by set_solver.
+    rewrite set_fold_singleton.
+    reflexivity.
+Qed.    
+
+  
 (* The max height of an Antimirov derivative is at most twice the height
    of the original regex. *)
 Lemma a_deriv_height : forall (c : char) (r : re),
   max_height_re_set (a_der r c) <= 2 * re_height r.
 Proof.
-  induction r; simpl in *.
+  induction r; simpl in *; try unfold "∅".
   - (* Void *)
-    unfold "∅".
     rewrite max_height_empty_set. lia.
+  - (* Epsilon *)
+    rewrite max_height_empty_set. lia.
+  - (* Atom *)
+    destruct (char_dec c c0).
+    + (* c = c0 *)
+      unfold max_height_re_set.
+      simpl.
+
 Admitted. (* TODO *)
 
