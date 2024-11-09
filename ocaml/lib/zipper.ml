@@ -1,4 +1,4 @@
-(* Translated from the Scala code in 
+(* Translated from the Scala code in Romain Edelmann's PhD thesis:
    https://infoscience.epfl.ch/server/api/core/bitstreams/4fcb9f0f-7ac1-484f-823c-c19de39dd9ff/content 
    (section 2.5) *)
 
