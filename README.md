@@ -26,6 +26,7 @@ The `ocaml` subdirectory contains executable implementations of regex matchers:
 - [`harper.ml`](./ocaml/lib/harper.ml) contains the code from "Proof-directed debugging" (Harper 1998), translated from SML to OCaml
 - [`filinski.ml`](./ocaml/lib/filinski.ml) contains the code from "Proof-directed program transformation: A functional account of efficient regular expression matching" (Filinski 2021), also translated from SML to OCaml 
 - [`antimirov.ml`](./ocaml/lib/antimirov.ml) contains Neel Krishnaswami's implementation of regex matching using Antimirov derivatives ([link](https://semantic-domain.blogspot.com/2013/11/antimirov-derivatives-for-regular.html))
+- [`zipper.ml`](./ocaml/lib/zipper.ml) contains an implementation of Huet's zipper
 
 - Run `opam install ppx_jane base` to install all OCaml dependencies
 
