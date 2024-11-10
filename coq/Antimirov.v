@@ -327,9 +327,5 @@ Proof.
       size of the set -- see [map_preserves_set_size] above. *)
   - (* Star *)
     eexists. 
-      
-    
-    
-    
-      
+    admit. (* TODO: Same problem as the [Concat] case *)      
 Admitted.    
