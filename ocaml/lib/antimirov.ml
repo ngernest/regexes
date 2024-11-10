@@ -79,12 +79,27 @@ let rec aderiv (c : char) (r : re) : R.t =
   | Alt (r, r') -> R.union (aderiv c r) (aderiv c r')
   | Seq (r1, r2) -> R.union (rmap (fun r1' -> Seq(r1', r2)) (aderiv c r1))
                            (if accepts_empty r1 then aderiv c r2 else R.empty)
-  | Star r -> rmap (fun r' -> Seq(r', Star r)) (aderiv c r)
-
+  | Star r -> rmap (fun r' -> Seq (r', Star r)) (aderiv c r)
+  
 (** Applies the Antimirov derivative to a whole set of regexes, 
     and takes the union *)
 let deriv (c : char) (rs : R.t) : R.t = 
   R.fold (fun r acc -> R.union (aderiv c r) acc) rs R.empty
+
+(** [bderiv re c] takes the Brozozowski derivative of the regex [re] 
+      with respect to the char [c] *)
+let rec bderiv (re : re) (c : char) =
+  match re with
+  | Void | Epsilon -> Void
+  | Char c' when Char.(c = c') -> Epsilon
+  | Char _ -> Void
+  | Alt (r1, r2) -> Alt (bderiv r1 c, bderiv r2 c)
+  | Seq (r1, r2) ->
+    if accepts_empty r1 
+      then Alt (Seq (bderiv r1 c, r2), bderiv r2 c)
+    else 
+      Seq (bderiv r1 c, r2)
+  | Star r -> Seq (bderiv r c, Star r)
 
 (* Since the set of partial derivatives is finite, 
   this means that the powerset of this set is also finite, 
@@ -243,18 +258,79 @@ end
 (*                      Experiments with QuickCheck                           *)
 (* -------------------------------------------------------------------------- *)
    
-(** Generator that generates both a regex and an alphabetic character *)
+(** Generator that generates a pair consisting of a regex 
+   and an alphabetic character *)
 let gen_re_char : (re * char) Generator.t = 
   Generator.both quickcheck_generator_re Generator.char_alpha
 
+(** Shrinker that shrinkers both a regex and an alphabetic character *)  
+let shrink_re_char : (re * char) Shrinker.t = 
+  Shrinker.both quickcheck_shrinker_re Shrinker.char  
+
+(** Default QuickCheck config: 10000 trials *)  
+let config : Base_quickcheck.Test.Config.t = 
+  Base_quickcheck.Test.default_config
+
 let%quick_test ("No. of antimirov derivatives is linear in regex size" 
-  [@generator gen_re_char]) =
+  [@generator gen_re_char] [@shrinker shrink_re_char] [@config config]) =
   fun (r : re) (c : char) -> 
     assert (R.cardinal (aderiv c r) <= re_size r);
   [%expect {| |}]
   
 let%quick_test ("Max height of any Antimirov derivative <= 2 * re_height"
-  [@generator gen_re_char]) = 
-  fun (r : re) (c : char [@generator Generator.char_alpha]) -> 
+  [@generator gen_re_char] [@shrinker shrink_re_char] [@config config]) = 
+  fun (r : re) (c : char) -> 
     assert (max_height_re_set (aderiv c r) <= 2 * re_size r);
   [%expect {| |}]
+
+let%quick_test ("Brzozowski is always contained in the set of Antimirov deriv (falsified)"
+  [@generator gen_re_char] [@shrinker shrink_re_char] [@config config]) = 
+  fun (r : re) (c : char) -> 
+    assert (R.mem (bderiv r c) (aderiv c r));
+    [%expect.unreachable];
+  (* Note that [bderiv (Char 'b') 'T' = Void], 
+      but [aderiv (Char 'b') 'T' = R.emptyset]
+     *)    
+  [%expect {|
+    ("quick test: test failed" (input ((Char b) T)))
+    (* CR require-failed: lib/antimirov.ml:286:0.
+       Do not 'X' this CR; instead make the required property true,
+       which will make the CR disappear.  For more information, see
+       [Expect_test_helpers_base.require]. *)
+    "Assert_failure lib/antimirov.ml:289:4"
+    |}]
+
+let%expect_test "Example where Brzozowski is not contained in Antimirov" = 
+  let bderiv = bderiv (Char 'b') 'T' in 
+  Stdio.printf "%s\n" (Base.Sexp.to_string_hum (sexp_of_re bderiv));
+  [%expect {| Void |}]
+
+let%quick_test ("Brzozowski contained in Antimirov set when it is non-empty (falsified!)"
+  [@generator gen_re_char] [@shrinker shrink_re_char] [@config config]) =
+  fun (r : re) (c : char) -> 
+    let antimirov_set = aderiv c r in 
+    assert (R.is_empty antimirov_set || R.mem (bderiv r c) antimirov_set);
+  [@expect {| |}];
+  [%expect {|
+    ("quick test: test failed" (
+      input (
+        (Seq
+          (Seq
+            (Star (
+              Alt
+              (Seq (Star (Alt Epsilon (Char X))) (Star (Star Void)))
+              (Alt Epsilon Void)))
+            Void)
+          Epsilon)
+        X)))
+    (* CR require-failed: lib/antimirov.ml:304:0.
+       Do not 'X' this CR; instead make the required property true,
+       which will make the CR disappear.  For more information, see
+       [Expect_test_helpers_base.require]. *)
+    "Assert_failure lib/antimirov.ml:308:4"
+    |}]
+
+
+  
+
+    
