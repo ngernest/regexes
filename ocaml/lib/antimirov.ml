@@ -1,24 +1,49 @@
 (* A regex matcher based on Antimirov derivatives, 
-   code from Neel Krishnaswami 
+   adapted from Neel Krishnaswami's code
    
    https://semantic-domain.blogspot.com/2013/11/antimirov-derivatives-for-regular.html
 *)
 
+open Base_quickcheck
+open Sexplib.Conv
+
 type re = 
-  | C of char 
-  | Nil 
+  | Char of char [@quickcheck.generator Generator.char_alpha]
+  | Void 
+  | Epsilon 
   | Seq of re * re 
-  | Bot 
   | Alt of re * re 
   | Star of re
+[@@deriving quickcheck, sexp_of]  
+
+(** Computes the {i size} (i.e. length) of a regex *)
+let rec re_size (r : re) : int =
+  match r with
+  | Void -> 0
+  | Epsilon -> 1
+  | Char _ -> 1
+  | Seq (re1, re2) -> 1 + re_size re1 + re_size re2
+  | Alt (re1, re2) -> 1 + re_size re1 + re_size re2
+  | Star re' -> 1 + re_size re'
+
+(* Computes the height of a regex 
+   (i.e. the height of the binary tree formed by the AST) *)
+let rec re_height (r : re) : int = 
+  match r with 
+  | Void -> 0
+  | Epsilon -> 1
+  | Char _ -> 1
+  | Seq (re1, re2) -> 1 + max (re_height re1) (re_height re2)
+  | Alt (re1, re2) -> 1 + max (re_height re1) (re_height re2)
+  | Star re' -> 1 + re_height re'
 
 (** Checks if a regex accepts the empty string *)
-let rec null (r : re) : bool = 
+let rec accepts_empty (r : re) : bool = 
   match r with 
-  | C _ | Bot -> false
-  | Nil | Star _ -> true
-  | Alt(r1, r2) -> null r1 || null r2
-  | Seq(r1, r2) -> null r1 && null r2
+  | Char _ | Void -> false
+  | Epsilon | Star _ -> true
+  | Alt (r1, r2) -> accepts_empty r1 || accepts_empty r2
+  | Seq (r1, r2) -> accepts_empty r1 && accepts_empty r2
 
 (** [R] is the type of finite sets of regexes *)  
 module R = Set.Make(struct 
@@ -30,6 +55,11 @@ end)
 let rmap (f : re -> re) (rs : R.t) : R.t = 
   R.fold (fun r -> R.add (f r)) rs R.empty
 
+
+(** Computes the max height of a regex in a set of regexes [rs] *)
+let max_height_re_set (rs : R.t) : int = 
+  R.fold (fun r acc -> max (re_height r) acc) rs 0
+  
 (** [M] is the type of finite maps where the keys are sets of regexes *)
 module M = Map.Make(R)
 
@@ -44,11 +74,11 @@ end)
     collectively accept the same strings as the Brzozowski derivative. *)
 let rec aderiv (c : char) (r : re) : R.t = 
   match r with
-  | C c' when c = c' -> R.singleton Nil 
-  | C _ | Nil | Bot -> R.empty
+  | Char c' when c = c' -> R.singleton Epsilon 
+  | Char _ | Epsilon | Void -> R.empty
   | Alt (r, r') -> R.union (aderiv c r) (aderiv c r')
   | Seq (r1, r2) -> R.union (rmap (fun r1' -> Seq(r1', r2)) (aderiv c r1))
-                           (if null r1 then aderiv c r2 else R.empty)
+                           (if accepts_empty r1 then aderiv c r2 else R.empty)
   | Star r -> rmap (fun r' -> Seq(r', Star r)) (aderiv c r)
 
 (** Applies the Antimirov derivative to a whole set of regexes, 
@@ -107,7 +137,7 @@ let dfa (r : re) : dfa =
                      let rs' = deriv c rs in
                      let (y, s) = find rs' s in
                      loop s v ((x,c,y) :: t) f rs')
-           (s, I.add x v, t, if R.exists null rs then x :: f else f) in
+           (s, I.add x v, t, if R.exists accepts_empty rs then x :: f else f) in
   let (s, v, t, f) = loop (0, M.empty) I.empty [] [] (R.singleton r) in
   let (fail, (n, m)) = find R.empty s in 
   { size = n; 
@@ -153,22 +183,22 @@ let re_match (t : table) (s : string) : bool =
 
 (** Constructs a regex that a set of characters in a string *)
 let charset (s : string) : re = 
-  enum (fun i r -> Alt(C s.[i], r)) Bot 0 (String.length s)
+  enum (fun i r -> Alt(Char s.[i], r)) Void 0 (String.length s)
 
 (** Constructs a regex that matches exactly the string [s] *)  
 let string (s : string) : re = 
-  enum (fun i r -> Seq(r, C s.[i])) Nil 0 (String.length s)
+  enum (fun i r -> Seq(r, Char s.[i])) Epsilon 0 (String.length s)
 
 (** Folds [Seq] over a list of regexes *)  
 let seq (rs : re list) : re = 
-  List.fold_right (fun r rs -> Seq(r, rs)) rs Nil
+  List.fold_right (fun r rs -> Seq(r, rs)) rs Epsilon
 
 (** Folds [Alt] over a list of regexes *)
 let alt (rs : re list) : re = 
-  List.fold_right (fun r rs -> Alt(r, rs)) rs Bot
+  List.fold_right (fun r rs -> Alt(r, rs)) rs Void
 
 (** Regex indicating that [r] is optional *)
-let opt (r : re) : re = Alt (r, Nil)
+let opt (r : re) : re = Alt (r, Epsilon)
 
 (** Kleene star *)
 let star (r : re) : re = Star r
@@ -195,10 +225,11 @@ let print_table (out : Format.formatter) (t : table) : unit =
 (*                                    Tests                                   *)
 (* -------------------------------------------------------------------------- *)
    
+(** A module for unit tests *)
 module Test = struct
   let digit = charset "0123456789"
   let sign = charset "+-"
-  let dot = C '.'
+  let dot = Char '.'
   let dotted = alt [ seq [star digit; dot; plus digit];
                      seq [plus digit; dot; star digit] ]
   let exponent = seq [charset "eE"; opt sign; plus digit]
@@ -207,3 +238,23 @@ module Test = struct
 
   let t_float = table (dfa float)
 end
+
+(* -------------------------------------------------------------------------- *)
+(*                      Experiments with QuickCheck                           *)
+(* -------------------------------------------------------------------------- *)
+   
+(** Generator that generates both a regex and an alphabetic character *)
+let gen_re_char : (re * char) Generator.t = 
+  Generator.both quickcheck_generator_re Generator.char_alpha
+
+let%quick_test ("No. of antimirov derivatives is linear in regex size" 
+  [@generator gen_re_char]) =
+  fun (r : re) (c : char) -> 
+    assert (R.cardinal (aderiv c r) <= re_size r);
+  [%expect {| |}]
+  
+let%quick_test ("Max height of any Antimirov derivative <= 2 * re_height"
+  [@generator gen_re_char]) = 
+  fun (r : re) (c : char [@generator Generator.char_alpha]) -> 
+    assert (max_height_re_set (aderiv c r) <= 2 * re_size r);
+  [%expect {| |}]

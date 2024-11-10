@@ -1,7 +1,8 @@
 (library
  (name lib)
- (libraries base stdio)
- (preprocess (pps ppx_jane)))
+ (inline_tests)
+ (libraries base stdio base_quickcheck core sexplib)
+ (preprocess (pps ppx_jane ppx_quick_test)))
 
 (env
  (dev
