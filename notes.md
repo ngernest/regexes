@@ -13,6 +13,7 @@
 > The zipper-based representation provides a way to effectively classify expressions
 and their derivatives into a finite number of equivalence classes, in a manner that is
 reminiscent of the partial derivatives of Antimirov. (pg. 7)
+
 > Focuses follow the
 recursive structure of Brzozowski’s derivation operation, splitting into multiple focuses in
 case multiple recursive calls are made. As a result of following the structure of derivation,
@@ -22,6 +23,11 @@ recursively called on subexpressions semantically located at the front of the ex
 this reason, there will not be any expressions to the left of the focal points. Contexts will
 represent left-most paths within the expression, and zippers will represent sets of such contexts.
 This set-based representation is reminiscent of the partial derivatives of Antimirov. (pg. 23)
+
+## Questions for Jules
+- Is it possible to write a decision procedure in OCaml and then call that decision procedure in Coq (as part of proof by reflection)?
+  - I was thinking of using the OCaml code for using Antimirov derivatives to construct an NFA-based regex matcher (in `antimirov.ml`) and somehow calling the OCaml NFA construction code in Coq, but I wasn't sure how to do this 
+
 
 
 
