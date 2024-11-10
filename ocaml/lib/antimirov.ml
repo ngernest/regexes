@@ -8,13 +8,39 @@ open Base_quickcheck
 open Sexplib.Conv
 
 type re = 
-  | Char of char [@quickcheck.generator Generator.char_alpha]
+  | Char of char [@quickcheck.generator Generator.char_lowercase]
   | Void 
   | Epsilon 
   | Seq of re * re 
   | Alt of re * re 
   | Star of re
 [@@deriving quickcheck, sexp_of]  
+
+ (** Smart constructor for alternation *)
+ let alt (r1 : re) (r2 : re) : re =
+  match (r1, r2) with
+  | _, Void -> r1
+  | Void, _ -> r2
+  | _, _ -> Alt (r1, r2)
+
+(** Smart constructor for sequencing *)
+let seq (r1 : re) (r2 : re) : re =
+  match (r1, r2) with
+  | Void, _ -> Void
+  | _, Void -> Void
+  | _, Epsilon -> r1
+  | Epsilon, _ -> r2
+  | _, _ -> Seq (r1, r2)
+
+(** Smart constructor for [star]. Note that:
+    - Iterating the empty string gives the empty string, 
+    - Zero or more occurrences of [Void] is empty
+    - Two iterations is the same as one, i.e. [star (Star r) = Star r] *)
+let star (re : re) : re =
+  match re with
+  | Void | Epsilon -> Epsilon
+  | Star re' -> Star re'
+  | _ -> Star re
 
 (** Computes the {i size} (i.e. length) of a regex *)
 let rec re_size (r : re) : int =
@@ -55,7 +81,6 @@ end)
 let rmap (f : re -> re) (rs : R.t) : R.t = 
   R.fold (fun r -> R.add (f r)) rs R.empty
 
-
 (** Computes the max height of a regex in a set of regexes [rs] *)
 let max_height_re_set (rs : R.t) : int = 
   R.fold (fun r acc -> max (re_height r) acc) rs 0
@@ -77,9 +102,20 @@ let rec aderiv (c : char) (r : re) : R.t =
   | Char c' when c = c' -> R.singleton Epsilon 
   | Char _ | Epsilon | Void -> R.empty
   | Alt (r, r') -> R.union (aderiv c r) (aderiv c r')
-  | Seq (r1, r2) -> R.union (rmap (fun r1' -> Seq(r1', r2)) (aderiv c r1))
+  | Seq (r1, r2) -> R.union (rmap (fun r1' -> Seq (r1', r2)) (aderiv c r1))
                            (if accepts_empty r1 then aderiv c r2 else R.empty)
   | Star r -> rmap (fun r' -> Seq (r', Star r)) (aderiv c r)
+
+(** Optimized version of [aderiv] which uses smart constructors *)  
+let rec aderiv_opt (c : char) (r : re) : R.t = 
+  match r with
+  | Char c' when c = c' -> R.singleton Epsilon 
+  | Char _ | Epsilon | Void -> R.empty
+  | Alt (r, r') -> R.union (aderiv_opt c r) (aderiv_opt c r')
+  | Seq (r1, r2) -> R.union (rmap (fun r1' -> seq r1' r2) (aderiv_opt c r1))
+                            (if accepts_empty r1 then aderiv_opt c r2 else R.empty)
+  | Star r -> rmap (fun r' -> seq r' (star r)) (aderiv_opt c r)
+    
   
 (** Applies the Antimirov derivative to a whole set of regexes, 
     and takes the union *)
@@ -100,6 +136,20 @@ let rec bderiv (re : re) (c : char) =
     else 
       Seq (bderiv r1 c, r2)
   | Star r -> Seq (bderiv r c, Star r)
+   
+(** Optimized version of [bderiv] that uses smart constructors *)
+let rec bderiv_opt (re : re) (c : char) =
+  match re with
+  | Void | Epsilon -> Void
+  | Char c' when Char.(c = c') -> Epsilon
+  | Char _ -> Void
+  | Alt (r1, r2) -> alt (bderiv_opt r1 c) (bderiv_opt r2 c)
+  | Seq (r1, r2) ->
+    if accepts_empty r1 
+      then alt (seq (bderiv_opt r1 c) r2) (bderiv_opt r2 c)
+    else 
+      seq (bderiv_opt r1 c) r2
+  | Star r -> seq (bderiv_opt r c) (star r)
 
 (* Since the set of partial derivatives is finite, 
   this means that the powerset of this set is also finite, 
@@ -259,9 +309,18 @@ end
 (* -------------------------------------------------------------------------- *)
    
 (** Generator that generates a pair consisting of a regex 
-   and an alphabetic character *)
+   and an lowercase character *)
 let gen_re_char : (re * char) Generator.t = 
-  Generator.both quickcheck_generator_re Generator.char_alpha
+  Generator.both quickcheck_generator_re Generator.char_lowercase
+
+(** Only generates pairs of regexes and chars for which the set of 
+  Antimirov derivatives is non-empty *)  
+let gen_re_char_nonempty_antimirov : (re * char) Generator.t = 
+  Generator.filter gen_re_char 
+    ~f:(fun (r, c) -> 
+      let antimirov_set = aderiv_opt c r in 
+      R.cardinal antimirov_set > 0 && 
+      not (R.is_empty antimirov_set))
 
 (** Shrinker that shrinkers both a regex and an alphabetic character *)  
 let shrink_re_char : (re * char) Shrinker.t = 
@@ -287,17 +346,14 @@ let%quick_test ("Brzozowski is always contained in the set of Antimirov deriv (f
   [@generator gen_re_char] [@shrinker shrink_re_char] [@config config]) = 
   fun (r : re) (c : char) -> 
     assert (R.mem (bderiv r c) (aderiv c r));
-    [%expect.unreachable];
-  (* Note that [bderiv (Char 'b') 'T' = Void], 
-      but [aderiv (Char 'b') 'T' = R.emptyset]
-     *)    
+  [%expect.unreachable];
   [%expect {|
     ("quick test: test failed" (input ((Char b) T)))
-    (* CR require-failed: lib/antimirov.ml:286:0.
+    (* CR require-failed: lib/antimirov.ml:352:0.
        Do not 'X' this CR; instead make the required property true,
        which will make the CR disappear.  For more information, see
        [Expect_test_helpers_base.require]. *)
-    "Assert_failure lib/antimirov.ml:289:4"
+    "Assert_failure lib/antimirov.ml:355:4"
     |}]
 
 let%expect_test "Example where Brzozowski is not contained in Antimirov" = 
@@ -305,31 +361,21 @@ let%expect_test "Example where Brzozowski is not contained in Antimirov" =
   Stdio.printf "%s\n" (Base.Sexp.to_string_hum (sexp_of_re bderiv));
   [%expect {| Void |}]
 
-let%quick_test ("Brzozowski contained in Antimirov set when it is non-empty (falsified!)"
-  [@generator gen_re_char] [@shrinker shrink_re_char] [@config config]) =
+let%quick_test ("Brzozowski contained in Antimirov set when it is non-empty 
+  (only works when we use smart constructors!)"
+  [@generator gen_re_char_nonempty_antimirov] [@config config]) =
   fun (r : re) (c : char) -> 
-    let antimirov_set = aderiv c r in 
-    assert (R.is_empty antimirov_set || R.mem (bderiv r c) antimirov_set);
-  [@expect {| |}];
+    let antimirov_set = aderiv_opt c r in 
+    assert (R.mem (bderiv_opt r c) antimirov_set);
   [%expect {|
-    ("quick test: test failed" (
-      input (
-        (Seq
-          (Seq
-            (Star (
-              Alt
-              (Seq (Star (Alt Epsilon (Char X))) (Star (Star Void)))
-              (Alt Epsilon Void)))
-            Void)
-          Epsilon)
-        X)))
-    (* CR require-failed: lib/antimirov.ml:304:0.
+    ("quick test: test failed" (input ((Char b) T)))
+    (* CR require-failed: lib/antimirov.ml:371:0.
        Do not 'X' this CR; instead make the required property true,
        which will make the CR disappear.  For more information, see
        [Expect_test_helpers_base.require]. *)
-    "Assert_failure lib/antimirov.ml:308:4"
+    "Assert_failure lib/antimirov.ml:376:4"
     |}]
-
+  
 
   
 
