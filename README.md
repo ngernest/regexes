@@ -30,7 +30,8 @@ The `ocaml` subdirectory contains executable implementations of regex matchers:
 - [`brzozowski_zipper.ml`](./ocaml/lib/brzozowski_zipper.ml) contains an implementation of Brozozwski derivatives via zippers (adapted from chapter 2.6 of [Edelmann's dissertation](https://infoscience.epfl.ch/server/api/core/bitstreams/4fcb9f0f-7ac1-484f-823c-c19de39dd9ff/content))     
 
 ### Building the OCaml code
-- Run `opam install ppx_jane base` to install all OCaml dependencies
+- Run `opam install ppx_jane base base_quickcheck sexplib stdio ppx_quick_test` to install all OCaml dependencies
+- Run `dune runtest` to run some QuickCheck tests regarding Antimirov derivatives (see [`antimirov.ml`](./ocaml/lib/antimirov.ml) 
 - Run `dune exec -- main` to see the result of the staged regex matcher (Filinski section 3) on the empty string for matching `ε*`:
 ```ocaml
 Compiled program:
