@@ -276,13 +276,60 @@ Admitted.
   
 
 (******************************************************************************)
-(* Other things we could prove:
-   - given a regular expression 𝑟, 
-     the number of Antimirov word derivatives is linear in the size of 𝑟.
-    - Up to similarity, the union of the set of Antimirov partial derivatives 
-    of a regular expression and the Brzozowski derivative are the same.
+(* No. of Antimirov derivatives is linear in the size of the regex *)
 
-https://cstheory.stackexchange.com/questions/41939/time-complexity-of-derivative-based-regex-matchers
+(* Not sure why this doesn't typecheck *)
+(* Lemma map_preserves_set_size : forall (f : re -> re) (s : gset re),
+  set_size (set_map f s) = set_size s. *)
+  
 
-*)
-
+Lemma num_antimirov_derivs_linear_in_re_size : forall (c : char) (r : re),
+  exists (k : nat), set_size (a_der r c) <= k * re_size r.
+Proof.
+  induction r; simpl.
+  - (* Void *)
+    eexists. replace (set_size ∅) with 0 by set_solver. lia.
+  - (* Epsilon *)
+    eexists. replace (set_size ∅) with 0 by set_solver. lia.
+  - (* Atom *)
+    destruct (char_dec c c0).
+    + (* c = c0 *)
+      exists 1. 
+      unfold set_size; simpl.
+      rewrite elements_singleton.
+      simpl. lia.
+    + (* c <> c0 *)
+      eexists. 
+      replace (set_size ∅) with 0 by set_solver. lia.
+  - (* Union *)
+    destruct IHr1 as [k1 IHr1].
+    destruct IHr2 as [k2 IHr2].
+    eexists.
+    assert (set_size (a_der r1 c ∪ a_der r2 c) <= 
+      set_size (a_der r1 c) + set_size (a_der r2 c)).
+    { admit. (* TODO *) }
+    admit.
+  - (* Concat *)
+    destruct IHr1 as [k1 IHr1].
+    destruct IHr2 as [k2 IHr2].
+    destruct (isEmpty r1) eqn:E.
+    + (* isEmpty r1 = true *)
+      admit. (* TODO *)
+    + (* isEmpty r2 = false *)
+      eexists.
+      admit. (* TODO: not sure how to get 
+      {[
+        assert (set_size (set_map (λ r : re, Concat r r2) (a_der r1 c))
+          = set_size (a_der r1 c))
+      ]} 
+      to typecheck. 
+      (But the idea is to prove that calling [map] doesn't change the 
+      size of the set -- see [map_preserves_set_size] above. *)
+  - (* Star *)
+    eexists. 
+      
+    
+    
+    
+      
+Admitted.    

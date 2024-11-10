@@ -330,7 +330,12 @@ let shrink_re_char : (re * char) Shrinker.t =
 let config : Base_quickcheck.Test.Config.t = 
   Base_quickcheck.Test.default_config
 
-let%quick_test ("No. of antimirov derivatives is linear in regex size" 
+(* Technically, the lemma statement is that the no. of Antimirov deriatives
+   is linear in the regex size, but there's no way to express 
+  existential quantification in OCaml's QuickCheck library, so we 
+  use QC to test a weaker version of this lemma (which just says
+  the no. of Antimirov derivatives is upper-bounded by the regex size) *)  
+let%quick_test ("No. of Antimirov derivatives is at most the size of the regex" 
   [@generator gen_re_char] [@shrinker shrink_re_char] [@config config]) =
   fun (r : re) (c : char) -> 
     assert (R.cardinal (aderiv c r) <= re_size r);
