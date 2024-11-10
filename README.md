@@ -32,12 +32,4 @@ The `ocaml` subdirectory contains executable implementations of regex matchers:
 ### Building the OCaml code
 - Run `opam install ppx_jane base base_quickcheck sexplib stdio ppx_quick_test` to install all OCaml dependencies
 - Run `dune runtest` to run some QuickCheck tests regarding Antimirov derivatives (see [`antimirov.ml`](./ocaml/lib/antimirov.ml) 
-- Run `dune exec -- main` to see the result of the staged regex matcher (Filinski section 3) on the empty string for matching `ε*`:
-```ocaml
-Compiled program:
-(((true AtEnd) (false (Or (Cont true (CN 0)) (Cont false (CN 2))))
-  (true (Cont true (CN 1)))
-  (true (Or (Cont true (CN 0)) (Cont false (CN 2)))))
- (CN 3))
-result = true
-```
+- Run `dune exec -- main` to see how QuickCheck falsifies the property that Brzozowski derivatives are always contained within the set of Antimirov derivatives (when the set is non-empty)

@@ -18,7 +18,10 @@ let filinski_test () =
 
 
 (** Runs a QuickCheck test which {i falsifies} the property that Brzozowski 
-    derivatives are always contained in non-empty sets of Antimirov derivatives *)
+    derivatives are always contained in non-empty sets of Antimirov derivatives. 
+    - We generate pairs [(r, c)] of regexes and chars for which the set 
+    of Antimirov derivatives is non-empty, and then we check whether 
+    the Brzozowski derivative of [r] w.r.t [c] is contained in the Antimirov set *)
 let () = 
   Core.Quickcheck.test ~seed:`Nondeterministic gen_re_char_nonempty_antimirov 
   ~shrinker:shrink_re_char
