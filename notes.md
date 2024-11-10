@@ -27,7 +27,7 @@ This set-based representation is reminiscent of the partial derivatives of Antim
 ## Questions for Jules
 - Is it possible to write a decision procedure in OCaml and then call that decision procedure in Coq (as part of proof by reflection)?
   - I was thinking of using the OCaml code for using Antimirov derivatives to construct an NFA-based regex matcher (in `antimirov.ml`) and somehow calling the OCaml NFA construction code in Coq, but I wasn't sure how to do this 
-
+- Edelmann mentions that his Zipper-based set representation of Brzozowski derivatives is "reminiscent" of Antimirov derivatives -- is there a way to formalize this intuition in Coq (e.g. what would a lemma stating this connection look like?)
 
 
 
