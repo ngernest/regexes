@@ -347,7 +347,8 @@ let%quick_test ("Max height of any Antimirov derivative <= 2 * re_height"
     assert (max_height_re_set (aderiv c r) <= 2 * re_size r);
   [%expect {| |}]
 
-let%quick_test ("Brzozowski is always contained in the set of Antimirov deriv (falsified)"
+let%quick_test ("Brzozowski is always contained in the set of Antimirov deriv 
+  (this property is falsified!)"
   [@generator gen_re_char] [@shrinker shrink_re_char] [@config config]) = 
   fun (r : re) (c : char) -> 
     assert (R.mem (bderiv r c) (aderiv c r));
@@ -367,7 +368,7 @@ let%expect_test "Example where Brzozowski is not contained in Antimirov" =
   [%expect {| Void |}]
 
 let%quick_test ("Brzozowski contained in Antimirov set when it is non-empty 
-  (only works when we use smart constructors!)"
+  (this property is falsified!)"
   [@generator gen_re_char_nonempty_antimirov] [@config config]) =
   fun (r : re) (c : char) -> 
     let antimirov_set = aderiv_opt c r in 
