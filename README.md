@@ -21,17 +21,18 @@ opam install coq-stdpp
 
 We also referenced the code from the CS 6115 lecture (Fall 2017) on regexes ([link](https://www.cs.cornell.edu/courses/cs6115/2017fa/notes/SimpleLex.html)).
  
-
 ## OCaml code 
 The `ocaml` subdirectory contains executable implementations of regex matchers:
-- [`harper.ml`](./ocaml/lib/harper.ml) contains the code from "Proof-directed debugging" (Harper 1998), translated from SML to OCaml
-- [`filinski.ml`](./ocaml/lib/filinski.ml) contains the code from "Proof-directed program transformation: A functional account of efficient regular expression matching" (Filinski 2021), also translated from SML to OCaml 
-- [`antimirov.ml`](./ocaml/lib/antimirov.ml) contains Neel Krishnaswami's implementation of regex matching using Antimirov derivatives ([link](https://semantic-domain.blogspot.com/2013/11/antimirov-derivatives-for-regular.html)), along with some experiments using QuickCheck to test lemmas regarding Antimirov derivatives 
+- [`harper.ml`](./ocaml/lib/harper.ml): the code from "Proof-directed debugging" (Harper 1998), translated from SML to OCaml
+- [`filinski.ml`](./ocaml/lib/filinski.ml): the code from "Proof-directed program transformation: A functional account of efficient regular expression matching" (Filinski 2021), also translated from SML to OCaml 
+- [`brzozowski.ml`](./ocaml/lib/brzozowski.ml): a regex matcher that uses Brzozowski derivatives
+- [`antimirov.ml`](./ocaml/lib/antimirov.ml): a regex matcher that uses Antimirov derivatives, along with some experiments using QuickCheck to test lemmas regarding Antimirov derivatives 
+- [`krishnaswami.ml`](./ocaml/lib/krishnaswami.ml): builds a DFA corresponding to a regex using Antimirov derivatives (adapted from [Neel Krishnaswami](https://semantic-domain.blogspot.com/2013/11/antimirov-derivatives-for-regular.html))
 - [`zipper.ml`](./ocaml/lib/zipper.ml) contains an implementation of [Huet's zipper](https://en.wikipedia.org/wiki/Zipper_(data_structure)) (adapted from chapter 2.3 of [Romain Edelmann's PhD dissertation](https://infoscience.epfl.ch/server/api/core/bitstreams/4fcb9f0f-7ac1-484f-823c-c19de39dd9ff/content))     
 - [`brzozowski_zipper.ml`](./ocaml/lib/brzozowski_zipper.ml) contains an implementation of Brozozwski derivatives via zippers (adapted from chapter 2.6 of [Edelmann's dissertation](https://infoscience.epfl.ch/server/api/core/bitstreams/4fcb9f0f-7ac1-484f-823c-c19de39dd9ff/content))     
 
-### Building the OCaml code
+### Building & Testing the OCaml code
 First, `cd` into the `ocaml` subdirectory. Then: 
-- Run `opam install ppx_jane base base_quickcheck core stdio ppx_quick_test` to install all OCaml dependencies
+- Run `opam install . --deps-only` to install all OCaml dependencies
 - Run `dune runtest` to run some QuickCheck tests regarding Antimirov derivatives (see [`antimirov.ml`](./ocaml/lib/antimirov.ml) 
 - Run `dune exec -- main` to see how QuickCheck falsifies the property that Brzozowski derivatives are always contained within the set of Antimirov derivatives (when the set is non-empty)

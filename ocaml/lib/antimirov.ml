@@ -13,9 +13,9 @@ let rec aderiv (c : char) (r : re) : RegexSet.t =
   | Char c' when c = c' -> RegexSet.singleton Epsilon 
   | Char _ | Epsilon | Void -> RegexSet.empty
   | Alt (r, r') -> RegexSet.union (aderiv c r) (aderiv c r')
-  | Seq (r1, r2) -> RegexSet.union (rmap (fun r1' -> Seq (r1', r2)) (aderiv c r1))
+  | Seq (r1, r2) -> RegexSet.union (regex_set_map (fun r1' -> Seq (r1', r2)) (aderiv c r1))
                            (if accepts_empty r1 then aderiv c r2 else RegexSet.empty)
-  | Star r -> rmap (fun r' -> Seq (r', Star r)) (aderiv c r)
+  | Star r -> regex_set_map (fun r' -> Seq (r', Star r)) (aderiv c r)
 
 (** Optimized version of [aderiv] which uses smart constructors *)  
 let rec aderiv_opt (c : char) (r : re) : RegexSet.t = 
@@ -23,9 +23,9 @@ let rec aderiv_opt (c : char) (r : re) : RegexSet.t =
   | Char c' when c = c' -> RegexSet.singleton Epsilon 
   | Char _ | Epsilon | Void -> RegexSet.empty
   | Alt (r, r') -> RegexSet.union (aderiv_opt c r) (aderiv_opt c r')
-  | Seq (r1, r2) -> RegexSet.union (rmap (fun r1' -> seq r1' r2) (aderiv_opt c r1))
+  | Seq (r1, r2) -> RegexSet.union (regex_set_map (fun r1' -> seq r1' r2) (aderiv_opt c r1))
                     (if accepts_empty r1 then aderiv_opt c r2 else RegexSet.empty)
-  | Star r -> rmap (fun r' -> seq r' (star r)) (aderiv_opt c r)
+  | Star r -> regex_set_map (fun r' -> seq r' (star r)) (aderiv_opt c r)
   
 (** Applies the Antimirov derivative to a whole set of regexes, 
     and takes the union *)

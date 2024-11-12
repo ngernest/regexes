@@ -75,7 +75,7 @@ module RegexSet = struct
 end
 
 (** [rmap] maps a function over a set of regexes, building a new regex *)
-let rmap (f : re -> re) (rs : RegexSet.t) : RegexSet.t = 
+let regex_set_map (f : re -> re) (rs : RegexSet.t) : RegexSet.t = 
   RegexSet.fold (fun r -> RegexSet.add (f r)) rs RegexSet.empty
 
 (** Computes the max height of a regex in a set of regexes [rs] *)
