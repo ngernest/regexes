@@ -20,12 +20,40 @@ Fixpoint a_der (r : re) (a : char) : gset re :=
   | Star r => set_map (fun r' => Concat r' (Star r)) (a_der r a)
   end.
 
+
 (* Takes the Antimirov derivative wrt a string *)
 Fixpoint a_der_str (r : re) (s : string) : gset re :=
   match s with
   | [] => {[ r ]}
   | (c :: cs) => set_bind (fun r => a_der_str r cs) (a_der r c)
   end.
+
+(** Applies Antimirov point-wise to each regex in [rs] 
+    - [set_bind] is like [concatMap] for the list monad but using 
+      set union instead *)
+Definition a_der' (rs : gset re) (c : char) : gset re :=
+  set_bind (fun r => a_der r c) rs.
+
+Definition nullable' (rs : gset re) : bool.
+  Admitted. (* TODO *)
+
+(** see [antimirov_matches] below *)
+Definition a_der_str' (r : re) (s : string) : gset re :=
+  fold_left a_der' s {[ r ]}.
+
+(**  A version of [matches'] but for Antimirov *)
+Definition antimirov_matches (r : re) (s : string) : bool :=
+  nullable' (fold_left a_der' s {[ r ]}).
+
+(* Correctness theorems we could prove for Antimirov:
+1. forall r s, matches r s <-> antimirov_matches r s = true
+2. forall r s, antimirov_matches r s = true <-> brzozowski_matches r s = true
+3. the regex sum of all regexes in the Antimirov set is equivalent (up to ACI)
+   to Brzozowski
+
+(extension: compute a finite automaton)
+*)
+
 
 Lemma a_der_str_eps : forall (c : char) (s : string),
   a_der_str Epsilon s ⊆ {[ Epsilon ]}.
@@ -174,6 +202,8 @@ Fixpoint re_height (r : re) : nat :=
 Definition max_height_re_set (rs : gset re) : nat := 
   set_fold (fun r acc => max (re_height r) acc) 0 rs.
 
+Search set_fold.  
+
 (* The max height over a union of two sets is just the max height of each 
    of the constituent subsets *)
 Lemma max_height_union (s1 s2 : gset re) :
@@ -194,6 +224,13 @@ Lemma gset_elements_singleton {A : Type} `{Countable A} (x : A) :
 Proof.
   eapply set_eq.
   split; intros.
+  set_unfold. 
+  destruct H0. 
+  destruct H0.
+  subst.
+  apply elem_of_map_to_list.
+  
+  
 Admitted. (* TODO *)
 
 
@@ -239,6 +276,36 @@ Proof.
     reflexivity.
 Qed.    
 
+
+Lemma height_lemma :
+  ∀ (X : nat) (rs : gset re),
+    max_height_re_set rs <= X <-> 
+    ∀ (r : re), r ∈ rs -> re_height r <= X.
+Proof.
+  unfold max_height_re_set. intros X rs. revert rs.
+  (* [n] is the intermediate result of a [set_fold] *)
+  apply (set_fold_ind_L
+    (fun (n : nat) (rs : gset re) => 
+      n ≤ X <-> ∀ r : re, r ∈ rs → re_height r ≤ X)).
+  - split; try lia. 
+    intros.
+    set_solver. 
+  - intros r rs' n H1 H2.
+    set_unfold. split; intros.
+    + destruct H0 as [Heq | Hin].
+      * subst. lia.
+      * apply H2 in Hin; lia.
+    + assert (re_height r <= X).
+      { apply H. auto. }
+      assert (n <= X); try lia.
+      apply H2.
+      intros.
+      apply H. auto.
+Qed.      
+      
+
+ 
+
   
 (* The max height of an Antimirov derivative is at most twice the height
    of the original regex. *)
@@ -264,15 +331,32 @@ Proof.
     lia.
   - (* Concat *)
     destruct (isEmpty r1) eqn:E.
-    (* TODO: need to come up with a lemma that says how [max_height_re_set]
-       commutes with [set_map] *)
-    + (* isEmpty r1 = true *)
-      admit. (* TODO *)
+    + apply height_lemma.
+      intros. simpl in *.
+      (* [set_unfold] looks at statements involving ∈ and rewrites them *)
+      set_unfold.
+      destruct H as [[x [H11 H12]] | H2].
+      * rewrite height_lemma in IHr1.
+        apply IHr1 in H12. subst; simpl in *; lia. 
+      * rewrite height_lemma in IHr2.
+        apply IHr2 in H2. simpl in *. lia.
     + (* isEmpty r1 = false *) 
-      admit. (* TODO *)
+      apply height_lemma. intros. simpl in *. 
+      set_unfold.
+      destruct H as [x [H1 H2]].
+      subst; simpl. 
+      rewrite height_lemma in IHr1.
+      specialize (IHr1 _ H2).
+      lia.
   - (* Star *) 
-    admit. (* TODO *)
-Admitted.
+    apply height_lemma. intros; simpl in *.
+    set_unfold.
+    destruct H as [x [H1 H2]].
+    subst; simpl.
+    rewrite height_lemma in IHr.
+    specialize (IHr _ H2). 
+    lia.
+Qed.
   
 
 (******************************************************************************)

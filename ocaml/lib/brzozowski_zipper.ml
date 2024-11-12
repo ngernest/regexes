@@ -21,7 +21,7 @@ let rec is_nullable (r : regex) : bool =
 
 (** A [context] is a list of [regex]es. 
     Semantically, these represent {i sequences} of regexes, specifically 
-    all regexes that follow after the focal point. *)
+    all regexes that come after the focal point. *)
 type context = regex list 
 
 (** A [zipper] is a set of [context]s, 
