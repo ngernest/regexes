@@ -37,7 +37,8 @@ let aderiv' (c : char) (rs : RegexSet.t) : RegexSet.t =
 let set_accepts_empty (rs : RegexSet.t) : bool = 
   RegexSet.exists accepts_empty rs
 
-(** A regex matcher using Antimirov derivatives *)  
+(** Uses Antimirov derivatives to determine whether the string [s] 
+  matches the regex [r] *)  
 let antimirov_match (r : re) (s : string) : bool = 
   set_accepts_empty (String.fold_left 
     (fun rs c -> aderiv' c rs) (RegexSet.singleton r) s)  

@@ -29,3 +29,8 @@ let rec bderiv_opt (re : re) (c : char) : re =
     else 
       seq (bderiv_opt r1 c) r2
   | Star r -> seq (bderiv_opt r c) (star r)
+
+(** Uses Brzozowski derivatives to determine whether the string [s] 
+  matches the regex [r] *)  
+let brzozowski_match (r : re) (s : string) : bool =
+  accepts_empty (String.fold_left (fun r c -> bderiv r c) r s)
