@@ -226,3 +226,16 @@ let imatchtop (r : re) (s : string) : bool =
   Stdio.printf "Compiled program:\n";
   Stdio.printf "%s\n" (Sexp.to_string_hum (sexp_of_pgm pgm));
   irun (transtop r) (String.to_list s)
+
+(** Example: Runs the staged regex matcher (from Filinski section 3) 
+on the empty string for matching `ε*`. The compiled program is:
+  {[ 
+    (((true AtEnd) (false (Or (Cont true (CN 0)) (Cont false (CN 2))))
+      (true (Cont true (CN 1)))
+      (true (Or (Cont true (CN 0)) (Cont false (CN 2)))))
+    (CN 3))
+    result = true
+  ]} *)
+let filinski_test () =
+  let b = imatchtop (Star Eps) "" in
+  Stdio.printf "result = %b\n" b
