@@ -94,11 +94,11 @@ let%quick_test ("Brzozowski is always contained in the set of Antimirov deriv
   [%expect.unreachable];
   [%expect {|
     ("quick test: test failed" (input ((Char b) T)))
-    (* CR require-failed: lib/antimirov.ml:352:0.
+    (* CR require-failed: lib/antimirov.ml:89:0.
        Do not 'X' this CR; instead make the required property true,
-       which will make the CR disappeaRegexSet.  For more information, see
+       which will make the CR disappear.  For more information, see
        [Expect_test_helpers_base.require]. *)
-    "Assert_failure lib/antimirov.ml:355:4"
+    "Assert_failure lib/antimirov.ml:93:4"
     |}]
 
 let%expect_test "Example where Brzozowski is not contained in Antimirov" = 
@@ -114,11 +114,11 @@ let%quick_test ("Brzozowski contained in Antimirov set when it is non-empty
     assert (RegexSet.mem (Brzozowski.bderiv_opt r c) antimirov_set);
   [%expect {|
     ("quick test: test failed" (input ((Char b) T)))
-    (* CR require-failed: lib/antimirov.ml:371:0.
+    (* CR require-failed: lib/antimirov.ml:109:0.
        Do not 'X' this CR; instead make the required property true,
-       which will make the CR disappeaRegexSet.  For more information, see
+       which will make the CR disappear.  For more information, see
        [Expect_test_helpers_base.require]. *)
-    "Assert_failure lib/antimirov.ml:376:4"
+    "Assert_failure lib/antimirov.ml:114:4"
     |}]
   
 
