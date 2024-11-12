@@ -1,4 +1,5 @@
 open Lib
+open Regex
 open Antimirov
 open Sexplib.Conv
 
@@ -28,5 +29,5 @@ let () =
   ~sexp_of:(fun (r, c) -> List [sexp_of_re r; sexp_of_char c])
   ~f:(fun ((r, c) : re * char) -> 
     let antimirov_set = aderiv_opt c r in 
-    assert (R.mem (bderiv_opt r c) antimirov_set))
+    assert (RegexSet.mem (Brzozowski.bderiv_opt r c) antimirov_set))
 
