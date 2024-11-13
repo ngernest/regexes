@@ -5,7 +5,7 @@ open Base_quickcheck
 open Sexplib.Conv
 
 (* -------------------------------------------------------------------------- *)
-(*                      Experiments with QuickCheck                           *)
+(*                      QuickCheck Generators + Shrinkers                     *)
 (* -------------------------------------------------------------------------- *)
    
 (** Generator that generates a pair consisting of a regex 
@@ -74,6 +74,18 @@ let shrink_re_char : (re * char) Shrinker.t =
 let config : Base_quickcheck.Test.Config.t = 
   Base_quickcheck.Test.default_config
 
+(* -------------------------------------------------------------------------- *)
+(*                            QuickCheck properties                           *)
+(* -------------------------------------------------------------------------- *)
+
+let%quick_test "Brzozowski & Antimirov-based regex matchers accept the same strings!" 
+  [@generator gen_re_string] [@config config] = 
+  fun (r : re) (s : string) -> 
+    let antimirov_result = antimirov_match r s in 
+    let brzozowski_result = brzozowski_match r s in 
+    assert (Bool.equal antimirov_result brzozowski_result);
+  [@expect {| |}]
+    
 (* Technically, the lemma statement is that the no. of Antimirov deriatives
     is linear in the regex size, but there's no way to express 
   existential quantification in OCaml's QuickCheck library, so we 
@@ -106,7 +118,8 @@ let%quick_test ("Brzozowski is always contained in the set of Antimirov deriv
     "Assert_failure lib/quickcheck_properties.ml:98:4"
     |}]
 
-let%expect_test "Example where Brzozowski is not contained in Antimirov" = 
+let%expect_test {| Example where a Brzozowski derivative is not contained in the set of Antimirov derivatives 
+  (e.g. when BRzozowski derivative is [Void] and the Antimirov derivative set is the empty set) |} = 
   let bderiv = Brzozowski.bderiv (Char 'b') 'T' in 
   Stdio.printf "%s\n" (Base.Sexp.to_string_hum (sexp_of_re bderiv));
   [%expect {| Void |}]
@@ -125,12 +138,4 @@ let%quick_test ("Brzozowski contained in Antimirov set when it is non-empty
        [Expect_test_helpers_base.require]. *)
     "Assert_failure lib/quickcheck_properties.ml:119:4"
     |}]
-  
-let%quick_test "Brzozowski & Antimirov-based regex matchers accept the same strings!" 
-  [@generator gen_re_string] [@config config] = 
-  fun (r : re) (s : string) -> 
-    let antimirov_result = antimirov_match r s in 
-    let brzozowski_result = brzozowski_match r s in 
-    assert (Bool.equal antimirov_result brzozowski_result);
-  [@expect {| |}]
   
