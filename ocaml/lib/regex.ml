@@ -1,15 +1,17 @@
 open Base_quickcheck
 open Sexplib.Conv
 
+let equal_char = Base.equal_char
+
 (** A datatype for regular expressions *)
 type re = 
-  | Char of char [@quickcheck.generator GeneratoRegexSet.char_lowercase]
+  | Char of char [@quickcheck.generator Generator.char_lowercase]
   | Void 
   | Epsilon 
   | Seq of re * re 
   | Alt of re * re 
   | Star of re
-[@@deriving quickcheck, sexp_of]  
+[@@deriving quickcheck, sexp_of, equal]  
 
  (** Smart constructor for alternation *)
  let alt (r1 : re) (r2 : re) : re =
@@ -81,3 +83,5 @@ let regex_set_map (f : re -> re) (rs : RegexSet.t) : RegexSet.t =
 (** Computes the max height of a regex in a set of regexes [rs] *)
 let max_height_re_set (rs : RegexSet.t) : int = 
   RegexSet.fold (fun r acc -> max (re_height r) acc) rs 0
+
+

@@ -2,7 +2,10 @@
 (* Translated from the Scala code in Romain Edelmann's PhD thesis:
    https://infoscience.epfl.ch/server/api/core/bitstreams/4fcb9f0f-7ac1-484f-823c-c19de39dd9ff/content *)
 
-(** A datatype for regexes *)   
+open Regex
+
+(** A datatype for regexes -- we define a separate type to keep the constructor 
+    names the same as Edelmann's thesis *)   
 type regex = 
   | Failure 
   | Epsilon 
@@ -10,7 +13,33 @@ type regex =
   | Sequence of regex * regex 
   | Disjunction of regex * regex 
   | Star of regex
+
+(** Converts the [regex] type to the [re] type defined in [regex.ml] *)  
+let rec re_of_regex (regex : regex) : re = 
+  match regex with 
+  | Failure -> Void 
+  | Epsilon -> Epsilon 
+  | Char c -> Char c 
+  | Sequence (r1, r2) -> Seq (re_of_regex r1, re_of_regex r2)
+  | Disjunction (r1, r2) -> Alt (re_of_regex r1, re_of_regex r2)
+  | Star r -> Star (re_of_regex r)
   
+(** Converts the [re] type defined in [regex.ml] to the [regex] type above *)    
+let rec regex_of_re (re : re) : regex = 
+  match re with 
+  | Void -> Failure 
+  | Epsilon -> Epsilon 
+  | Char c -> Char c 
+  | Seq (r1, r2) -> Sequence (regex_of_re r1, regex_of_re r2)
+  | Alt (r1, r2) -> Disjunction (regex_of_re r1, regex_of_re r2)
+  | Star r -> Star (regex_of_re r)
+
+let%quick_test "round-trip property for re <-> regex conversion functions" 
+  [@generator quickcheck_generator_re] = 
+  fun (r : re) -> 
+    assert (equal_re r (re_of_regex (regex_of_re r)));
+  [@expect {| |}]
+
 (** Checks if a regex accepts the empty string *)  
 let rec is_nullable (r : regex) : bool = 
   match r with 

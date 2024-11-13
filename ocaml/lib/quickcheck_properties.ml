@@ -1,6 +1,7 @@
 open Regex 
 open Antimirov 
 open Brzozowski
+open Brzozowski_zipper
 open Base_quickcheck
 open Sexplib.Conv
 
@@ -85,6 +86,22 @@ let%quick_test "Brzozowski & Antimirov-based regex matchers accept the same stri
     let brzozowski_result = brzozowski_match r s in 
     assert (Bool.equal antimirov_result brzozowski_result);
   [@expect {| |}]
+
+let%quick_test "Brzozowski derivative & zippers accept the same strings" 
+  [@generator gen_re_string] [@config config] = 
+  fun (r : re) (s : string) -> 
+    let brzozowski_result = brzozowski_match r s in 
+    let zipper_result = zipper_match (regex_of_re r) s in 
+    assert (Bool.equal brzozowski_result zipper_result);
+  [@expect {| |}];
+  [%expect {|
+    ("quick test: test failed" (input (Epsilon 4)))
+    (* CR require-failed: lib/quickcheck_properties.ml:90:0.
+       Do not 'X' this CR; instead make the required property true,
+       which will make the CR disappear.  For more information, see
+       [Expect_test_helpers_base.require]. *)
+    "Assert_failure lib/quickcheck_properties.ml:95:4"
+    |}]
     
 (* Technically, the lemma statement is that the no. of Antimirov deriatives
     is linear in the regex size, but there's no way to express 
@@ -111,11 +128,11 @@ let%quick_test ("Brzozowski is always contained in the set of Antimirov deriv
   [%expect.unreachable];
   [%expect {|
     ("quick test: test failed" (input ((Char b) T)))
-    (* CR require-failed: lib/quickcheck_properties.ml:106:0.
+    (* CR require-failed: lib/quickcheck_properties.ml:123:0.
        Do not 'X' this CR; instead make the required property true,
        which will make the CR disappear.  For more information, see
        [Expect_test_helpers_base.require]. *)
-    "Assert_failure lib/quickcheck_properties.ml:110:4"
+    "Assert_failure lib/quickcheck_properties.ml:127:4"
     |}]
 
 let%expect_test {| Example where a Brzozowski derivative is not contained in the set of Antimirov derivatives 
@@ -132,10 +149,10 @@ let%quick_test ("Brzozowski contained in Antimirov set when it is non-empty
     assert (RegexSet.mem (Brzozowski.bderiv_opt r c) antimirov_set);
   [%expect {|
     ("quick test: test failed" (input ((Char b) T)))
-    (* CR require-failed: lib/quickcheck_properties.ml:127:0.
+    (* CR require-failed: lib/quickcheck_properties.ml:144:0.
        Do not 'X' this CR; instead make the required property true,
        which will make the CR disappear.  For more information, see
        [Expect_test_helpers_base.require]. *)
-    "Assert_failure lib/quickcheck_properties.ml:132:4"
+    "Assert_failure lib/quickcheck_properties.ml:149:4"
     |}]
   
