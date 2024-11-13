@@ -24,6 +24,7 @@ We also referenced the code from the CS 6115 lecture (Fall 2017) on regexes ([li
  
 ## OCaml Code 
 The `ocaml` subdirectory contains executable implementations of regex matchers:
+- [`regex.ml`](./ocaml/lib/regex.ml): Regex definitions + smart constructors + helper functions (e.g. for computing regex size)
 - [`brzozowski.ml`](./ocaml/lib/brzozowski.ml): a regex matcher that uses Brzozowski derivatives
 - [`antimirov.ml`](./ocaml/lib/antimirov.ml): a regex matcher that uses Antimirov derivatives, along with some experiments using QuickCheck to test lemmas regarding Antimirov derivatives 
 - [`krishnaswami.ml`](./ocaml/lib/krishnaswami.ml): builds a DFA corresponding to a regex using Antimirov derivatives (adapted from [Neel Krishnaswami's blogpost](https://semantic-domain.blogspot.com/2013/11/antimirov-derivatives-for-regular.html))
