@@ -179,17 +179,27 @@ let accepts (r : regex) (cs : char list) : bool =
 let zipper_match (r : regex) (s : string) : bool = 
   accepts r (Base.String.to_list s)
 
-let%expect_test "accepts Char" = 
-  Stdio.printf "%b\n" (accepts (Char 'c') ['c']);
-  [%expect {| false |}]
+(* -------------------------------------------------------------------------- *)
+(*                                 Unit tests                                 *)
+(* -------------------------------------------------------------------------- *)
 
 let%expect_test {| Epsilon ~= "" |} = 
   Stdio.printf "%b\n" (zipper_match (Epsilon) "");
   [%expect {| true |}]
 
+(* Not sure why this expect test doesn't pass *)  
+let%expect_test "accepts Char" = 
+  Stdio.printf "%b\n" (accepts (Char 'c') ['c']);
+  [%expect {| true |}]
+
+(* Not sure why this expect test doesn't pass *)  
 let%expect_test {| Char c ~= 'c' |} =
   Stdio.printf "%b\n" (zipper_match (Char 'c') (Base.Char.to_string 'c'));
-  [%expect {| false |}]
+  [%expect {| true |}]
+
+(* -------------------------------------------------------------------------- *)
+(*                        Constructing Maximal Zippers                        *)
+(* -------------------------------------------------------------------------- *)
   
 (** Takes a zipper [z] and constructs a {i maximal zipper} from it *)
 let max_zipper (z : Zipper.t) : Zipper.t = 
