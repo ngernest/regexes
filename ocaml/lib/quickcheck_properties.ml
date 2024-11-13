@@ -111,11 +111,11 @@ let%quick_test ("Brzozowski is always contained in the set of Antimirov deriv
   [%expect.unreachable];
   [%expect {|
     ("quick test: test failed" (input ((Char b) T)))
-    (* CR require-failed: lib/quickcheck_properties.ml:94:0.
+    (* CR require-failed: lib/quickcheck_properties.ml:106:0.
        Do not 'X' this CR; instead make the required property true,
        which will make the CR disappear.  For more information, see
        [Expect_test_helpers_base.require]. *)
-    "Assert_failure lib/quickcheck_properties.ml:98:4"
+    "Assert_failure lib/quickcheck_properties.ml:110:4"
     |}]
 
 let%expect_test {| Example where a Brzozowski derivative is not contained in the set of Antimirov derivatives 
@@ -132,10 +132,10 @@ let%quick_test ("Brzozowski contained in Antimirov set when it is non-empty
     assert (RegexSet.mem (Brzozowski.bderiv_opt r c) antimirov_set);
   [%expect {|
     ("quick test: test failed" (input ((Char b) T)))
-    (* CR require-failed: lib/quickcheck_properties.ml:114:0.
+    (* CR require-failed: lib/quickcheck_properties.ml:127:0.
        Do not 'X' this CR; instead make the required property true,
        which will make the CR disappear.  For more information, see
        [Expect_test_helpers_base.require]. *)
-    "Assert_failure lib/quickcheck_properties.ml:119:4"
+    "Assert_failure lib/quickcheck_properties.ml:132:4"
     |}]
   
