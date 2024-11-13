@@ -62,11 +62,11 @@ module Zipper = Set.Make(struct
   let compare = compare
 end)
 
-(** [concatMap] but for zippers: applies a function [f] 
+(** [concatMap] but for zippers: applies a function [f : context -> Zipper.t] 
     to each element within a [zipper], and takes the union of all the resultant 
     zippers *)
 let zipper_concat_map (f : context -> Zipper.t) (z : Zipper.t) : Zipper.t = 
-  Zipper.map (fun ctx -> List.concat @@ Zipper.to_list (f ctx)) z
+  Zipper.fold (fun ctx acc -> Zipper.union (f ctx) acc) Zipper.empty z
 
 (** Converts a [zipper] to a [regex] *)
 let unfocus (zipper : Zipper.t) : regex = 
