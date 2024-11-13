@@ -54,7 +54,9 @@ let gen_re_string : (re * string) Generator.t =
   | Some gen_string -> 
     let%bind s = gen_string in 
     Generator.return (r, s)
-  | None -> failwith "TODO"
+  | None -> failwith @@ 
+      Printf.sprintf "No string matches regex %s\n" 
+      (Base.Sexp.to_string_hum (sexp_of_re r))
   end 
       
 
@@ -87,20 +89,31 @@ let%quick_test "Brzozowski & Antimirov-based regex matchers accept the same stri
     assert (Bool.equal antimirov_result brzozowski_result);
   [@expect {| |}]
 
-let%quick_test "Brzozowski derivative & zippers accept the same strings" 
+let%quick_test {| Brzozowski derivative & zippers accept the same strings 
+  (this property is falsified, not sure why) |}
   [@generator gen_re_string] [@config config] = 
   fun (r : re) (s : string) -> 
     let brzozowski_result = brzozowski_match r s in 
     let zipper_result = zipper_match (regex_of_re r) s in 
+    if not (Bool.equal brzozowski_result zipper_result)
+      then Stdio.printf "Brzozowski: %b, Zipper: %b\n" 
+        brzozowski_result zipper_result;
+        [%expect {|
+          (* CR expect_test: Test ran multiple times with different test outputs *)
+          ============================= Output 1 / 2 ==============================
+          Brzozowski: false, Zipper: true
+
+          ============================= Output 2 / 2 ==============================
+          |}];
     assert (Bool.equal brzozowski_result zipper_result);
-  [@expect {| |}];
+    [@expect {| |}];
   [%expect {|
     ("quick test: test failed" (input (Epsilon 4)))
-    (* CR require-failed: lib/quickcheck_properties.ml:90:0.
+    (* CR require-failed: lib/quickcheck_properties.ml:92:0.
        Do not 'X' this CR; instead make the required property true,
        which will make the CR disappear.  For more information, see
        [Expect_test_helpers_base.require]. *)
-    "Assert_failure lib/quickcheck_properties.ml:95:4"
+    "Assert_failure lib/quickcheck_properties.ml:108:4"
     |}]
     
 (* Technically, the lemma statement is that the no. of Antimirov deriatives
@@ -120,23 +133,22 @@ let%quick_test ("Max height of any Antimirov derivative <= 2 * re_height"
     assert (max_height_re_set (aderiv c r) <= 2 * re_size r);
   [%expect {| |}]
 
-let%quick_test ("Brzozowski is always contained in the set of Antimirov deriv 
+let%quick_test ("Brzozowski is always contained in the set of Antimirov derivatives 
   (this property is falsified!)"
   [@generator gen_re_char] [@shrinker shrink_re_char] [@config config]) = 
   fun (r : re) (c : char) -> 
     assert (RegexSet.mem (Brzozowski.bderiv r c) (aderiv c r));
-  [%expect.unreachable];
   [%expect {|
     ("quick test: test failed" (input ((Char b) T)))
-    (* CR require-failed: lib/quickcheck_properties.ml:123:0.
+    (* CR require-failed: lib/quickcheck_properties.ml:136:0.
        Do not 'X' this CR; instead make the required property true,
        which will make the CR disappear.  For more information, see
        [Expect_test_helpers_base.require]. *)
-    "Assert_failure lib/quickcheck_properties.ml:127:4"
+    "Assert_failure lib/quickcheck_properties.ml:140:4"
     |}]
 
 let%expect_test {| Example where a Brzozowski derivative is not contained in the set of Antimirov derivatives 
-  (e.g. when BRzozowski derivative is [Void] and the Antimirov derivative set is the empty set) |} = 
+  (e.g. when the Brzozowski derivative is [Void] and the Antimirov derivative set is the empty set) |} = 
   let bderiv = Brzozowski.bderiv (Char 'b') 'T' in 
   Stdio.printf "%s\n" (Base.Sexp.to_string_hum (sexp_of_re bderiv));
   [%expect {| Void |}]
@@ -149,10 +161,10 @@ let%quick_test ("Brzozowski contained in Antimirov set when it is non-empty
     assert (RegexSet.mem (Brzozowski.bderiv_opt r c) antimirov_set);
   [%expect {|
     ("quick test: test failed" (input ((Char b) T)))
-    (* CR require-failed: lib/quickcheck_properties.ml:144:0.
+    (* CR require-failed: lib/quickcheck_properties.ml:156:0.
        Do not 'X' this CR; instead make the required property true,
        which will make the CR disappear.  For more information, see
        [Expect_test_helpers_base.require]. *)
-    "Assert_failure lib/quickcheck_properties.ml:149:4"
+    "Assert_failure lib/quickcheck_properties.ml:161:4"
     |}]
   

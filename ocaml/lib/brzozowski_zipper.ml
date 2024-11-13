@@ -2,6 +2,8 @@
 (* Translated from the Scala code in Romain Edelmann's PhD thesis:
    https://infoscience.epfl.ch/server/api/core/bitstreams/4fcb9f0f-7ac1-484f-823c-c19de39dd9ff/content *)
 
+open Base_quickcheck
+open Sexplib.Conv
 open Regex
 
 (** A datatype for regexes -- we define a separate type to keep the constructor 
@@ -9,10 +11,14 @@ open Regex
 type regex = 
   | Failure 
   | Epsilon 
-  | Char of char
+  | Char of char [@quickcheck.generator Generator.char_lowercase]
   | Sequence of regex * regex 
   | Disjunction of regex * regex 
   | Star of regex
+[@@deriving equal, quickcheck, sexp]
+
+let string_of_regex (r : regex) : string = 
+  Base.Sexp.to_string_hum (sexp_of_regex r)
 
 (** Converts the [regex] type to the [re] type defined in [regex.ml] *)  
 let rec re_of_regex (regex : regex) : re = 
@@ -78,8 +84,16 @@ let unfocus (zipper : Zipper.t) : regex =
     zipper
     Failure
 
+(* Example from Huet's dissertation: 
+  {[
+    r1 = unfocus @@ Zipper.of_list [[e1; e2]; [e3]] in 
+    r2 = Disjunction (Sequence (e1, e2), e3) 
+  ]}
+  [r1] and [r2] should be semantically equivalent regexes
+  (need to apply some rewrite rules) *)
+
 (** Creates a zipper from a regex *)    
-let focus (r : regex) : Zipper.t = Zipper.of_list [[r]]
+let focus (r : regex) : Zipper.t = Zipper.singleton [r]
 
 (* Theorem 2.1
    Round-trip property, where [~=] denotes a regex matching a string
@@ -88,7 +102,7 @@ let focus (r : regex) : Zipper.t = Zipper.of_list [[r]]
       unfocus (focus r) ~= cs <--> r ~= cs
    }] *)
 
-(** Variant of Brzozowski derivatives for zipeprs *)
+(** Variant of Brzozowski derivatives for zippers *)
 let derive (zipper : Zipper.t) (c : char) : Zipper.t = 
   (** Move the focus up the regex to all subterms that can be reached without 
      consuming any input:
@@ -105,7 +119,7 @@ let derive (zipper : Zipper.t) (c : char) : Zipper.t =
   (** Moves the focus down the regex *)
   and down (r : regex) (ctx : context) : Zipper.t = 
     begin match r with 
-    | Char d when d = c ->
+    | Char d when Base.Char.equal d c ->
         (* When a context matches a [Char], we collect them in a set
            and form the resulting [zipper] using this set *) 
         Zipper.singleton ctx
@@ -165,6 +179,18 @@ let accepts (r : regex) (cs : char list) : bool =
 let zipper_match (r : regex) (s : string) : bool = 
   accepts r (Base.String.to_list s)
 
+let%expect_test "accepts Char" = 
+  Stdio.printf "%b\n" (accepts (Char 'c') ['c']);
+  [%expect {| false |}]
+
+let%expect_test {| Epsilon ~= "" |} = 
+  Stdio.printf "%b\n" (zipper_match (Epsilon) "");
+  [%expect {| true |}]
+
+let%expect_test {| Char c ~= 'c' |} =
+  Stdio.printf "%b\n" (zipper_match (Char 'c') (Base.Char.to_string 'c'));
+  [%expect {| false |}]
+  
 (** Takes a zipper [z] and constructs a {i maximal zipper} from it *)
 let max_zipper (z : Zipper.t) : Zipper.t = 
   let rec up (ctx : context) : Zipper.t = 
