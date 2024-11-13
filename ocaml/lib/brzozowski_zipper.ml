@@ -33,6 +33,12 @@ module Zipper = Set.Make(struct
   let compare = compare
 end)
 
+(** [concatMap] but for zippers: applies a function [f] 
+    to each element within a [zipper], and takes the union of all the resultant 
+    zippers *)
+let zipper_concat_map (f : context -> Zipper.t) (z : Zipper.t) : Zipper.t = 
+  Zipper.map (fun ctx -> List.concat @@ Zipper.to_list (f ctx)) z
+
 (** Converts a [zipper] to a [regex] *)
 let unfocus (zipper : Zipper.t) : regex = 
   (* Converts a singular [context] to a [regex] *)
@@ -86,7 +92,7 @@ let derive (zipper : Zipper.t) (c : char) : Zipper.t =
     end in 
   (* if OCaml had [concatMap] for sets, 
     this would just be [Zipper.concatMap up zipper] *)
-  Zipper.map (fun ctx -> List.concat @@ Zipper.to_list (up ctx)) zipper
+  zipper_concat_map up zipper
   
 (* Theorem 2.2:
   [{ forall (z : zipper) (c : char) (cs : char list), 
@@ -126,7 +132,6 @@ let accepts (r : regex) (cs : char list) : bool =
    ]}
 *)  
 
-
 (** Takes a zipper [z] and constructs a {i maximal zipper} from it *)
 let max_zipper (z : Zipper.t) : Zipper.t = 
   let rec up (ctx : context) : Zipper.t = 
@@ -146,7 +151,7 @@ let max_zipper (z : Zipper.t) : Zipper.t =
         down r' (r :: ctx)
     | _ -> Zipper.empty 
     end in 
-    Zipper.map (fun ctx -> List.concat @@ Zipper.to_list (up ctx)) z
+  zipper_concat_map up z
 
 (* 
   Lemma 2.1: 
@@ -169,7 +174,7 @@ let max_zipper (z : Zipper.t) : Zipper.t =
 
 (* Counting contexts (from section 2.6): 
 - The set [Z] in Theorem 2.6 can be constructed as [z] union with [maxZipper z].
-- The no. of zippers that can e encountered starting from any regex [r] is at most 
+- The no. of zippers that can be encountered starting from any regex [r] is at most 
   $$ 1 + 2 ^ |maxZipper (focus r)| $$
 - The constant $1$ represents the unique context in [focus r],
   while the term $2 ^ |maxZipper (focus r)|$ represents the no. of subsets 
