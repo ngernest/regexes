@@ -132,6 +132,10 @@ let accepts (r : regex) (cs : char list) : bool =
    ]}
 *)  
 
+(** Determines whether a string matches a regex using zippers *)
+let zipper_match (r : regex) (s : string) : bool = 
+  accepts r (Base.String.to_list s)
+
 (** Takes a zipper [z] and constructs a {i maximal zipper} from it *)
 let max_zipper (z : Zipper.t) : Zipper.t = 
   let rec up (ctx : context) : Zipper.t = 
