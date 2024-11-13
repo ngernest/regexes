@@ -44,6 +44,19 @@ let rec gen_regex_string (r : re) : (string Generator.t) option =
       return @@ String.concat "" xs)
     end
 
+(** Generates a pair consisting of a regex and a string which matches 
+    that regex *)    
+let gen_re_string : (re * string) Generator.t = 
+  let open Generator.Let_syntax in 
+  let%bind r = quickcheck_generator_re in 
+  begin match gen_regex_string r with 
+  | Some gen_string -> 
+    let%bind s = gen_string in 
+    Generator.return (r, s)
+  | None -> failwith "TODO"
+  end 
+      
+
 (** Only generates pairs of regexes and chars for which the set of 
   Antimirov derivatives is non-empty *)  
 let gen_re_char_nonempty_antimirov : (re * char) Generator.t = 
@@ -86,11 +99,11 @@ let%quick_test ("Brzozowski is always contained in the set of Antimirov deriv
   [%expect.unreachable];
   [%expect {|
     ("quick test: test failed" (input ((Char b) T)))
-    (* CR require-failed: lib/antimirov.ml:89:0.
-        Do not 'X' this CR; instead make the required property true,
-        which will make the CR disappear.  For more information, see
-        [Expect_test_helpers_base.require]. *)
-    "Assert_failure lib/antimirov.ml:93:4"
+    (* CR require-failed: lib/quickcheck_properties.ml:94:0.
+       Do not 'X' this CR; instead make the required property true,
+       which will make the CR disappear.  For more information, see
+       [Expect_test_helpers_base.require]. *)
+    "Assert_failure lib/quickcheck_properties.ml:98:4"
     |}]
 
 let%expect_test "Example where Brzozowski is not contained in Antimirov" = 
@@ -106,14 +119,18 @@ let%quick_test ("Brzozowski contained in Antimirov set when it is non-empty
     assert (RegexSet.mem (Brzozowski.bderiv_opt r c) antimirov_set);
   [%expect {|
     ("quick test: test failed" (input ((Char b) T)))
-    (* CR require-failed: lib/antimirov.ml:109:0.
-        Do not 'X' this CR; instead make the required property true,
-        which will make the CR disappear.  For more information, see
-        [Expect_test_helpers_base.require]. *)
-    "Assert_failure lib/antimirov.ml:114:4"
+    (* CR require-failed: lib/quickcheck_properties.ml:114:0.
+       Do not 'X' this CR; instead make the required property true,
+       which will make the CR disappear.  For more information, see
+       [Expect_test_helpers_base.require]. *)
+    "Assert_failure lib/quickcheck_properties.ml:119:4"
     |}]
   
-
-    
+let%quick_test "Brzozowski & Antimirov-based regex matchers accept the same strings!" 
+  [@generator gen_re_string] [@config config] = 
+  fun (r : re) (s : string) -> 
+    let antimirov_result = antimirov_match r s in 
+    let brzozowski_result = brzozowski_match r s in 
+    assert (Bool.equal antimirov_result brzozowski_result);
+  [@expect {| |}]
   
-      
