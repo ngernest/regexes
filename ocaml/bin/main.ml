@@ -1,6 +1,7 @@
 open Lib
 open Regex
 open Antimirov
+open Quickcheck_properties
 open Sexplib.Conv
 
 (** Runs a QuickCheck test which {i falsifies} the property that Brzozowski 

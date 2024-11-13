@@ -28,7 +28,8 @@ The `ocaml` subdirectory contains executable implementations of regex matchers:
 - [`antimirov.ml`](./ocaml/lib/antimirov.ml): a regex matcher that uses Antimirov derivatives, along with some experiments using QuickCheck to test lemmas regarding Antimirov derivatives 
 - [`krishnaswami.ml`](./ocaml/lib/krishnaswami.ml): builds a DFA corresponding to a regex using Antimirov derivatives (adapted from [Neel Krishnaswami's blogpost](https://semantic-domain.blogspot.com/2013/11/antimirov-derivatives-for-regular.html))
 - [`zipper.ml`](./ocaml/lib/zipper.ml) contains an implementation of [Huet's zipper](https://en.wikipedia.org/wiki/Zipper_(data_structure)) (adapted from chapter 2.3 of [Romain Edelmann's PhD dissertation](https://infoscience.epfl.ch/server/api/core/bitstreams/4fcb9f0f-7ac1-484f-823c-c19de39dd9ff/content))     
-- [`brzozowski_zipper.ml`](./ocaml/lib/brzozowski_zipper.ml) contains an implementation of Brozozwski derivatives via zippers (adapted from chapter 2.6 of [Edelmann's dissertation](https://infoscience.epfl.ch/server/api/core/bitstreams/4fcb9f0f-7ac1-484f-823c-c19de39dd9ff/content))     
+- [`brzozowski_zipper.ml`](./ocaml/lib/brzozowski_zipper.ml) contains an implementation of Brozozwski derivatives via zippers (adapted from chapter 2.6 of [Edelmann's dissertation](https://infoscience.epfl.ch/server/api/core/bitstreams/4fcb9f0f-7ac1-484f-823c-c19de39dd9ff/content)) 
+- [`quickcheck_properties.ml`](./ocaml/lib/quickcheck_properties.ml): QuickCheck properties regarding Antimirov / Brzozowski derivatives (which we used to figure out whether lemma statements were valid before proving them)     
 
 ### Building & Testing the OCaml Code
 First, `cd` into the `ocaml` subdirectory. Then: 
