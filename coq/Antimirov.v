@@ -228,9 +228,8 @@ Proof.
   destruct H0. 
   destruct H0.
   subst.
-  apply elem_of_map_to_list.
-  
-  
+  (* TODO: figure out the following! *)
+  (* apply elem_of_map_to_list. *)
 Admitted. (* TODO *)
 
 
