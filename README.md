@@ -18,6 +18,7 @@ opam install coq-stdpp
 - [`Brzozowski.v`](./coq/Brzozowski.v): Brzozowski derivatives
 - [`ReCountable.v`](./coq/ReCountable.v): Proving that regexes are countable
 - [`Regex_opt.v`](./coq/Regex_opt.v): Smart constructors for regexes
+- [`Edelmann.v`](./coq/Edelmann.v): Romain Edelmann's Coq formalization of the zipper representation of Brzozowski derivatives
 - [`ListMonad.v`](./coq/ListMonad.v) : The list monad
 
 We also referenced the code from the CS 6115 lecture (Fall 2017) on regexes ([link](https://www.cs.cornell.edu/courses/cs6115/2017fa/notes/SimpleLex.html)).
