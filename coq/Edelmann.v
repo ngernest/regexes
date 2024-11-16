@@ -1,4 +1,4 @@
-(* Code by Romain Edelmann
+(* Adapted from Romain Edelmann's Coq formalisation
    https://github.com/epfl-lara/silex-proofs/blob/master/Zippers.v *)
 
 Require Import List.
@@ -12,6 +12,10 @@ Parameter char : Type.
 
 (* Input words. *)
 Definition word := list char.
+
+(* TODO: figure out how to instantiate the [char_class] parameter
+   See https://stackoverflow.com/questions/71143362/best-practices-for-parametrized-coq-libraries 
+  *)
 
 (* Characters classes.
  * Must provide membership function and
@@ -724,8 +728,10 @@ Qed.
 (* Does the regular expression e accept the word w?
  * Finds out using zippers!
  *)
-Definition accepts e w :=
+Definition accepts (e : regexpr) (w : list char) : bool :=
   zipper_accepts (focus e) w.
+
+Compute (accepts (Character "c") ["c"]).  
 
 (* Correctness of the zipper-based recogniser. *)
 Theorem accepts_correct : forall e w,
