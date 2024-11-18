@@ -1,4 +1,4 @@
-(* Adapted from Romain Edelmann's Coq formalisation
+(* Modified from Romain Edelmann's Coq formalisation
    https://github.com/epfl-lara/silex-proofs/blob/master/Zippers.v *)
 
 Require Export List ListSet Ascii Bool.
