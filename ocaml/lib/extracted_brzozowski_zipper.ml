@@ -8,7 +8,7 @@ module ListSet = struct
   type 'a t = 'a list
 
   let empty = []
-  let is_empty lst = lst == []
+  let is_empty = function [] -> true | _ -> false
   let mem x lst = List.mem x lst
   let add x s = if mem x s then s else x :: s
   let rem x = List.filter (( <> ) x)
