@@ -1,14 +1,16 @@
 (* Adapted from Romain Edelmann's Coq formalisation
    https://github.com/epfl-lara/silex-proofs/blob/master/Zippers.v *)
 
-Require Import List.
-Require Import ListSet.
+Require Export List ListSet Ascii.
 Import ListNotations.
 
 (***** CHARACTERS AND WORDS *****)
 
+Global Declare Scope char_class_scope.
+Open Scope char_class_scope.
+
 (* Input characters. *)
-Parameter char : Type.
+Definition char := ascii.
 
 (* Input words. *)
 Definition word := list char.
@@ -17,16 +19,21 @@ Definition word := list char.
    See https://stackoverflow.com/questions/71143362/best-practices-for-parametrized-coq-libraries 
   *)
 
-(* Characters classes.
- * Must provide membership function and
- * decidable equality.
- *)
-Parameter char_class : Type.
-Parameter char_class_mem :
-  char_class -> char -> bool.
-Parameter char_class_eq_dec :
-  forall (c1 c2: char_class),
-    {c1 = c2} + {c1 <> c2}.
+(* A typeclass for "character classes", along with a membership function and 
+   decidable equality. Note: this is commented out for now *)
+
+(* 
+Class CharClass : Type := {
+  char_class : Type;
+  char_class_mem : char_class -> char -> bool;
+  char_class_eq_dec : forall (c1 c2: char_class), {c1 = c2} + {c1 <> c2}
+}.
+Context {charClass : CharClass}. *)
+
+Definition char_class := char.
+Definition char_class_mem := Ascii.eqb.
+Definition char_class_eq_dec := Ascii.ascii_dec.
+
 
 (***** REGULAR EXPRESSIONS *****)
 
@@ -71,7 +78,6 @@ Lemma regexpr_eq_dec : forall (e1 e2: regexpr),
   {e1 = e2} + {e1 <> e2}.
 Proof.
   repeat decide equality.
-  apply char_class_eq_dec.
 Qed.
 
 (* Unfold one non-empty instance from
@@ -159,7 +165,6 @@ Lemma context_eq_dec : forall (ctx1 ctx2: context),
   {ctx1 = ctx2} + {ctx1 <> ctx2}.
 Proof.
   repeat decide equality.
-  apply char_class_eq_dec.
 Qed.
 
 (* Find the first non-empty instance given a context's match. *)
@@ -730,8 +735,6 @@ Qed.
  *)
 Definition accepts (e : regexpr) (w : list char) : bool :=
   zipper_accepts (focus e) w.
-
-Compute (accepts (Character "c") ["c"]).  
 
 (* Correctness of the zipper-based recogniser. *)
 Theorem accepts_correct : forall e w,
