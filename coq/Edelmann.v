@@ -1,8 +1,13 @@
 (* Adapted from Romain Edelmann's Coq formalisation
    https://github.com/epfl-lara/silex-proofs/blob/master/Zippers.v *)
 
-Require Export List ListSet Ascii.
+Require Export List ListSet Ascii Bool.
+Require Extraction.
 Import ListNotations.
+
+(* Tell Coq to genearate Boolean equality for lists + 
+   proof of decidability for list equality *)
+Scheme Equality for list.
 
 (***** CHARACTERS AND WORDS *****)
 
@@ -59,6 +64,21 @@ Lemma regexpr_eq_dec : forall (e1 e2: regexpr),
 Proof.
   repeat decide equality.
 Qed.
+
+(* Boolean equality for regexes *)
+Fixpoint regex_eqb (r1 r2 : regexpr) : bool :=
+  match (r1, r2) with 
+  | (Failure, Failure) | (Epsilon, Epsilon) =>
+      true 
+  | (Character c1, Character c2) => 
+      Ascii.eqb c1 c2
+  | (Disjunction r11 r12, Disjunction r21 r22) 
+  | (Sequence r11 r12, Sequence r21 r22) => 
+      regex_eqb r11 r21 && regex_eqb r21 r22
+  | (Repetition r1', Repetition r2') => regex_eqb r1' r2'
+  | (_, _) => false 
+  end.
+
 
 (* Unfold one non-empty instance from
  * a Repetition's matches.
@@ -146,6 +166,11 @@ Lemma context_eq_dec : forall (ctx1 ctx2: context),
 Proof.
   repeat decide equality.
 Qed.
+
+(* Boolean equality for contexts *)
+Definition context_eqb (xs : context) (ys : context) : bool := 
+  list_beq regexpr regex_eqb xs ys.
+
 
 (* Find the first non-empty instance given a context's match. *)
 Lemma context_matches_non_empty : forall ctx w,
@@ -1240,3 +1265,12 @@ Proof.
   apply has_first_zipper_complete.
   exists c, w. assumption.
 Qed.
+
+(** Extraction *)
+
+(* Tell Coq to extract Coq's [bool], [list] & [char] types 
+   to their OCaml counterparts *)
+Extract Inductive bool => "bool" [ "true" "false" ].
+Extract Inductive list => "list" [ "[]" "(::)" ].
+Extract Inlined Constant char => "char".
+Extraction "edelmann.ml" accepts.  
