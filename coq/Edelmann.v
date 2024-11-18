@@ -15,33 +15,13 @@ Definition char := ascii.
 (* Input words. *)
 Definition word := list char.
 
-(* TODO: figure out how to instantiate the [char_class] parameter
-   See https://stackoverflow.com/questions/71143362/best-practices-for-parametrized-coq-libraries 
-  *)
-
-(* A typeclass for "character classes", along with a membership function and 
-   decidable equality. Note: this is commented out for now *)
-
-(* 
-Class CharClass : Type := {
-  char_class : Type;
-  char_class_mem : char_class -> char -> bool;
-  char_class_eq_dec : forall (c1 c2: char_class), {c1 = c2} + {c1 <> c2}
-}.
-Context {charClass : CharClass}. *)
-
-Definition char_class := char.
-Definition char_class_mem := Ascii.eqb.
-Definition char_class_eq_dec := Ascii.ascii_dec.
-
-
 (***** REGULAR EXPRESSIONS *****)
 
 (* Regular expressions. *)
 Inductive regexpr: Type :=
   | Failure
   | Epsilon
-  | Character (cl: char_class)
+  | Character (c: char)
   | Disjunction (l r: regexpr)
   | Sequence (l r: regexpr)
   | Repetition (e: regexpr).
@@ -51,8 +31,8 @@ Inductive regexpr: Type :=
  *)
 Inductive matches: regexpr -> word -> Prop :=
   | MEps : matches Epsilon []
-  | MChar (cl: char_class) c:
-      char_class_mem cl c = true ->
+  | MChar (cl: char) (c : char):
+      Ascii.eqb cl c = true ->
       matches (Character cl) [c]
   | MDisL (l r: regexpr) (w: word):
       matches l w ->
@@ -300,7 +280,7 @@ Qed.
 (* Downwards phase of Brzozowski's derivation on zippers. *)
 Fixpoint derive_down (c: char) (e: regexpr) (ctx: context): zipper :=
   match e with
-  | Character cl => if char_class_mem cl c then [ctx] else []
+  | Character cl => if Ascii.eqb cl c then [ctx] else []
   | Disjunction l r => zipper_union (derive_down c l ctx) (derive_down c r ctx)
   | Sequence l r => if (nullable l)
     then
@@ -337,7 +317,7 @@ Proof.
   induction e; intros; simpl in *; destruct H as [ctx' [I' M']].
   + inversion I'.
   + inversion I'.
-  + destruct (char_class_mem cl c) eqn:N.
+  + destruct ((c =? c0)%char) eqn:N.
     - subst.
       exists [], w.
       repeat split.
@@ -713,7 +693,7 @@ Proof.
 Qed.
 
 (* Does the zipper z accept the word w? *)
-Definition zipper_accepts z w :=
+Definition zipper_accepts (z : zipper) (w : word) : bool :=
   zipper_nullable (derive_word w z).
 
 (* Correctness of the zipper recogniser. *)
@@ -735,6 +715,9 @@ Qed.
  *)
 Definition accepts (e : regexpr) (w : list char) : bool :=
   zipper_accepts (focus e) w.
+
+(* Unit test: does the character literal ['c'] match [Character 'c']? *)
+(* Compute (accepts (Character "c"%char) ["c"%char]). *)
 
 (* Correctness of the zipper-based recogniser. *)
 Theorem accepts_correct : forall e w,
@@ -777,7 +760,7 @@ Lemma derive_max_zipper_down_incl : forall e ectx ctx c,
   set_In ctx (derive_down c e ectx) -> set_In ctx (max_zipper_down e ectx).
 Proof.
   induction e; intros; simpl in *; try contradiction.
-  - destruct (char_class_mem cl c); inversion H; subst.
+  - destruct ((c =? c0)%char); inversion H; subst.
     + left. reflexivity.
     + inversion H0.
   - apply set_union_elim in H as [H | H].
@@ -903,7 +886,7 @@ Theorem derive_max_zipper_down_mono : forall e ectx ctx c,
   set_In ctx (max_zipper [e :: ectx]).
 Proof.
   induction e; intros; simpl in *; try contradiction.
-  - destruct (char_class_mem cl c); subst; simpl in *.
+  - destruct ((c =? c0)%char); subst; simpl in *.
     + unfold max_zipper in *.
       simpl in *.
       apply set_union_intro2. apply H.
@@ -1166,26 +1149,26 @@ Lemma has_first_complete :
     (exists c w, matches e (c :: w)) ->
     has_first e = true.
 Proof.
-  induction e; intros; destruct H as [c [w M]]; simpl.
+  induction e; intros; destruct H as [c' [w M]]; simpl.
   - inversion M.
   - inversion M.
   - reflexivity.
   - apply Bool.orb_true_iff.
     inversion M; subst.
-    + left. apply IHe1. exists c, w. assumption.
-    + right. apply IHe2. exists c, w. assumption.
+    + left. apply IHe1. exists c', w. assumption.
+    + right. apply IHe2. exists c', w. assumption.
   - rewrite Bool.orb_true_iff.
     repeat rewrite Bool.andb_true_iff.
     inversion M; subst.
     destruct wl.
     + right. split.
       * apply nullable_matches. assumption.
-      * apply IHe2. exists c, w.
+      * apply IHe2. exists c', w.
         simpl in H1; subst.
         assumption.
     + left. simpl in H1. inversion H1; subst. split.
       * apply IHe1.
-        exists c, wl.
+        exists c', wl.
         assumption.
       * apply productive_complete.
         exists wr.
@@ -1195,7 +1178,7 @@ Proof.
       destruct w1.
       { contradiction. }
       inversion E; subst.
-      exists c0, w1. assumption.
+      exists c, w1. assumption.
     + intros A. inversion A.
 Qed.
 
