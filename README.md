@@ -34,9 +34,10 @@ The `ocaml` subdirectory contains executable implementations of regex matchers:
 
 ### Building & Testing the OCaml Code
 First, `cd` into the `ocaml` subdirectory. Then: 
-- Run `opam install . --deps-only` to install all OCaml dependencies
-- Run `dune runtest` to run some QuickCheck tests regarding Antimirov derivatives (see [`antimirov.ml`](./ocaml/lib/antimirov.ml) 
-- Run `dune exec -- main` to see how QuickCheck falsifies the property that Brzozowski derivatives are always contained within the set of Antimirov derivatives (when the set is non-empty)
+- Run `make install` to install all OCaml dependencies
+- Run `make` to build the OCaml code
+- (Optional) Run `make test` to run some QuickCheck tests regarding Antimirov derivatives (see [`antimirov.ml`](./ocaml/lib/antimirov.ml) 
+- (Optional) Run `dune exec -- main` to see how QuickCheck falsifies the property that Brzozowski derivatives are always contained within the set of Antimirov derivatives (when the set is non-empty)
 
 ### Other miscellaneous files / Deprecated (outdated) project work
 - [`brzozowski_zipper.ml`](./ocaml/lib/brzozowski_zipper.ml) contains an implementation of Brzozowski derivatives via zippers (translated from the Scala code in chapter 2.6 of [Edelmann's dissertation](https://infoscience.epfl.ch/server/api/core/bitstreams/4fcb9f0f-7ac1-484f-823c-c19de39dd9ff/content)) 
