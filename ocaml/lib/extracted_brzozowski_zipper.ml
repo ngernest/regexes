@@ -1,3 +1,7 @@
+(******************************************************************************)
+(* Boilerplate to make the extracted code more usable *)
+
+open Regex
 
 (** Finite sets implemented using lists *)
 module ListSet = struct
@@ -29,6 +33,29 @@ type regexpr =
 | Disjunction of regexpr * regexpr
 | Sequence of regexpr * regexpr
 | Repetition of regexpr
+
+
+(** Converts the [regex] type to the [re] type defined in [regex.ml]
+    - This function was manually written *)  
+let rec re_of_regex (regex : regexpr) : re = 
+  match regex with 
+  | Failure -> Void 
+  | Epsilon -> Epsilon 
+  | Character c -> Char c 
+  | Sequence (r1, r2) -> Seq (re_of_regex r1, re_of_regex r2)
+  | Disjunction (r1, r2) -> Alt (re_of_regex r1, re_of_regex r2)
+  | Repetition r -> Star (re_of_regex r)
+  
+(** Converts the [re] type defined in [regex.ml] to the [regex] type above
+    - This function was manually written *)    
+let rec regex_of_re (re : re) : regexpr = 
+  match re with 
+  | Void -> Failure 
+  | Epsilon -> Epsilon 
+  | Char c -> Character c 
+  | Seq (r1, r2) -> Sequence (regex_of_re r1, regex_of_re r2)
+  | Alt (r1, r2) -> Disjunction (regex_of_re r1, regex_of_re r2)
+  | Star r -> Repetition (regex_of_re r)
 
 (** val nullable : regexpr -> bool **)
 
@@ -102,3 +129,8 @@ let zipper_accepts z w =
 
 let accepts e w =
   zipper_accepts (focus e) w
+
+
+(** Determines whether a string matches a regex using zippers *)
+let zipper_match (r : regexpr) (s : string) : bool = 
+  accepts r (Base.String.to_list s)

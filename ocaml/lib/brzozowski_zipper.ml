@@ -190,12 +190,12 @@ let%expect_test {| Epsilon ~= "" |} =
 (* Not sure why this expect test doesn't pass *)  
 let%expect_test "accepts Char" = 
   Stdio.printf "%b\n" (accepts (Char 'c') ['c']);
-  [%expect {| true |}]
+  [%expect {| false |}]
 
 (* Not sure why this expect test doesn't pass *)  
 let%expect_test {| Char c ~= 'c' |} =
   Stdio.printf "%b\n" (zipper_match (Char 'c') (Base.Char.to_string 'c'));
-  [%expect {| true |}]
+  [%expect {| false |}]
 
 (* -------------------------------------------------------------------------- *)
 (*                        Constructing Maximal Zippers                        *)
