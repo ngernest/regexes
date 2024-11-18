@@ -1270,7 +1270,14 @@ Qed.
 
 (* Tell Coq to extract Coq's [bool], [list] & [char] types 
    to their OCaml counterparts *)
+
+(* The extracted Coq code doesn't fully compile on its own 
+   and requires manual modification, so we've commented out the [Extraction]
+   commands below. *)
+
+(* 
 Extract Inductive bool => "bool" [ "true" "false" ].
 Extract Inductive list => "list" [ "[]" "(::)" ].
 Extract Inlined Constant char => "char".
-Extraction "edelmann.ml" accepts.  
+Extraction "edelmann.ml" accepts. 
+*)
