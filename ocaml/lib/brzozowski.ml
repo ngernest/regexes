@@ -1,6 +1,5 @@
 open Regex 
 
-
 (** [bderiv re c] takes the Brozozowski derivative of the regex [re] 
       with respect to the char [c] *)
 let rec bderiv (re : re) (c : char) : re =

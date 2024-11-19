@@ -1,11 +1,10 @@
-open Regex 
-open Antimirov 
+open Lib.Regex 
+open Lib.Antimirov 
 
-(* Constructing DFAs using Antimirov Derivatives,
-   adapted from Neel Krishnaswami
-   https://semantic-domain.blogspot.com/2013/11/antimirov-derivatives-for-regulaRegexSet.html *)
+(** Constructing DFAs using Antimirov Derivatives,
+    adapted from Neel Krishnaswami
+    https://semantic-domain.blogspot.com/2013/11/antimirov-derivatives-for-regulaRegexSet.html *)
 
-  
 (** [M] is the type of finite maps where the keys are sets of regexes *)
 module M = Map.Make(RegexSet)
 
@@ -15,10 +14,10 @@ module I = Set.Make(struct
   let compare = compare 
 end)
 
-(* Since the set of Antimirov (partial) derivatives is finite, 
-  this means that the powerset of this set is also finite, 
-   and so by treating sets of partial derivatives as states,
-   we can construct a DFA for matching regexes *)
+(** Since the set of Antimirov (partial) derivatives is finite, 
+    this means that the powerset of this set is also finite, 
+    and so by treating sets of partial derivatives as states,
+    we can construct a DFA for matching regexes *)
 
 (** A datatype for DFAs:
   - [size] is the no. of states 

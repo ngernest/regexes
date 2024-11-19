@@ -83,5 +83,3 @@ let regex_set_map (f : re -> re) (rs : RegexSet.t) : RegexSet.t =
 (** Computes the max height of a regex in a set of regexes [rs] *)
 let max_height_re_set (rs : RegexSet.t) : int = 
   RegexSet.fold (fun r acc -> max (re_height r) acc) rs 0
-
-

@@ -10,7 +10,7 @@ open Sexplib.Conv
 (* -------------------------------------------------------------------------- *)
    
 (** Generator that generates a pair consisting of a regex 
-   and an lowercase character *)
+    and an lowercase character *)
 let gen_re_char : (re * char) Generator.t = 
   Generator.both quickcheck_generator_re Generator.char_lowercase
 
@@ -61,7 +61,7 @@ let gen_re_string : (re * string) Generator.t =
       
 
 (** Only generates pairs of regexes and chars for which the set of 
-  Antimirov derivatives is non-empty *)  
+    Antimirov derivatives is non-empty *)  
 let gen_re_char_nonempty_antimirov : (re * char) Generator.t = 
   Generator.filter gen_re_char 
     ~f:(fun (r, c) -> 
@@ -99,10 +99,10 @@ let%quick_test {| The regex matchers based on Brzozowski derivatives & zippers
   [%expect {| |}]
     
 (* Technically, the lemma statement is that the no. of Antimirov deriatives
-    is linear in the regex size, but there's no way to express 
-  existential quantification in OCaml's QuickCheck library, so we 
-  use QC to test a weaker version of this lemma (which just says
-  the no. of Antimirov derivatives is upper-bounded by the regex size) *)  
+   is linear in the regex size, but there's no way to express 
+   existential quantification in OCaml's QuickCheck library, so we 
+   use QC to test a weaker version of this lemma (which just says
+   the no. of Antimirov derivatives is upper-bounded by the regex size) *)  
 let%quick_test ("No. of Antimirov derivatives is at most the size of the regex" 
   [@generator gen_re_char] [@shrinker shrink_re_char] [@config config]) =
   fun (r : re) (c : char) -> 

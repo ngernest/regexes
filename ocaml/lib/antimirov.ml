@@ -1,6 +1,6 @@
-(* A regex matcher based on Antimirov derivatives, 
-   adapted from Neel Krishnaswami
-   https://semantic-domain.blogspot.com/2013/11/antimirov-derivatives-for-regulaRegexSet.html *)
+(** A regex matcher based on Antimirov derivatives, adapted from Neel Krishnaswami
+    https://semantic-domain.blogspot.com/2013/11/antimirov-derivatives-for-regulaRegexSet.html *)
+
 open Regex
 open Base_quickcheck
 open Sexplib.Conv
@@ -42,4 +42,3 @@ let set_accepts_empty (rs : RegexSet.t) : bool =
 let antimirov_match (r : re) (s : string) : bool = 
   set_accepts_empty (String.fold_left 
     (fun rs c -> aderiv' c rs) (RegexSet.singleton r) s)  
-

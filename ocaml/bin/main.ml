@@ -16,4 +16,3 @@ let () =
   ~f:(fun ((r, c) : re * char) -> 
     let antimirov_set = aderiv_opt c r in 
     assert (RegexSet.mem (Brzozowski.bderiv_opt r c) antimirov_set))
-

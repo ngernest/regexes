@@ -1,6 +1,6 @@
-(* Translated from the Scala code in Romain Edelmann's PhD thesis:
-   https://infoscience.epfl.ch/server/api/core/bitstreams/4fcb9f0f-7ac1-484f-823c-c19de39dd9ff/content 
-   (section 2.5) *)
+(** Translated from the Scala code in Romain Edelmann's PhD thesis:
+    https://infoscience.epfl.ch/server/api/core/bitstreams/4fcb9f0f-7ac1-484f-823c-c19de39dd9ff/content 
+    (section 2.5) *)
 
 (** Datatype for binary trees *)
 type 'a tree = 
@@ -70,3 +70,4 @@ let move_right (zipper : 'a zipper) : 'a zipper  =
 (** Replaces the focus with a new tree *)
 let replace_focus (zipper : 'a zipper) (new_focus : 'a tree) : 'a zipper = 
   { zipper with focus = new_focus }
+  

@@ -1,10 +1,10 @@
 
-(* Translated from the Scala code in Romain Edelmann's PhD thesis:
-   https://infoscience.epfl.ch/server/api/core/bitstreams/4fcb9f0f-7ac1-484f-823c-c19de39dd9ff/content *)
+(** Translated from the Scala code in Romain Edelmann's PhD thesis:
+    https://infoscience.epfl.ch/server/api/core/bitstreams/4fcb9f0f-7ac1-484f-823c-c19de39dd9ff/content *)
 
 open Base_quickcheck
 open Sexplib.Conv
-open Regex
+open Lib.Regex
 
 (** A datatype for regexes -- we define a separate type to keep the constructor 
     names the same as Edelmann's thesis *)   
