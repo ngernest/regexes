@@ -10,7 +10,7 @@ The idea is that the Antimirov derivative should collectively accept the same st
 
 In this project, our broad aim is to mechanize proofs that relate the two notions of derivatives.
 
-One avenue we're exploring is to prove that two implementations of regex matchers, respectively based on Brzozowski and Antimirov derivatives, accept the same set of strings (and are equivalent with respect to an inductive relation that specifies what it means for a string to match a regex). 
+One avenue we're exploring is to prove that two implementations of regex matchers, based on Brzozowski and Antimirov derivatives respectively, accept the same set of strings (and are equivalent with respect to an inductive relation that specifies what it means for a string to match a regex). 
 
 Furthermore, Michael Greenberg has a [blogpost](https://www.weaselhat.com/post-819.html) in which he investigates how the *size* of a regex grows as we take successive Brzozowski derivatives. He obtained the following two results empirically (and later [proved them in Coq](https://github.com/Pomona-College-CS181-SP2020/regularity/blob/master/analysis/analysis.v)):
 1. There does not exist any constant that bounds the size increase of Brzozowski derivatives (i.e. the size of Brzozowski derivatives grows exponentially).

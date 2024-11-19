@@ -39,10 +39,9 @@ Ltac simp tac :=
 
 Definition char := ascii.
 Definition string := list ascii.
-
 Definition char_dec := ascii_dec.
 
-(* Regular expressions *)
+(** Regular expressions *)
 Inductive re :=
   | Void : re
   | Epsilon : re
@@ -51,7 +50,7 @@ Inductive re :=
   | Concat : re -> re -> re
   | Star : re -> re.
 
-(* Matching relation *)
+(** Matching relation *)
 Inductive matches : re -> string -> Prop :=
   | matches_isEpsilon : matches Epsilon []
   | matches_atom a : matches (Atom a) [a]
@@ -76,7 +75,7 @@ Inductive matches : re -> string -> Prop :=
 
 Hint Constructors matches : core.
 
-(* A lemma relating cons and [++] *)
+(** A lemma relating cons and [++] *)
 Lemma cons_eq_app {A} (a : A) x y z : 
   a :: x = y ++ z -> (y = [] /\ z = a :: x) \/ 
   (exists y', y = a :: y' /\ x = y' ++ z).
@@ -85,7 +84,7 @@ Proof.
   apply app_eq_app in H. simp eauto. destruct y; simp eauto.
 Qed.
 
-(* Inversion lemma for [Star] *)
+(** Inversion lemma for [Star] *)
 Lemma star_inv r s : 
   s ≠ [] -> matches (Star r) s -> 
   exists (s1 s2 : string), s1 ≠ [] /\ s = s1 ++ s2 
@@ -132,7 +131,7 @@ Hint Resolve isEmpty_matches_1 isEmpty_matches_2 : core.
 (******************************************************************************)
 (* Our code below *)
 
-(* Checks if this is a regex that never matches any string *)
+(** Checks if this is a regex that never matches any string *)
 Fixpoint isVoid (r : re) : bool :=
   match r with 
   | Void => true 
@@ -143,7 +142,59 @@ Fixpoint isVoid (r : re) : bool :=
   | Epsilon => false 
   end.
 
+(** Regexes have decidable equality *)
 Lemma re_dec : forall r1 r2 : re, {r1 = r2} + {r1 <> r2}.
 Proof. decide equality. apply char_dec. Qed.
 
 Instance ReDecidable : EqDecision re := re_dec.
+
+(** Injection into gen_trees, which are countable *)
+Fixpoint encode_regex (r : re) : gen_tree nat :=
+  match r with
+  | Void => GenLeaf 1
+  | Epsilon => GenLeaf 2
+  | Atom a => GenNode 3 [GenLeaf (nat_of_ascii a)]
+  | Union r1 r2 => GenNode 4 [encode_regex r1; encode_regex r2]
+  | Concat r1 r2 => GenNode 5 [encode_regex r1; encode_regex r2]
+  | Star r' => GenNode 6 [encode_regex r']
+  end.
+
+Fixpoint decode_regex (t : gen_tree nat) : option re := 
+  match t with
+  | GenLeaf 1 => Some Void
+  | GenLeaf 2 => Some Epsilon
+  | GenNode 3 [GenLeaf n] => Some (Atom (ascii_of_nat n))
+  | GenNode 4 [r1; r2] =>
+    match decode_regex r1, decode_regex r2 with
+    | Some r1', Some r2' => Some (Union r1' r2')
+    | _, _ => None
+    end
+  | GenNode 5 [r1; r2] => 
+    match decode_regex r1, decode_regex r2 with
+    | Some r1', Some r2' => Some (Concat r1' r2')
+    | _, _ => None
+    end
+  | GenNode 6 [r] => 
+    match decode_regex r with
+    | Some r' => Some (Star r')
+    | _ => None
+    end
+  | _ => None
+  end.
+
+Theorem decode_encode_regex (r : re) : decode_regex (encode_regex r) = Some r.
+Proof. 
+  induction r; unfold decode_regex; unfold encode_regex; 
+  eauto; fold decode_regex; fold encode_regex.
+  - rewrite ascii_nat_embedding. reflexivity.
+  - rewrite IHr1, IHr2. reflexivity.
+  - rewrite IHr1, IHr2. reflexivity.
+  - rewrite IHr. reflexivity.
+Qed.
+
+(** There are countably many regexes *)
+Instance ReCountable : Countable re.
+Proof. 
+  apply inj_countable with (f := encode_regex) (g := decode_regex). 
+  intros. apply decode_encode_regex.
+Qed.

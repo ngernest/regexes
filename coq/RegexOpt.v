@@ -2,9 +2,9 @@ Require Export List Bool Ascii String Arith Lia Nat.
 Export ListNotations BoolNotations.
 Require Import Regex.
 
-(* Smart constructors for regexes *)
+(** Smart constructors for regexes *)
 
-(* Smart constructor for [Union] *)
+(** Smart constructor for [Union] *)
 Definition union_opt (r1 : re) (r2 : re) : re :=
   match (r1, r2) with 
   | (_, Void) => r1 
@@ -12,7 +12,7 @@ Definition union_opt (r1 : re) (r2 : re) : re :=
   | (_, _) => Union r1 r2 
   end.
 
-(* Smart constructor for [Concat] *)
+(** Smart constructor for [Concat] *)
 Definition concat_opt (r1 : re) (r2 : re) : re :=
   match (r1, r2) with 
   | (Void, _) => Void 
@@ -22,10 +22,10 @@ Definition concat_opt (r1 : re) (r2 : re) : re :=
   | (_, _) => Concat r1 r2 
   end.
 
-(* Smart constructor for [Star]. Note:
-   - Iterating the empty string gives us the empty string
-   - Zero or more occurrences of Void is empty
-   - Two iterations of [Star] is the same as one *)
+(** Smart constructor for [Star]. Note:
+    - Iterating the empty string gives us the empty string
+    - Zero or more occurrences of Void is empty
+    - Two iterations of [Star] is the same as one *)
 Definition star_opt (r : re) := 
   if isEmpty r || isVoid r then Epsilon 
   else match r with 
@@ -33,13 +33,13 @@ Definition star_opt (r : re) :=
   | _ => Star r
   end.
 
-(* Returns [Epsilon] if [r] matches the empty string, 
-   otherwise matches [Void] *)
+(** Returns [Epsilon] if [r] matches the empty string, 
+    otherwise matches [Void] *)
 Definition E (r : re) : re :=
   if isEmpty r then Epsilon else Void.
 
-(* Helper function for standardizing regexes -- computes L(r) ∖ {∊}
-   - TODO: figure out why this works *)
+(** Helper function for standardizing regexes: computes L(r) ∖ {∊}
+    - TODO: figure out why this works *)
 Fixpoint N (r : re) : re :=
   match r with 
   | Void => Void 
@@ -52,6 +52,3 @@ Fixpoint N (r : re) : re :=
       (concat_opt (N r1) (N r2))
   | Star r' => concat_opt (N r') (star_opt (N r'))
   end.
-
-
-

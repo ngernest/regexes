@@ -87,7 +87,6 @@ Definition matchtop (r : re) (cs : list ascii) :=
     | _ => false 
     end) true cs.
 
-
 (*******************************************************************************)
 (* Fig 3: Termination-augmented matcher (first-order version) *)
 
@@ -141,4 +140,3 @@ with applyf (fuel : nat) (k : cont) (b : bool) (s : list ascii) : bool :=
 
 Definition fmatchtop (r : re) (s : list ascii) : bool := 
   fmatch (List.length s) r CInit true s.
-
