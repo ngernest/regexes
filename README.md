@@ -27,7 +27,7 @@ We also referenced the code from the CS 6115 lecture (Fall 2017) on regexes ([li
 The `ocaml` subdirectory contains executable implementations of regex matchers:
 - [`regex.ml`](./ocaml/lib/regex.ml): Regex definitions + smart constructors + helper functions (e.g. for computing regex size)
 - [`brzozowski.ml`](./ocaml/lib/brzozowski.ml): a regex matcher that uses Brzozowski derivatives
-- [`antimirov.ml`](./ocaml/lib/antimirov.ml): a regex matcher that uses Antimirov derivatives, along with some experiments using QuickCheck to test lemmas regarding Antimirov derivatives 
+- [`antimirov.ml`](./ocaml/lib/antimirov.ml): a regex matcher that uses Antimirov derivatives  
 - [`zipper.ml`](./ocaml/lib/zipper.ml) contains an implementation of [Huet's zipper](https://en.wikipedia.org/wiki/Zipper_(data_structure)) (adapted from chapter 2.3 of [Romain Edelmann's PhD dissertation](https://infoscience.epfl.ch/server/api/core/bitstreams/4fcb9f0f-7ac1-484f-823c-c19de39dd9ff/content))     
 - [`extracted_brzozowski_zipper.ml`](./ocaml/lib/extracted_brzozowski_zipper.ml): the Coq code from [`Edelmann.v`](./coq/Edelmann.v), extracted to OCaml 
 - [`quickcheck_properties.ml`](./ocaml/lib/quickcheck_properties.ml): QuickCheck properties regarding Antimirov / Brzozowski derivatives (which we used to figure out whether lemma statements were valid before proving them)     
@@ -36,7 +36,7 @@ The `ocaml` subdirectory contains executable implementations of regex matchers:
 First, `cd` into the `ocaml` subdirectory. Then: 
 - Run `make install` to install all OCaml dependencies
 - Run `make` to build the OCaml code
-- (Optional) Run `make test` to run some QuickCheck tests regarding Antimirov derivatives (see [`antimirov.ml`](./ocaml/lib/antimirov.ml) 
+- (Optional) Run `make test` to run some QuickCheck tests regarding Antimirov derivatives (see [`antimirov.ml`](./ocaml/lib/antimirov.ml)) 
 - (Optional) Run `dune exec -- main` to see how QuickCheck falsifies the property that Brzozowski derivatives are always contained within the set of Antimirov derivatives (when the set is non-empty)
 
 ### Other miscellaneous files / Deprecated (outdated) project work
