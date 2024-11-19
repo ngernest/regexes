@@ -38,12 +38,12 @@ First, `cd` into the `ocaml` subdirectory. Then:
 - (Optional) Run `dune exec -- main` to see how QuickCheck falsifies the property that Brzozowski derivatives are always contained within the set of Antimirov derivatives (when the set is non-empty)
 
 ### Deprecated (outdated) project work
-- [`brzozowski_zipper.ml`](./ocaml/lib/brzozowski_zipper.ml) contains an implementation of Brzozowski derivatives via zippers (translated from the Scala code in chapter 2.6 of [Edelmann's dissertation](https://infoscience.epfl.ch/server/api/core/bitstreams/4fcb9f0f-7ac1-484f-823c-c19de39dd9ff/content)) 
+- [`brzozowski_zipper.ml`](./ocaml/old/brzozowski_zipper.ml) contains an implementation of Brzozowski derivatives via zippers (translated from the Scala code in chapter 2.6 of [Edelmann's dissertation](https://infoscience.epfl.ch/server/api/core/bitstreams/4fcb9f0f-7ac1-484f-823c-c19de39dd9ff/content)) 
   - Note: We found out (via QuickCheck tests) that this file is buggy, possibly because we manually translated Edelmann's Scala code to OCaml. This file has been superceded by [`extracted_brzozowski_zipper.ml`](./ocaml/lib/extracted_brzozowski_zipper.ml). 
-- [`krishnaswami.ml`](./ocaml/lib/krishnaswami.ml): builds a DFA corresponding to a regex using Antimirov derivatives (adapted from [Neel Krishnaswami's blogpost](https://semantic-domain.blogspot.com/2013/11/antimirov-derivatives-for-regular.html))
-- [`ListMonad.v`](./coq/ListMonad.v) : The list monad (currently unused in the rest of our Coq development)
+- [`krishnaswami.ml`](./ocaml/old/krishnaswami.ml): builds a DFA corresponding to a regex using Antimirov derivatives (adapted from [Neel Krishnaswami's blogpost](https://semantic-domain.blogspot.com/2013/11/antimirov-derivatives-for-regular.html))
+- [`ListMonad.v`](./coq/old/ListMonad.v) : The list monad (currently unused in the rest of our Coq development)
 - We previously tried to mechanize Filinski's JFP 2021 paper "Proof-directed program transformation: A functional account of efficient regular expression matching," but we decided to switch to work on Brzozowski/Antimirov derivatives instead. Our (previous) work involving the Filinski paper is contained in the following files:
-  - [`harper.ml`](./ocaml/lib/harper.ml): the code from "Proof-directed debugging" (Harper 1998), translated from SML to OCaml
-  - [`filinski.ml`](./ocaml/lib/filinski.ml): the code from "Proof-directed program transformation: A functional account of efficient regular expression matching" (Filinski 2021), translated from SML to OCaml 
-  - [`Filinski.v`](./coq/Filinski.v): Our (abandoned) attempt at mechanizing the Filinski paper 
+  - [`harper.ml`](./ocaml/old/harper.ml): the code from "Proof-directed debugging" (Harper 1998), translated from SML to OCaml
+  - [`filinski.ml`](./ocaml/old/filinski.ml): the code from "Proof-directed program transformation: A functional account of efficient regular expression matching" (Filinski 2021), translated from SML to OCaml 
+  - [`Filinski.v`](./coq/old/Filinski.v): Our (abandoned) attempt at mechanizing the Filinski paper 
   
