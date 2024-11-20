@@ -39,6 +39,20 @@ let star (re : re) : re =
   | Star re' -> Star re'
   | _ -> Star re
 
+
+(** Optimizes a regex *)  
+let rec optimize_re (r : re) : re = 
+  match r with 
+  | Seq (r', Void) | Seq (Void, r') -> Void
+  | Seq (r', Epsilon) | Seq (Epsilon, r') 
+  | Alt (r', Void) | Alt (Void, r') -> optimize_re r' 
+  | Alt (r1, Alt (r2, r3)) -> alt (alt (optimize_re r1) (optimize_re r2)) (optimize_re r3)
+  | Alt (r1, r2) when equal_re r1 r2 -> optimize_re r1 
+  | Star Void | Star Epsilon -> Epsilon 
+  | Star (Star r') -> optimize_re @@ star r'
+  | _ -> r
+  
+
 (** Computes the {i size} (i.e. length) of a regex *)
 let rec re_size (r : re) : int =
   match r with
