@@ -8,7 +8,7 @@ Require Import Brzozowski.
 Lemma a_der_str_eps : forall (c : char) (s : string),
   a_der_str Epsilon s ⊆ {[ Epsilon ]}.
 Proof. 
-  induction s.
+  induction s. 
   - simpl. set_solver. 
   - simpl. unfold set_bind. rewrite elements_empty. 
     simpl. set_solver.
@@ -23,7 +23,7 @@ Proof.
   induction s.
   - simpl. set_solver. 
   - simpl. destruct (char_dec a c);
-    unfold set_bind. 
+    unfold set_bind.
     + rewrite elements_singleton. simpl. 
       remember a_der_str_eps as H. 
       apply subset_trans with (B := {[ Epsilon ]}).
@@ -39,7 +39,7 @@ Qed.
 Definition b := ascii_of_nat 2.
 Compute (a_der_str (Union (Atom a) (Atom b)) [a]). *)
 
-(** Generates the (overestimated) set of all possible Antimirov derivatives of r, 
+(** Generates the (overestimated) set containing all possible Antimirov derivatives of r, 
     with respect to any word *)
 Fixpoint A_der (r : re) : gset re :=
   match r with
@@ -62,7 +62,26 @@ Proof. induction r; simpl; set_solver. Qed.
     i.e. {a_der r w | w ∈ Σ+} is finite *)
 Theorem a_finite (r : re) : forall (a : re), a ∈ A_der r -> 
   forall (c : char), a_der r c ⊆ A_der r.
-Proof. intros. Admitted.
+Proof. 
+  induction r. X. X. X. 
+  - intros. simpl. apply union_least.
+    + apply union_subseteq_l'. apply union_subseteq_l'.
+      eapply IHr1. apply re_in_A_der. 
+    + apply union_subseteq_l'. apply union_subseteq_r'.
+      eapply IHr2. apply re_in_A_der. 
+  - intros. simpl. destruct (isEmpty r1). 
+    + apply union_least. 
+      * apply union_subseteq_l'. apply union_subseteq_r'. 
+        cut (a_der r1 c ⊆ A_der r1).
+        set_solver. eapply IHr1. apply re_in_A_der. 
+      * apply union_subseteq_l'. apply union_subseteq_l'.
+        eapply IHr2. apply re_in_A_der.
+    + apply union_subseteq_l'. apply union_subseteq_r'.
+      cut (a_der r1 c ⊆ A_der r1).
+      set_solver. eapply IHr1. apply re_in_A_der. 
+  - X. left. exists x0. split. reflexivity. 
+    fold A_der a_der in *. eapply IHr. apply re_in_A_der. apply H1.
+Qed.
 
 (** Alternate statement *)
 Theorem a_finite' (r : re) : forall (s : string), a_der_str r s ⊆ A_der r.
