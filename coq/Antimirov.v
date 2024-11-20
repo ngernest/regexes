@@ -32,18 +32,75 @@ Fixpoint a_der_str (r : re) (s : string) : gset re :=
 Definition a_der_set (rs : gset re) (c : char) : gset re :=
   set_bind (fun r => a_der r c) rs.
 
+Lemma a_der_set_singleton (r : re) (c : char) : 
+  a_der_set {[ r ]} c = a_der r c.
+Proof. unfold a_der_set. rewrite set_bind_singleton_L. reflexivity. Qed. 
+Hint Rewrite a_der_set_singleton : core. 
+
 (** True if there is a regex in the set which matches the empty string *)
 Definition nullable (rs : gset re) : bool :=
   let elem_of_bool (x : bool) (s : gset bool) := bool_decide (x ∈ s) in
   elem_of_bool true (set_map (fun r => isEmpty r) rs).
 
-(** True if r matches s, using a_der *)
+(** True if r matches s, using a_der_set *)
 Definition a_matches (r : re) (s : string) : bool :=
   nullable (fold_left a_der_set s {[ r ]}).
 
-(** Alternate definition *)
+(** Alternate definition using a_der_str *)
 Definition a_matches' (r : re) (s : string) : bool :=
   nullable (a_der_str r s).
+
+Lemma a_der_set_empty (c : char) : a_der_set ∅ c = ∅.
+Proof. unfold a_der_set. set_solver. Qed.
+Hint Rewrite a_der_set_singleton : core. 
+
+Lemma fold_left_empty (s : string) : fold_left a_der_set s ∅ = ∅.
+Proof. induction s; autorewrite with core; eauto. Qed.
+Hint Rewrite fold_left_empty : core.
+
+Lemma set_bind_empty (f : re -> gset re) : set_bind f (∅ : gset re) = ∅.
+Proof. set_solver. Qed.
+Hint Rewrite set_bind_empty : core.
+
+Lemma set_bind_singleton (f : re -> gset re) (r : re) : 
+  set_bind f ({[r ]} : gset re) = f r.
+Proof. set_solver. Qed.
+Hint Rewrite set_bind_singleton : core.
+
+Lemma set_bind_union (f : re -> gset re) (r1 r2 : gset re) :
+  set_bind f (r1 ∪ r2) = set_bind f r1 ∪ set_bind f r2.
+Proof. set_solver. Qed. 
+Hint Rewrite set_bind_union : core. 
+
+Lemma char_refl : forall (c : char), 
+  (if char_dec c c then true else false) = true.
+Proof. intros. destruct char_dec; eauto. Qed.
+Hint Rewrite char_refl : core. 
+
+Lemma a_matches_matches' (r : re) (s : string) : 
+  a_matches r s <-> a_matches' r s.
+Proof. 
+  induction r; unfold a_matches, a_matches', nullable in *. 
+  - X; destruct H1; destruct s; simpl in *;
+    autorewrite with core in *; eauto. 
+  - X; destruct H1; destruct s; simpl in *;
+    autorewrite with core in *; eauto. 
+  - X; destruct H1; exists x; split; destruct s; eauto; simpl in *;
+    destruct (char_dec a c); subst; autorewrite with core in *; simpl in *. 
+    + simpl in *. destruct (char_dec c c). 
+      * induction s; eauto; simpl in *; 
+        autorewrite with core in *; inversion H0.
+      * autorewrite with core in *; inversion H0.
+    + destruct (char_dec a c). 
+      * contradiction. 
+      * autorewrite with core in *. apply H0. 
+    + destruct (char_dec c c). 
+      * induction s; eauto; autorewrite with core in *; inversion H0. 
+      * contradiction. 
+    + inversion H0. 
+  - X; destruct H9; exists x; split; eauto; destruct s; eauto; simpl; 
+    autorewrite with core in *.  
+Admitted.
 
 (** Says what it means for a string to match a set of regexes.
     - [matches_set_here]: if [s] matches [r], then [s] matches any regex set 
