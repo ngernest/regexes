@@ -32,10 +32,20 @@ Fixpoint a_der_str (r : re) (s : string) : gset re :=
 Definition a_der_set (rs : gset re) (c : char) : gset re :=
   set_bind (fun r => a_der r c) rs.
 
+(** Lemmas about a_der_set *)
 Lemma a_der_set_singleton (r : re) (c : char) : 
   a_der_set {[ r ]} c = a_der r c.
-Proof. unfold a_der_set. rewrite set_bind_singleton_L. reflexivity. Qed. 
-Hint Rewrite a_der_set_singleton : core. 
+Proof. set_solver. Qed. 
+Hint Rewrite a_der_set_singleton : core.
+
+Lemma a_der_set_empty (c : char) : a_der_set ∅ c = ∅.
+Proof. set_solver. Qed.
+Hint Rewrite a_der_set_empty : core.
+
+Lemma a_der_set_union (c : char) (s1 s2 : gset re) : 
+  a_der_set (s1 ∪ s2) c = a_der_set s1 c ∪ a_der_set s2 c.
+Proof. set_solver. Qed.
+Hint Rewrite a_der_set_union : core. 
 
 (** True if there is a regex in the set which matches the empty string *)
 Definition nullable (rs : gset re) : bool :=
@@ -50,20 +60,26 @@ Definition a_matches (r : re) (s : string) : bool :=
 Definition a_matches' (r : re) (s : string) : bool :=
   nullable (a_der_str r s).
 
-Lemma a_der_set_empty (c : char) : a_der_set ∅ c = ∅.
-Proof. unfold a_der_set. set_solver. Qed.
-Hint Rewrite a_der_set_singleton : core. 
-
+(** Lemmas about fold_left a_der_set *)
 Lemma fold_left_empty (s : string) : fold_left a_der_set s ∅ = ∅.
 Proof. induction s; autorewrite with core; eauto. Qed.
-Hint Rewrite fold_left_empty : core.
+Hint Rewrite fold_left_empty : core. 
 
+Lemma fold_left_union (s : string) (s1 s2 : gset re) : 
+  fold_left a_der_set s (s1 ∪ s2) = fold_left a_der_set s s1 ∪ fold_left a_der_set s s2. 
+Proof. 
+  revert s1 s2. induction s; intros; simpl; eauto; 
+  autorewrite with core; apply IHs. 
+Qed.
+Hint Rewrite fold_left_union : core.
+
+(** Lemmas about set_bind *)
 Lemma set_bind_empty (f : re -> gset re) : set_bind f (∅ : gset re) = ∅.
 Proof. set_solver. Qed.
 Hint Rewrite set_bind_empty : core.
 
 Lemma set_bind_singleton (f : re -> gset re) (r : re) : 
-  set_bind f ({[r ]} : gset re) = f r.
+  set_bind f ({[ r ]} : gset re) = f r.
 Proof. set_solver. Qed.
 Hint Rewrite set_bind_singleton : core.
 
@@ -72,10 +88,10 @@ Lemma set_bind_union (f : re -> gset re) (r1 r2 : gset re) :
 Proof. set_solver. Qed. 
 Hint Rewrite set_bind_union : core. 
 
-Lemma char_refl : forall (c : char), 
-  (if char_dec c c then true else false) = true.
-Proof. intros. destruct char_dec; eauto. Qed.
-Hint Rewrite char_refl : core. 
+Lemma set_bind_id (rs : gset re) : 
+  set_bind (λ r, {[ r ]}) rs = rs.
+Proof. set_solver. Qed.
+Hint Rewrite set_bind_id : core.
 
 Lemma a_matches_matches' (r : re) (s : string) : 
   a_matches r s <-> a_matches' r s.
@@ -86,20 +102,14 @@ Proof.
   - X; destruct H1; destruct s; simpl in *;
     autorewrite with core in *; eauto. 
   - X; destruct H1; exists x; split; destruct s; eauto; simpl in *;
-    destruct (char_dec a c); subst; autorewrite with core in *; simpl in *. 
-    + simpl in *. destruct (char_dec c c). 
-      * induction s; eauto; simpl in *; 
-        autorewrite with core in *; inversion H0.
-      * autorewrite with core in *; inversion H0.
-    + destruct (char_dec a c). 
-      * contradiction. 
-      * autorewrite with core in *. apply H0. 
-    + destruct (char_dec c c). 
-      * induction s; eauto; autorewrite with core in *; inversion H0. 
-      * contradiction. 
-    + inversion H0. 
-  - X; destruct H9; exists x; split; eauto; destruct s; eauto; simpl; 
-    autorewrite with core in *.  
+    destruct char_dec; autorewrite with core in *; simpl in *;
+    destruct char_dec; destruct s; simpl in *; autorewrite with core in *; 
+    eauto; contradiction. 
+  - X; destruct H9; exists x; split; eauto; destruct s; eauto; simpl in *; 
+    autorewrite with core in *; simpl in *; autorewrite with core in *. 
+    + apply elem_of_union in H4. destruct H4.
+      * apply elem_of_union_l. induction s; simpl in *; eauto. 
+        -- rewrite set_bind_id. apply H4.
 Admitted.
 
 (** Says what it means for a string to match a set of regexes.
