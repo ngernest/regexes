@@ -12,7 +12,8 @@ open Sexplib.Conv
 (** Generator that generates a pair consisting of a regex 
     and an lowercase character *)
 let gen_re_char : (re * char) Generator.t = 
-  Generator.both quickcheck_generator_re Generator.char_lowercase
+  Generator.both (Generator.map quickcheck_generator_re ~f:optimize_re) 
+    Generator.char_lowercase
 
 (** Returns a generator that produces random strings matching the regex [r] 
     (if such a generator exists) *)  
@@ -77,6 +78,9 @@ let shrink_re_char : (re * char) Shrinker.t =
 let config : Base_quickcheck.Test.Config.t = 
   Base_quickcheck.Test.default_config
 
+let string_of_re (r : re) : string = 
+  Base.Sexp.to_string_hum (sexp_of_re r)  
+
 (* -------------------------------------------------------------------------- *)
 (*                            QuickCheck properties                           *)
 (* -------------------------------------------------------------------------- *)
@@ -94,10 +98,43 @@ let%quick_test {| The regex matchers based on Brzozowski derivatives & zippers
   [@generator gen_re_string] [@config config] = 
   fun (r : re) (s : string) -> 
     let brzozowski_result = brzozowski_match r s in 
-    let zipper_result = zipper_match (regex_of_re r) s in 
+    let zipper_result = zipper_match r s in 
     assert (Bool.equal brzozowski_result zipper_result);
   [%expect {| |}]
+
+(* f (derive c (focus r)) == a_der c r *)      
     
+  
+let%quick_test "flattening a zipper and flattening the Antimirov derivative set result in equivalent regexes (this is falsified for now)" 
+  [@generator gen_re_char] [@shrinker shrink_re_char] [@config config] = 
+  fun (r : re) (c : char) -> 
+    let open Stdio in 
+    let input = optimize_re r in 
+    let lhs = optimize_re @@ flatten_zipper (derive c (focus r)) in 
+    let rhs = optimize_re @@ RegexSet.fold (fun r' acc -> alt r' acc) (aderiv c r) Void in 
+    let result = equal_re lhs rhs in 
+    (* (if not result then 
+      printf "optimized input = %s\n" (string_of_re input);
+      printf "lhs = %s\n" (string_of_re lhs);
+      printf "rhs = %s\n" (string_of_re rhs);
+      [%expect {| |}]); *)
+    assert result;
+    [@expect {| |}];
+  [%expect {|
+    ("quick test: test failed" (
+      input (
+        (Alt
+          (Alt Epsilon (Char K))
+          (Star (Seq (Alt Void (Char k)) (Seq Epsilon Void))))
+        k)))
+    (* CR require-failed: lib/quickcheck_properties.ml:108:0.
+       Do not 'X' this CR; instead make the required property true,
+       which will make the CR disappear.  For more information, see
+       [Expect_test_helpers_base.require]. *)
+    "Assert_failure lib/quickcheck_properties.ml:121:4"
+    |}]  
+    
+
 (* Technically, the lemma statement is that the no. of Antimirov deriatives
    is linear in the regex size, but there's no way to express 
    existential quantification in OCaml's QuickCheck library, so we 
@@ -122,17 +159,17 @@ let%quick_test ("Brzozowski is always contained in the set of Antimirov derivati
     assert (RegexSet.mem (Brzozowski.bderiv r c) (aderiv c r));
   [%expect {|
     ("quick test: test failed" (input ((Char b) T)))
-    (* CR require-failed: lib/quickcheck_properties.ml:118:0.
+    (* CR require-failed: lib/quickcheck_properties.ml:155:0.
        Do not 'X' this CR; instead make the required property true,
        which will make the CR disappear.  For more information, see
        [Expect_test_helpers_base.require]. *)
-    "Assert_failure lib/quickcheck_properties.ml:122:4"
+    "Assert_failure lib/quickcheck_properties.ml:159:4"
     |}]
 
 let%expect_test {| Example where a Brzozowski derivative is not contained in the set of Antimirov derivatives 
   (e.g. when the Brzozowski derivative is [Void] and the Antimirov derivative set is the empty set) |} = 
   let bderiv = Brzozowski.bderiv (Char 'b') 'T' in 
-  Stdio.printf "%s\n" (Base.Sexp.to_string_hum (sexp_of_re bderiv));
+  Stdio.printf "%s\n" (string_of_re bderiv);
   [%expect {| Void |}]
 
 let%quick_test ("Brzozowski contained in Antimirov set when it is non-empty 
@@ -143,10 +180,10 @@ let%quick_test ("Brzozowski contained in Antimirov set when it is non-empty
     assert (RegexSet.mem (Brzozowski.bderiv_opt r c) antimirov_set);
   [%expect {|
     ("quick test: test failed" (input ((Char b) T)))
-    (* CR require-failed: lib/quickcheck_properties.ml:138:0.
+    (* CR require-failed: lib/quickcheck_properties.ml:175:0.
        Do not 'X' this CR; instead make the required property true,
        which will make the CR disappear.  For more information, see
        [Expect_test_helpers_base.require]. *)
-    "Assert_failure lib/quickcheck_properties.ml:143:4"
+    "Assert_failure lib/quickcheck_properties.ml:180:4"
     |}]
   

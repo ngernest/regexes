@@ -26,99 +26,101 @@ type 'a set = 'a list
 
 type word = char list
 
-type regexpr =
-| Failure
-| Epsilon
-| Character of char
-| Disjunction of regexpr * regexpr
-| Sequence of regexpr * regexpr
-| Repetition of regexpr
+(* type regexpr =
+  | Failure
+  | Epsilon
+  | Character of char
+  | Disjunction of regexpr * regexpr
+  | Sequence of regexpr * regexpr
+  | Repetition of regexpr *)
 
 
 (** Converts the [regex] type to the [re] type defined in [regex.ml]
     - This function was manually written *)  
-let rec re_of_regex (regex : regexpr) : re = 
+(* let rec re_of_regex (regex : regexpr) : re = 
   match regex with 
   | Failure -> Void 
   | Epsilon -> Epsilon 
   | Character c -> Char c 
   | Sequence (r1, r2) -> Seq (re_of_regex r1, re_of_regex r2)
   | Disjunction (r1, r2) -> Alt (re_of_regex r1, re_of_regex r2)
-  | Repetition r -> Star (re_of_regex r)
+  | Repetition r -> Star (re_of_regex r) *)
   
 (** Converts the [re] type defined in [regex.ml] to the [regex] type above
     - This function was manually written *)    
-let rec regex_of_re (re : re) : regexpr = 
+(* let rec regex_of_re (re : re) : regexpr = 
   match re with 
   | Void -> Failure 
   | Epsilon -> Epsilon 
   | Char c -> Character c 
   | Seq (r1, r2) -> Sequence (regex_of_re r1, regex_of_re r2)
   | Alt (r1, r2) -> Disjunction (regex_of_re r1, regex_of_re r2)
-  | Star r -> Repetition (regex_of_re r)
+  | Star r -> Repetition (regex_of_re r) *)
 
 (** val nullable : regexpr -> bool *)
 let rec nullable = function
-| Failure -> false
-| Character _ -> false
-| Disjunction (l, r) -> if nullable l then true else nullable r
-| Sequence (l, r) -> if nullable l then nullable r else false
+| Void -> false
+| Char _ -> false
+| Alt (l, r) -> if nullable l then true else nullable r
+| Seq (l, r) -> if nullable l then nullable r else false
 | _ -> true
 
-type context = regexpr list
+type context = re list
 
-
+(** [zipper = (regexpr list) set] *)
 type zipper = context set
 
-(** val zipper_union : context set -> context set -> context set *)
-let zipper_union = ListSet.union 
+let zipper_union : zipper -> zipper -> zipper = ListSet.union 
 
-(** val focus : regexpr -> zipper *)
-let focus e = (e::[])::[]
+let focus (e : re) : zipper = [[e]]
 
 (** val derive_down : char -> regexpr -> context -> zipper *)
-let rec derive_down c e ctx =
+let rec derive_down (c : char) (e : re) (ctx : context) : zipper =
   match e with
-  | Character cl -> if Char.equal cl c then ctx::[] else []
-  | Disjunction (l, r) ->
+  | Char cl -> if Char.equal cl c then ctx::[] else []
+  | Alt (l, r) ->
     zipper_union (derive_down c l ctx) (derive_down c r ctx)
-  | Sequence (l, r) ->
+  | Seq (l, r) ->
     if nullable l
     then zipper_union (derive_down c l (r::ctx)) (derive_down c r ctx)
     else derive_down c l (r::ctx)
-  | Repetition e' -> derive_down c e' (e::ctx)
+  | Star e' -> derive_down c e' (e::ctx)
   | _ -> []
 
 (** val derive_up : char -> context -> zipper *)
-let rec derive_up c = function
-| [] -> []
-| e::ctx' ->
-  if nullable e
-  then zipper_union (derive_down c e ctx') (derive_up c ctx')
-  else derive_down c e ctx'
+let rec derive_up (c : char) (ctx : context) : zipper = 
+  match ctx with
+  | [] -> []
+  | e::ctx' ->
+    if nullable e
+    then zipper_union (derive_down c e ctx') (derive_up c ctx')
+    else derive_down c e ctx'
 
-(** val derive : char -> zipper -> zipper *)
-let derive c z =
+
+let derive (c : char) (z : zipper) : zipper =
   List.fold_left zipper_union [] (List.map (derive_up c) z)
 
-(** val derive_word : char list -> zipper -> zipper *)
-let rec derive_word w z =
+let rec derive_word (w : char list) (z : zipper) : zipper =
   match w with
   | [] -> z
   | c::w' -> derive_word w' (derive c z)
 
-(** val zipper_nullable : regexpr list list -> bool *)
-let zipper_nullable z =
+let zipper_nullable (z : zipper) : bool =
   List.exists (fun ctx -> List.for_all nullable ctx) z
 
-(** val zipper_accepts : zipper -> word -> bool *)
-let zipper_accepts z w =
+let zipper_accepts (z : zipper) (w : char list) : bool =
   zipper_nullable (derive_word w z)
 
-(** val accepts : regexpr -> char list -> bool *)
-let accepts e w =
+let accepts (e : re) (w : char list) : bool =
   zipper_accepts (focus e) w
 
 (** Determines whether a string matches a regex using zippers *)
-let zipper_match (r : regexpr) (s : string) : bool = 
+let zipper_match (r : re) (s : string) : bool = 
   accepts r (Base.String.to_list s)
+
+(******************************************************************************)
+let flatten_zipper (z : zipper) : re = 
+  List.fold_left (fun acc ctx -> alt acc (List.fold_left (fun acc' r -> seq acc' r) Epsilon ctx)) 
+    Void z
+
+
