@@ -52,7 +52,7 @@ Inductive re :=
 
 (** Matching relation *)
 Inductive matches : re -> string -> Prop :=
-  | matches_isEpsilon : matches Epsilon []
+  | matches_epsilon : matches Epsilon []
   | matches_atom a : matches (Atom a) [a]
   | matches_union_l r1 r2 s :
       matches r1 s -> 
@@ -109,7 +109,7 @@ Ltac auto_inv :=
   end; eauto.
 Ltac X := simp auto_inv.
 
-(** True if the regular expression matches the empty string *)
+(** True if the regex matches the empty string *)
 Fixpoint isEmpty (r : re) : bool :=
   match r with
   | Void => false
@@ -131,7 +131,7 @@ Hint Resolve isEmpty_matches_1 isEmpty_matches_2 : core.
 (******************************************************************************)
 (* Our code below *)
 
-(** Checks if this is a regex that never matches any string *)
+(** True if the regex never matches any string *)
 Fixpoint isVoid (r : re) : bool :=
   match r with 
   | Void => true 
@@ -148,7 +148,7 @@ Proof. decide equality. apply char_dec. Qed.
 
 Instance ReDecidable : EqDecision re := re_dec.
 
-(** Injection into gen_trees, which are countable *)
+(** Injection from regexes into gen_trees, which are countable *)
 Fixpoint encode_regex (r : re) : gen_tree nat :=
   match r with
   | Void => GenLeaf 1

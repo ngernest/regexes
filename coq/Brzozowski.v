@@ -1,6 +1,6 @@
 Require Import Regex.
 
-(** Brzozowski b_derivative of a regular expression with respect to a character *)
+(** Brzozowski derivative of a regex with respect to a character *)
 Fixpoint b_der (r : re) (a : char) : re :=
   match r with
   | Void => Void
@@ -22,6 +22,7 @@ Proof. revert s. induction r; X. apply isEmpty_matches_2 in H2. X. Qed.
 
 Hint Resolve b_der_matches_1 b_der_matches_2 : core.
 
+(** True if r matches s, using b_der *)
 Definition b_matches (r : re) (s : string) : bool :=
   isEmpty (fold_left b_der s r).
 
