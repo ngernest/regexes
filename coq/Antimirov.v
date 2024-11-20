@@ -1,4 +1,4 @@
-Require Import Regex.
+Require Export Regex.
 Require Export Lia.
 
 (** If r is a regex and a is a char, then a partial derivative

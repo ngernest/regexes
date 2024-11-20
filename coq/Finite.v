@@ -1,4 +1,3 @@
-Require Import Regex.
 Require Import Antimirov. 
 Require Import Brzozowski.
 

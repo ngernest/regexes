@@ -1,4 +1,4 @@
-Require Import Regex.
+Require Export Regex.
 
 (** Brzozowski derivative of a regex with respect to a character *)
 Fixpoint b_der (r : re) (a : char) : re :=
