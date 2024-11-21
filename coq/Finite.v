@@ -60,36 +60,50 @@ Proof. induction r; simpl; set_solver. Qed.
     with respect to any nonempty word is finite. 
     i.e. {a_der r w | w ∈ Σ+} is finite *)
 Theorem a_finite (r : re) : forall (a : re), a ∈ A_der r -> 
-  forall (c : char), a_der r c ⊆ A_der r.
+  forall (c : char), a_der a c ⊆ A_der r.
 Proof. 
-  induction r. X. X. X. 
-  - intros. simpl. apply union_least.
-    + apply union_subseteq_l'. apply union_subseteq_l'.
-      eapply IHr1. apply re_in_A_der. 
-    + apply union_subseteq_l'. apply union_subseteq_r'.
-      eapply IHr2. apply re_in_A_der. 
-  - intros. simpl. destruct (isEmpty r1). 
-    + apply union_least. 
-      * apply union_subseteq_l'. apply union_subseteq_r'. 
-        cut (a_der r1 c ⊆ A_der r1).
-        set_solver. eapply IHr1. apply re_in_A_der. 
-      * apply union_subseteq_l'. apply union_subseteq_l'.
-        eapply IHr2. apply re_in_A_der.
-    + apply union_subseteq_l'. apply union_subseteq_r'.
-      cut (a_der r1 c ⊆ A_der r1).
-      set_solver. eapply IHr1. apply re_in_A_der. 
-  - X. left. exists x0. split. reflexivity. 
-    fold A_der a_der in *. eapply IHr. apply re_in_A_der. apply H1.
+  induction r; X; fold A_der a_der in *.
+  - left. left. eapply IHr1. apply re_in_A_der. apply H. 
+  - left. right. eapply IHr2. apply re_in_A_der. apply H.
+  - left. left. eapply IHr2. apply re_in_A_der. apply H.
+  - left. right. exists x0. split. reflexivity.
+    eapply IHr1. apply re_in_A_der. apply H0.
+  - left. left. eapply IHr2. apply re_in_A_der. apply H.
+  - left. right. exists x0. split. reflexivity.
+    eapply IHr1. apply re_in_A_der. apply H0.
+  - left. exists x1. split. reflexivity.
+    eapply IHr. apply re_in_A_der. apply H0.
+  - left. exists x0. split. reflexivity.
+    eapply IHr. apply re_in_A_der. apply H0.
+Qed.
+
+Lemma set_bind_subset : forall (f : re -> gset re) (s s' : gset re),
+  s ⊆ s' -> (forall r, r ∈ s -> f r ⊆ s') -> set_bind f s ⊆ s'.
+Proof. set_solver. Qed.
+
+Lemma A_der_subset : forall (r r0 : re) (a : char), 
+    r0 ∈ a_der r a -> A_der r0 ⊆ A_der r.
+Proof. 
+  induction r; X; fold A_der a_der in *.
+  - left. right. exists x0. split.
+    + reflexivity.
+    + cut (a_der r1 a ⊆ A_der r1). set_solver. 
+      apply a_finite. apply re_in_A_der.
+  - left. right. exists x0. split.
+    + reflexivity.
+    + cut (a_der r1 a ⊆ A_der r1). set_solver. 
+      apply a_finite. apply re_in_A_der.
+  - left. exists x0. split.
+    + reflexivity.
+    + cut (a_der r a ⊆ A_der r). set_solver. 
+      apply a_finite. apply re_in_A_der.
 Qed.
 
 (** Alternate statement *)
-Theorem a_finite' (r : re) : forall (s : string), a_der_str r s ⊆ A_der r.
-Proof. 
-  unfold "⊆", set_subseteq_instance. intros. 
-  induction r; destruct s; eauto; try set_solver.
-  - remember (a_der_str_atom c (a :: s)) as H1. 
-    simpl. eapply elem_of_weaken. apply H. apply H1.
-  - simpl in H. destruct (isEmpty r1). admit. admit.
-  - simpl. specialize (re_in_A_der (Star r)) as H1.
-    admit.
-Admitted.
+Theorem a_finite' : forall (s : string) (r : re), a_der_str r s ⊆ A_der r.
+Proof. induction s; intros; simpl.
+  - cut (r ∈ A_der r). set_solver. apply re_in_A_der.
+  - apply set_bind_subset. apply a_finite. 
+    apply re_in_A_der. intros. 
+    eapply subset_trans. apply IHs. eapply A_der_subset. apply H. 
+Qed.
