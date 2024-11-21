@@ -93,6 +93,20 @@ Lemma set_bind_id (rs : gset re) :
 Proof. set_solver. Qed.
 Hint Rewrite set_bind_id : core.
 
+Lemma blah : forall (x1 x2 r1 r2 : re) (c : char), 
+  x1 ∈ a_der r1 c -> x2 ∈ a_der r2 c -> 
+  (Concat x1 x2) ∈ a_der (Concat r1 r2) c.
+Proof. intros. simpl. destruct isEmpty.
+  - apply elem_of_union_l. 
+Admitted.
+
+Lemma blah2 : forall (x1 x2 r1 r2 : re) (s : string), 
+  x1 ∈ fold_left a_der_set s {[r1]} -> x2 ∈ fold_left a_der_set s {[r2]} -> 
+  (Concat x1 x2) ∈ a_der_str (Concat r1 r2) s.
+Proof. intros. destruct s.
+  - simpl in *. 
+Admitted.
+
 Lemma a_matches_matches' (r : re) (s : string) : 
   a_matches r s <-> a_matches' r s.
 Proof. 
@@ -110,6 +124,20 @@ Proof.
     + apply elem_of_union in H4. destruct H4.
       * apply elem_of_union_l. induction s; simpl in *; eauto. 
         -- rewrite set_bind_id. apply H4.
+        -- admit.
+      * apply elem_of_union_r. induction s; simpl in *; eauto.
+        -- rewrite set_bind_id. apply H4.
+        -- admit.
+    + admit.
+    + admit. 
+    + admit.
+    + admit. 
+    + admit. 
+    + admit. 
+    + admit. 
+  - X; destruct H9. exists (Concat x3 x1). split.
+    + simpl. rewrite <- H2, H0. rewrite andb_diag. reflexivity. 
+    + apply blah2. apply H8. apply H6. 
 Admitted.
 
 (** Says what it means for a string to match a set of regexes.
