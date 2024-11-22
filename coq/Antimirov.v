@@ -107,6 +107,27 @@ Proof. intros. destruct s.
   - simpl in *. 
 Admitted.
 
+Lemma blah3 : forall (r : re) (a : char) (s : string),
+ fold_left a_der_set s (a_der r a) = a_der_str r (a :: s).
+Proof. Admitted.
+
+Fixpoint concat_str (s : string) (r : re) :=
+  match s with 
+  | [] => r
+  | (c :: cs) => Concat (Atom c) (concat_str cs r)
+  end.
+
+Search "empty".
+Search "not".
+
+Lemma a_matches_matches' (r : re) (s : string) : 
+  a_matches r s <-> a_matches' r s.
+Proof. 
+  induction s.
+  - unfold a_matches, a_matches', nullable. X.
+  - unfold a_matches, a_matches', nullable in *. X. 
+    + destruct H5. 
+
 Lemma a_matches_matches' (r : re) (s : string) : 
   a_matches r s <-> a_matches' r s.
 Proof. 

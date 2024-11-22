@@ -4,35 +4,6 @@ Require Import Brzozowski.
 (** Proving that taking the Antimirov derivative wrt a word will always
     generate a finite set *)
 
-Lemma a_der_str_eps : forall (c : char) (s : string),
-  a_der_str Epsilon s ⊆ {[ Epsilon ]}.
-Proof. 
-  induction s. 
-  - simpl. set_solver. 
-  - simpl. unfold set_bind. rewrite elements_empty. 
-    simpl. set_solver.
-Qed.
-
-Lemma subset_trans (A B C : gset re) : A ⊆ B -> B ⊆ C -> A ⊆ C.
-Proof. set_solver. Qed.
-
-Lemma a_der_str_atom : forall (c : char) (s : string),
-  a_der_str (Atom c) s ⊆ {[ Epsilon; Atom c]}.
-Proof. 
-  induction s.
-  - simpl. set_solver. 
-  - simpl. destruct (char_dec a c);
-    unfold set_bind.
-    + rewrite elements_singleton. simpl. 
-      remember a_der_str_eps as H. 
-      apply subset_trans with (B := {[ Epsilon ]}).
-      * replace (a_der_str Epsilon s ∪ ∅) with (a_der_str Epsilon s) by set_solver.
-        apply (H c s). 
-      * apply union_subseteq_l. 
-    + rewrite elements_empty. simpl. 
-      set_solver.
-Qed.
-
 (* Crashes Coq *)
 (* Definition a := ascii_of_nat 1.
 Definition b := ascii_of_nat 2.
@@ -98,6 +69,9 @@ Proof.
     + cut (a_der r a ⊆ A_der r). set_solver. 
       apply a_finite. apply re_in_A_der.
 Qed.
+
+Lemma subset_trans (A B C : gset re) : A ⊆ B -> B ⊆ C -> A ⊆ C.
+Proof. set_solver. Qed.
 
 (** Alternate statement *)
 Theorem a_finite' : forall (s : string) (r : re), a_der_str r s ⊆ A_der r.
