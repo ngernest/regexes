@@ -283,8 +283,49 @@ Proof.
     + simpl. reflexivity.
 Qed.
 
-(* Lemma a_der_matches_2 a r s : matches r (a :: s) -> matches_set' s (a_der r a).
+Lemma a_der_matches_2 a r s : matches r (a :: s) -> matches_set' s (a_der r a).
 Proof.
-  revert s. intros.
-  induction r; X; eexists.
-Admitted.  *)
+  revert s. induction r; X.
+  - specialize IHr1 with s. 
+    apply IHr1 in H3.
+    destruct H3 as [x [H1 H2]].
+    exists x. split.
+    + left. assumption.
+    + assumption.
+  - specialize IHr2 with s.
+    apply IHr2 in H3.
+    destruct H3 as [x [H1 H2]].
+    exists x. split.
+    + right. assumption.
+    + assumption.
+  - specialize IHr2 with s.
+    apply IHr2 in H3.
+    destruct H3 as [x [H3 H4]].
+    exists x. split. 
+    + right. assumption.
+    + assumption.
+  - specialize IHr1 with x.
+    apply IHr1 in H2.
+    destruct H2 as [x0 [H4 H5]].
+    exists (Concat x0 r2). split. left.
+    exists x0. split.
+    + reflexivity.
+    + assumption.
+    + eapply matches_concat; eauto.
+  - apply isEmpty_matches_2 in H2. rewrite H2 in Heqb. discriminate Heqb.
+  - specialize IHr1 with x. apply IHr1 in H2. 
+    destruct H2 as [x0 [H4 H5]].
+    exists (Concat x0 r2). split.
+    exists x0. split; eauto.
+    eapply matches_concat; eauto.
+  - fold a_der. specialize IHr with x1.
+    apply IHr in H1.
+    destruct H1 as [x [H3 H4]].
+    eexists. split.
+    exists x. split; eauto.
+    eapply matches_concat; eauto.
+Qed.    
+
+    
+    
+  
