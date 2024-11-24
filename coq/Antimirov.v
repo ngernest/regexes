@@ -127,8 +127,9 @@ Proof.
   - unfold a_matches, a_matches', nullable. X.
   - unfold a_matches, a_matches', nullable in *. X. 
     + destruct H5. 
+Admitted.
 
-Lemma a_matches_matches' (r : re) (s : string) : 
+Lemma a_matches_matches'' (r : re) (s : string) : 
   a_matches r s <-> a_matches' r s.
 Proof. 
   induction r; unfold a_matches, a_matches', nullable in *. 
