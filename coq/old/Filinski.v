@@ -12,9 +12,6 @@ Require Import Coq.Program.Wf.
 Notation "''a''" := "a" : char_scope.
 Notation "''b''" := "b" : char_scope.
 
-(* Note that the literal ['a'] has type [ascii], aka [char] *)
-Check 'a'.
-
 (* Polymorphic regular expressions: regexes in [re T] describe 
    strings with characters drawn from [T], i.e. lists of elements of [T]. 
    (Adapted from HW3) *)

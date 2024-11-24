@@ -96,23 +96,23 @@ Lemma set_bind_id (rs : gset re) :
 Proof. set_solver. Qed.
 Hint Rewrite set_bind_id : core.
 
-Lemma blah : forall (x1 x2 r1 r2 : re) (c : char), 
+(* Lemma blah : forall (x1 x2 r1 r2 : re) (c : char), 
   x1 ∈ a_der r1 c -> x2 ∈ a_der r2 c -> 
   (Concat x1 x2) ∈ a_der (Concat r1 r2) c.
 Proof. intros. simpl. destruct isEmpty.
   - apply elem_of_union_l. 
-Admitted.
+Admitted. *)
 
-Lemma blah2 : forall (x1 x2 r1 r2 : re) (s : string), 
+(* Lemma blah2 : forall (x1 x2 r1 r2 : re) (s : string), 
   x1 ∈ fold_left a_der_set s {[r1]} -> x2 ∈ fold_left a_der_set s {[r2]} -> 
   (Concat x1 x2) ∈ a_der_str (Concat r1 r2) s.
 Proof. intros. destruct s.
   - simpl in *. 
-Admitted.
+Admitted. *)
 
-Lemma blah3 : forall (r : re) (a : char) (s : string),
+(* Lemma blah3 : forall (r : re) (a : char) (s : string),
  fold_left a_der_set s (a_der r a) = a_der_str r (a :: s).
-Proof. Admitted.
+Proof. Admitted. *)
 
 Fixpoint concat_str (s : string) (r : re) :=
   match s with 
@@ -120,16 +120,16 @@ Fixpoint concat_str (s : string) (r : re) :=
   | (c :: cs) => Concat (Atom c) (concat_str cs r)
   end.
 
-Lemma a_matches_matches' (r : re) (s : string) : 
+(* Lemma a_matches_matches' (r : re) (s : string) : 
   a_matches r s <-> a_matches' r s.
 Proof. 
   induction s.
   - unfold a_matches, a_matches', nullable. X.
   - unfold a_matches, a_matches', nullable in *. X. 
     + destruct H5. 
-Admitted.
+Admitted. *)
 
-Lemma a_matches_matches'' (r : re) (s : string) : 
+(* Lemma a_matches_matches'' (r : re) (s : string) : 
   a_matches r s <-> a_matches' r s.
 Proof. 
   induction r; unfold a_matches, a_matches', nullable in *. 
@@ -160,7 +160,7 @@ Proof.
   - X; destruct H9. exists (Concat x3 x1). split.
     + simpl. rewrite <- H2, H0. rewrite andb_diag. reflexivity. 
     + apply blah2. apply H8. apply H6. 
-Admitted.
+Admitted. *)
 
 (** What it means for a string to match a set of regexes.
     - [matches_set_here]: if [s] matches [r], then [s] matches any regex set 
@@ -251,15 +251,13 @@ Qed.
 
 (* If a string [s] matches a singleton set containing [r], then it's the same
    as just saying [matches r s] *)
-Lemma matches_singleton (s : string) (r : re) : 
+(* Lemma matches_singleton (s : string) (r : re) : 
   matches_set s {[ r ]} -> matches r s.
 Proof. 
   intros; inversion H; subst. 
   - (* matches_set_here *)
     cut (r0 = r). intros. subst. assumption. set_solver.
-  - (* matches_set_there *)
-    set_unfold. (* TODO *)
-Admitted.
+Admitted. *)
 
 (* The empty string matches the singleton set containing [Epsilon] *)
 Lemma matches_set_epsilon : matches_set [] {[Epsilon]}.
@@ -270,17 +268,17 @@ Proof.
 Qed.
 
 
-Lemma a_der_matches_1 a r s : matches_set s (a_der r a) -> matches r (a :: s).
+(* Lemma a_der_matches_1 a r s : matches_set s (a_der r a) -> matches r (a :: s).
 Proof. 
   revert s.
   induction r; X; try (apply not_matches_empty in H; destruct H).
   - (* Atom *)
     inversion H; subst. set_unfold. subst. 
-Admitted. (* TODO *)    
+Admitted.  *)
 
-Lemma a_der_matches_2 a r s : matches r (a :: s) -> matches_set' s (a_der r a).
+(* Lemma a_der_matches_2 a r s : matches r (a :: s) -> matches_set' s (a_der r a).
 Proof.
   revert s. intros.
   induction r; X; try set_solver.
   - apply matches_set_epsilon.
-Admitted. (* TODO *)
+Admitted.  *)
