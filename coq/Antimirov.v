@@ -165,7 +165,7 @@ Proof.
     + apply blah2. apply H8. apply H6. 
 Admitted.
 
-(** Says what it means for a string to match a set of regexes.
+(** What it means for a string to match a set of regexes.
     - [matches_set_here]: if [s] matches [r], then [s] matches any regex set 
       containing [r] 
     - [matches_set_there]: if [s] matches a regex set [rs], 
@@ -177,6 +177,10 @@ Inductive matches_set : string -> gset re -> Prop :=
   | matches_set_there (r : re) (s : string) (rs : gset re) : 
       matches_set s rs -> 
       matches_set s ({[ r ]} ∪ rs).
+
+(* An alternate formulation of [matches_set] *)
+Definition matches_set' (s : string) (rs : gset re) :=
+  ∃ r, r ∈ rs /\ matches r s.      
 
 (* Some lemmas about [matches_set], adapted from the Agda proofs in 
    Adapted from https://monog.ufop.br/server/api/core/bitstreams/d7d18cf6-ff09-4b32-99a6-d87235f7a3ce/content *)
@@ -210,8 +214,14 @@ Proof.
     eapply matches_set_there.
     assumption.
 Qed.    
-    
-    
+
+(* An inversion lemma for [Union] using [matches_set'] *)    
+Lemma matches_set_union_inv : forall (rs1 rs2 : gset re) (s : string),
+  matches_set' s (rs1 ∪ rs2) -> matches_set' s rs1 \/ matches_set' s rs2.
+Proof.
+  intros. induction H. destruct H as [H1 H2].
+  set_unfold. set_solver.
+Qed.  
 
 
 (******************************************************************************)
