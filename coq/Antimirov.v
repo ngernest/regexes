@@ -268,17 +268,23 @@ Proof.
 Qed.
 
 
-(* Lemma a_der_matches_1 a r s : matches_set s (a_der r a) -> matches r (a :: s).
+Lemma a_der_matches_1 a r s : matches_set' s (a_der r a) -> matches r (a :: s).
 Proof. 
   revert s.
   induction r; X; try (apply not_matches_empty in H; destruct H).
-  - (* Atom *)
-    inversion H; subst. set_unfold. subst. 
-Admitted.  *)
+  - (* Concat *)
+    eapply matches_concat.
+    apply isEmpty_matches_1 in Heqb.
+    apply Heqb.
+    apply IHr2.
+    eexists. split.
+    + apply H.
+    + apply H0.
+    + simpl. reflexivity.
+Qed.
 
 (* Lemma a_der_matches_2 a r s : matches r (a :: s) -> matches_set' s (a_der r a).
 Proof.
   revert s. intros.
-  induction r; X; try set_solver.
-  - apply matches_set_epsilon.
+  induction r; X; eexists.
 Admitted.  *)
