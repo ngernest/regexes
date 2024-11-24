@@ -120,9 +120,6 @@ Fixpoint concat_str (s : string) (r : re) :=
   | (c :: cs) => Concat (Atom c) (concat_str cs r)
   end.
 
-Search "empty".
-Search "not".
-
 Lemma a_matches_matches' (r : re) (s : string) : 
   a_matches r s <-> a_matches' r s.
 Proof. 
@@ -223,6 +220,11 @@ Proof.
   set_unfold. set_solver.
 Qed.  
 
+(* Lemma matches_set_cons : forall (r : re) (rs : gset re) (s s' : string),
+  matches_set s rs -> 
+  matches_set s' {[ r ]} ->
+  matches_set (s ++ s') (rs ∪ {[ r ]}). *)
+
 
 (******************************************************************************)
 
@@ -276,9 +278,9 @@ Proof.
     inversion H; subst. set_unfold. subst. 
 Admitted. (* TODO *)    
 
-Lemma a_der_matches_2 a r s : matches r (a :: s) -> matches_set s (a_der r a).
+Lemma a_der_matches_2 a r s : matches r (a :: s) -> matches_set' s (a_der r a).
 Proof.
-  revert s.
+  revert s. intros.
   induction r; X; try set_solver.
   - apply matches_set_epsilon.
 Admitted. (* TODO *)

@@ -31,8 +31,6 @@ Fixpoint re_height (r : re) : nat :=
 Definition max_height_re_set (rs : gset re) : nat := 
   set_fold (fun r acc => max (re_height r) acc) 0 rs.
 
-Search set_fold.  
-
 (** The max height over a union of two sets is just the max height of each 
     of the constituent subsets *)
 Lemma max_height_union (s1 s2 : gset re) :
