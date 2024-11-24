@@ -28,3 +28,14 @@ Definition b_matches (r : re) (s : string) : bool :=
 
 Lemma b_matches_matches r s : b_matches r s = true <-> matches r s.
 Proof. unfold b_matches. split; revert r; induction s; X. Qed.
+
+Lemma b_der_void : forall (s : string), fold_left b_der s Void = Void.
+Proof. induction s. reflexivity. simpl. apply IHs. Qed.
+
+Lemma b_der_union : forall (s : string) (r1 r2 : re), 
+  fold_left b_der s (Union r1 r2) = Union (fold_left b_der s r1) (fold_left b_der s r2).
+Proof. 
+  induction s. 
+  - reflexivity.
+  - simpl in *. intros. apply IHs. 
+Qed.

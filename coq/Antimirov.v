@@ -47,6 +47,27 @@ Lemma a_der_set_union (c : char) (s1 s2 : gset re) :
 Proof. set_solver. Qed.
 Hint Rewrite a_der_set_union : core. 
 
+Lemma a_der_set_Union (c : char) (r1 r2 : re) : 
+  a_der_set {[ Union r1 r2 ]} c = a_der_set {[ r1 ]} c ∪ a_der_set {[ r2 ]} c.
+Proof. rewrite ! a_der_set_singleton. simpl. reflexivity. Qed.
+
+Lemma a_der_set_eps (c : char) : a_der_set {[ Epsilon ]} c = ∅.
+Proof. rewrite a_der_set_singleton. reflexivity. Qed. 
+Hint Rewrite a_der_set_eps : core.
+
+Lemma a_der_set_atom (c : char) : a_der_set {[ Atom c ]} c = {[ Epsilon ]}.
+Proof. 
+  rewrite a_der_set_singleton. simpl. destruct char_dec. 
+  reflexivity. contradiction. 
+Qed.
+
+Lemma a_der_set_atom' (c a : char) : a ≠ c -> 
+  a_der_set {[ Atom c ]} a = ∅.
+Proof. 
+  rewrite a_der_set_singleton. simpl. destruct char_dec. 
+  intros. contradiction. reflexivity. 
+Qed.
+
 (** Matching principles for a_der *)
 (** True if there is a regex in the set which matches the empty string *)
 Definition nullable (rs : gset re) : bool :=
