@@ -62,6 +62,18 @@ Proof.
   rewrite gset_elements_singleton.
   simpl. reflexivity.
 Qed.  
+
+(** Mapping a function [f] over a singleton set returns a singleton 
+    set containing the result [f x].  *)
+Lemma set_map_singleton (f : re -> re) (x : re):
+  set_map f ({[ x ]} : gset re) = ({[ f x ]} : gset re).
+Proof.
+  unfold set_map, elements.
+  replace {[ x ]} with (gset_singleton x) by set_solver.
+  rewrite gset_elements_singleton.
+  simpl.
+  set_solver.
+Qed.  
   
 (** The max height of a singleton regex set is just the height of the 
     regex contained in the set *)  
@@ -145,6 +157,8 @@ Qed.
 (******************************************************************************)
 
 
+
+
 (* Helper lemma: proving that [map] presreves the size of a [gset] 
    - We need to type annotation on the term [(set_map f s)], otherwise 
      Coq can't figure out which typeclass instance for [set_size] to use *)
@@ -154,9 +168,17 @@ Lemma map_preserves_set_size :
 Proof.
   intros f s.
   unfold set_size. simpl. 
-  f_equal.
-  unfold elements. unfold gset_elements. 
-Admitted. (* TODO *)  
+  induction s using set_ind_L; eauto.
+  rewrite set_map_union_L.
+  rewrite set_map_singleton. 
+  repeat (rewrite elements_union_singleton).
+  - simpl. rewrite IHs. eauto. 
+  - assumption.
+  - (* Goal: f x ∉ set_map f X *)
+    set_unfold.
+    intros H'. 
+    destruct H' as [x0 [H1 H2]].
+Admitted. (* TODO: not sure how to prove the last goal *)
   
 
 (* Number of Antimirov derivatives is linear in the size of the regex *)
