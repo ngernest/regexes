@@ -180,6 +180,36 @@ Proof.
     destruct H' as [x0 [H1 H2]].
 Admitted. (* TODO: not sure how to prove the last goal *)
   
+(* Union Bound for the size of two sets *)
+Lemma set_size_union_bound : forall (rs1 rs2 : gset re),
+  set_size (rs1 ∪ rs2) <= set_size rs1 + set_size rs2.
+Proof.
+  intros.
+  induction rs2 using set_ind_L.
+  - (* rs2 = ∅ *)
+    replace (set_size ∅) with (size (∅ : gset re)) by set_solver. 
+    rewrite size_empty.
+    rewrite Nat.add_0_r.
+    replace (set_size (rs1 ∪ (∅ : gset re))) with (size (rs1 ∪ (∅ : gset re))) 
+      by set_solver.
+    replace (set_size rs1) with (size rs1) by set_solver.
+    rewrite size_union_alt.
+    replace ((∅ : gset re) ∖ rs1) with (∅ : gset re) by set_solver.
+    rewrite size_empty. 
+    lia.
+  - (* rs2 = {[ x ]} ∪ X *)
+    unfold set_size. simpl.
+    rewrite elements_union_singleton; eauto.
+    unfold set_size in IHrs2; simpl in *.
+    replace (rs1 ∪ ({[x]} ∪ X)) with ({[ x ]} ∪ (rs1 ∪ X)) by set_solver.
+    rewrite elements_union_singleton.
+    + simpl. lia.
+    + set_unfold. unfold not. intros. destruct H0 as [H1 | H2].
+      * admit. (* TODO: not sure how to prove that x ∈ rs1 *)
+      * apply H in H2. destruct H2.
+Admitted.      
+      
+  
 
 (* Number of Antimirov derivatives is linear in the size of the regex *)
 Lemma num_antimirov_derivs_linear_in_re_size : forall (c : char) (r : re),
@@ -197,28 +227,22 @@ Proof.
       replace (set_size ∅) with 0 by set_solver. lia.
   - (* Union *) destruct IHr1 as [k1 IHr1].
     destruct IHr2 as [k2 IHr2]. eexists.
-    assert (set_size (a_der r1 c ∪ a_der r2 c) <= 
-      set_size (a_der r1 c) + set_size (a_der r2 c)).
-    { admit. (* TODO *) }
-    admit.
+    rewrite set_size_union_bound.
+    + eapply Nat.le_trans. eauto.
+      admit. (* TODO: not sure why we can't apply [Nat.plus_le_cases] here *)
   - (* Concat *) destruct IHr1 as [k1 IHr1].
     destruct IHr2 as [k2 IHr2].
     destruct (isEmpty r1) eqn:E.
-    + (* isEmpty r1 = true *)
+    + (* isEmpty r1 = true *)    
       admit. (* TODO *)
     + (* isEmpty r2 = false *)
-      eexists.
-      admit. 
-      (* TODO: not sure how to get 
-      {[
-        assert (set_size (set_map (λ r : re, Concat r r2) (a_der r1 c))
-          = set_size (a_der r1 c))
-      ]} 
-      to typecheck. 
-      (But the idea is to prove that calling [map] doesn't change the 
-      size of the set -- see [map_preserves_set_size] above. *)
+      exists k1.
+      rewrite map_preserves_set_size.
+      lia.
   - (* Star *)
-    eexists. 
-    admit. (* TODO: Same problem as the [Concat] case *)      
+    destruct IHr as [k H].
+    exists k.
+    rewrite map_preserves_set_size. 
+    lia. 
 Admitted.    
 
