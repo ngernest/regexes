@@ -32,7 +32,6 @@ Fixpoint a_der_str (r : re) (s : string) : gset re :=
 Definition a_der_set (rs : gset re) (c : char) : gset re :=
   set_bind (fun r => a_der r c) rs.
   
-
 (** Lemmas about a_der_set *)
 Lemma a_der_set_singleton (r : re) (c : char) : 
   a_der_set {[ r ]} c = a_der r c.
@@ -48,6 +47,7 @@ Lemma a_der_set_union (c : char) (s1 s2 : gset re) :
 Proof. set_solver. Qed.
 Hint Rewrite a_der_set_union : core. 
 
+(** Matching principles for a_der *)
 (** True if there is a regex in the set which matches the empty string *)
 Definition nullable (rs : gset re) : bool :=
   let elem_of_bool (x : bool) (s : gset bool) := bool_decide (x ∈ s) in
@@ -60,8 +60,6 @@ Definition a_matches (r : re) (s : string) : bool :=
 (** Alternate definition using a_der_str *)
 Definition a_matches' (r : re) (s : string) : bool :=
   nullable (a_der_str r s).
-
-
 
 (** Lemmas about fold_left a_der_set *)
 Lemma fold_left_empty (s : string) : fold_left a_der_set s ∅ = ∅.
@@ -96,30 +94,6 @@ Lemma set_bind_id (rs : gset re) :
 Proof. set_solver. Qed.
 Hint Rewrite set_bind_id : core.
 
-(* Lemma blah : forall (x1 x2 r1 r2 : re) (c : char), 
-  x1 ∈ a_der r1 c -> x2 ∈ a_der r2 c -> 
-  (Concat x1 x2) ∈ a_der (Concat r1 r2) c.
-Proof. intros. simpl. destruct isEmpty.
-  - apply elem_of_union_l. 
-Admitted. *)
-
-(* Lemma blah2 : forall (x1 x2 r1 r2 : re) (s : string), 
-  x1 ∈ fold_left a_der_set s {[r1]} -> x2 ∈ fold_left a_der_set s {[r2]} -> 
-  (Concat x1 x2) ∈ a_der_str (Concat r1 r2) s.
-Proof. intros. destruct s.
-  - simpl in *. 
-Admitted. *)
-
-(* Lemma blah3 : forall (r : re) (a : char) (s : string),
- fold_left a_der_set s (a_der r a) = a_der_str r (a :: s).
-Proof. Admitted. *)
-
-Fixpoint concat_str (s : string) (r : re) :=
-  match s with 
-  | [] => r
-  | (c :: cs) => Concat (Atom c) (concat_str cs r)
-  end.
-
 (* Lemma a_matches_matches' (r : re) (s : string) : 
   a_matches r s <-> a_matches' r s.
 Proof. 
@@ -129,7 +103,7 @@ Proof.
     + destruct H5. 
 Admitted. *)
 
-(* Lemma a_matches_matches'' (r : re) (s : string) : 
+(* Lemma a_matches_matches' (r : re) (s : string) : 
   a_matches r s <-> a_matches' r s.
 Proof. 
   induction r; unfold a_matches, a_matches', nullable in *. 
@@ -175,62 +149,49 @@ Inductive matches_set : string -> gset re -> Prop :=
       matches_set s rs -> 
       matches_set s ({[ r ]} ∪ rs).
 
-(* An alternate formulation of [matches_set] *)
+(** An alternate formulation of [matches_set] *)
 Definition matches_set' (s : string) (rs : gset re) :=
   ∃ r, r ∈ rs /\ matches r s.      
 
-(* Proving that the two statements of [matches_set] are equivalent *)
+(** Proving that the two statements of [matches_set] are equivalent *)
 Lemma matches_set_matches_set' : forall (s : string) (rs : gset re),
   matches_set s rs <-> matches_set' s rs.
 Proof.
   split; intros.
-  - (* -> *)    
-    induction H.
-    unfold matches_set'. 
-    exists r. 
-    split; try assumption.
-    set_solver.
-  - (* <- *)
-    induction H.
-    destruct H as [H1 H2].
+  - induction H. unfold matches_set'. 
+    exists r. split; try assumption. set_solver.
+  - induction H. destruct H as [H1 H2].
     eapply matches_set_here; eauto.
 Qed.    
-
     
-(* Some lemmas about [matches_set], adapted from the Agda proofs in 
-   Adapted from https://monog.ufop.br/server/api/core/bitstreams/d7d18cf6-ff09-4b32-99a6-d87235f7a3ce/content *)
+(** Some lemmas about [matches_set], adapted from the Agda proofs in 
+    https://monog.ufop.br/server/api/core/bitstreams/d7d18cf6-ff09-4b32-99a6-d87235f7a3ce/content *)
 
-(* If [s] matches the regex set [rs], then [s] matches [rs ∪ rs'] 
-  for any other set [rs']. *)
+(** If [s] matches the regex set [rs], then [s] matches [rs ∪ rs'] 
+    for any other set [rs']. *)
 Lemma matches_set_weakening_left : forall (rs rs' : gset re) (s : string),
   matches_set s rs -> matches_set s (rs ∪ rs').
 Proof.
   intros. induction H.
-  - (* matches_set_here *)  
-    eapply matches_set_here. apply H. 
+  - eapply matches_set_here. apply H. 
     apply elem_of_union_l. assumption.
-  - (* matches_set_there *)
-    replace ({[r]} ∪ rs ∪ rs') with ({[r]} ∪ (rs ∪ rs')) by set_solver.
-    eapply matches_set_there.
-    assumption.
+  - replace ({[r]} ∪ rs ∪ rs') with ({[r]} ∪ (rs ∪ rs')) by set_solver.
+    eapply matches_set_there. assumption.
 Qed.
 
-(* If [s] matches the regex set [rs], then [s] matches [rs' ∪ rs] 
-  for any other set [rs']. *)
+(** If [s] matches the regex set [rs], then [s] matches [rs' ∪ rs] 
+    for any other set [rs']. *)
 Lemma matches_set_weakening_right : forall (rs rs' : gset re) (s : string),
   matches_set s rs -> matches_set s (rs' ∪ rs).
 Proof.
   intros. induction H.
-  - (* matches_set_here *)  
-    eapply matches_set_here. apply H. 
+  - eapply matches_set_here. apply H. 
     apply elem_of_union_r. assumption.
-  - (* matches_set_there *)
-    replace (rs' ∪ ({[r]} ∪ rs)) with ({[r]} ∪ (rs' ∪ rs)) by set_solver.
-    eapply matches_set_there.
-    assumption.
+  - replace (rs' ∪ ({[r]} ∪ rs)) with ({[r]} ∪ (rs' ∪ rs)) by set_solver.
+    eapply matches_set_there. assumption.
 Qed.    
 
-(* An inversion lemma for [Union] using [matches_set'] *)    
+(** An inversion lemma for [Union] using [matches_set'] *)    
 Lemma matches_set_union_inv : forall (rs1 rs2 : gset re) (s : string),
   matches_set' s (rs1 ∪ rs2) -> matches_set' s rs1 \/ matches_set' s rs2.
 Proof.
@@ -238,67 +199,33 @@ Proof.
   set_unfold. set_solver.
 Qed.  
 
-(* Lemma matches_set_cons : forall (r : re) (rs : gset re) (s s' : string),
-  matches_set s rs -> 
-  matches_set s' {[ r ]} ->
-  matches_set (s ++ s') (rs ∪ {[ r ]}). *)
-
-
-(******************************************************************************)
-
-(* No string matches the empty regex set *)
+(** No string matches the empty regex set *)
 Lemma not_matches_empty (s : string) : ~(matches_set s ∅).
 Proof.
   unfold not. intros.
   inversion H; subst; set_solver.
-Qed.  
-Hint Resolve not_matches_empty : core.
-
-(* If [s] matches [r], then [s] matches the singleton set containing [r] *)
-Lemma matches_singleton' (s : string) (r : re) : 
-  matches r s -> matches_set s {[ r ]}.
-Proof.
-  intros; eapply matches_set_here; eauto; set_solver.
-Qed.  
-
-Lemma singleton_union : forall (r1 r3 : re) (rs : gset re),
-  {[ r1 ]} ∪ rs = {[ r3 ]} -> r1 = r3.
-Proof. 
-  intros. set_solver.
-Qed.  
-
-(* If a string [s] matches a singleton set containing [r], then it's the same
-   as just saying [matches r s] *)
-(* Lemma matches_singleton (s : string) (r : re) : 
-  matches_set s {[ r ]} -> matches r s.
-Proof. 
-  intros; inversion H; subst. 
-  - (* matches_set_here *)
-    cut (r0 = r). intros. subst. assumption. set_solver.
-Admitted. *)
-
-(* The empty string matches the singleton set containing [Epsilon] *)
-Lemma matches_set_epsilon : matches_set [] {[Epsilon]}.
-Proof.
-  eapply matches_set_here.
-  - apply matches_epsilon.
-  - set_solver.
 Qed.
 
+(** If [s] matches [r], then [s] matches the singleton set containing [r] *)
+Lemma matches_singleton' (s : string) (r : re) : 
+  matches r s -> matches_set s {[ r ]}.
+Proof. intros; eapply matches_set_here; eauto; set_solver. Qed.  
+
+(** The empty string matches the singleton set containing [Epsilon] *)
+Lemma matches_set_epsilon : matches_set [] {[Epsilon]}.
+Proof. eapply matches_set_here. apply matches_epsilon. set_solver. Qed.
 
 Lemma a_der_matches_1 a r s : matches_set' s (a_der r a) -> matches r (a :: s).
 Proof. 
   revert s.
   induction r; X; try (apply not_matches_empty in H; destruct H).
-  - (* Concat *)
-    eapply matches_concat.
-    apply isEmpty_matches_1 in Heqb.
-    apply Heqb.
-    apply IHr2.
-    eexists. split.
-    + apply H.
-    + apply H0.
-    + simpl. reflexivity.
+  eapply matches_concat.
+  apply isEmpty_matches_1 in Heqb.
+  apply Heqb. apply IHr2.
+  eexists. split.
+  - apply H.
+  - apply H0.
+  - simpl. reflexivity.
 Qed.
 
 Lemma a_der_matches_2 a r s : matches r (a :: s) -> matches_set' s (a_der r a).
@@ -343,7 +270,3 @@ Proof.
     exists x. split; eauto.
     eapply matches_concat; eauto.
 Qed.    
-
-    
-    
-  
