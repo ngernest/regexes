@@ -179,6 +179,24 @@ Inductive matches_set : string -> gset re -> Prop :=
 Definition matches_set' (s : string) (rs : gset re) :=
   ∃ r, r ∈ rs /\ matches r s.      
 
+(* Proving that the two statements of [matches_set] are equivalent *)
+Lemma matches_set_matches_set' : forall (s : string) (rs : gset re),
+  matches_set s rs <-> matches_set' s rs.
+Proof.
+  split; intros.
+  - (* -> *)    
+    induction H.
+    unfold matches_set'. 
+    exists r. 
+    split; try assumption.
+    set_solver.
+  - (* <- *)
+    induction H.
+    destruct H as [H1 H2].
+    eapply matches_set_here; eauto.
+Qed.    
+
+    
 (* Some lemmas about [matches_set], adapted from the Agda proofs in 
    Adapted from https://monog.ufop.br/server/api/core/bitstreams/d7d18cf6-ff09-4b32-99a6-d87235f7a3ce/content *)
 
