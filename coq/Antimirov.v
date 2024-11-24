@@ -31,6 +31,7 @@ Fixpoint a_der_str (r : re) (s : string) : gset re :=
       set union instead *)
 Definition a_der_set (rs : gset re) (c : char) : gset re :=
   set_bind (fun r => a_der r c) rs.
+  
 
 (** Lemmas about a_der_set *)
 Lemma a_der_set_singleton (r : re) (c : char) : 
@@ -59,6 +60,8 @@ Definition a_matches (r : re) (s : string) : bool :=
 (** Alternate definition using a_der_str *)
 Definition a_matches' (r : re) (s : string) : bool :=
   nullable (a_der_str r s).
+
+
 
 (** Lemmas about fold_left a_der_set *)
 Lemma fold_left_empty (s : string) : fold_left a_der_set s ∅ = ∅.
@@ -175,15 +178,97 @@ Inductive matches_set : string -> gset re -> Prop :=
       matches_set s rs -> 
       matches_set s ({[ r ]} ∪ rs).
 
-(** Adapted from https://monog.ufop.br/server/api/core/bitstreams/d7d18cf6-ff09-4b32-99a6-d87235f7a3ce/content *)
-Lemma a_der_weakening : forall (rs rs' : gset re) (s : string),
+(* Some lemmas about [matches_set], adapted from the Agda proofs in 
+   Adapted from https://monog.ufop.br/server/api/core/bitstreams/d7d18cf6-ff09-4b32-99a6-d87235f7a3ce/content *)
+
+(* If [s] matches the regex set [rs], then [s] matches [rs ∪ rs'] 
+  for any other set [rs']. *)
+Lemma matches_set_weakening_left : forall (rs rs' : gset re) (s : string),
   matches_set s rs -> matches_set s (rs ∪ rs').
 Proof.
   intros. induction H.
-  - eapply matches_set_here. apply H. 
-    apply elem_of_union_l. apply H0.
-  - replace ({[r]} ∪ rs ∪ rs') with ({[r]} ∪ (rs' ∪ rs)) by set_solver.
+  - (* matches_set_here *)  
+    eapply matches_set_here. apply H. 
+    apply elem_of_union_l. assumption.
+  - (* matches_set_there *)
+    replace ({[r]} ∪ rs ∪ rs') with ({[r]} ∪ (rs ∪ rs')) by set_solver.
     eapply matches_set_there.
-    replace (rs' ∪ rs) with (rs ∪ rs') by set_solver.
-    apply IHmatches_set.
+    assumption.
 Qed.
+
+(* If [s] matches the regex set [rs], then [s] matches [rs' ∪ rs] 
+  for any other set [rs']. *)
+Lemma matches_set_weakening_right : forall (rs rs' : gset re) (s : string),
+  matches_set s rs -> matches_set s (rs' ∪ rs).
+Proof.
+  intros. induction H.
+  - (* matches_set_here *)  
+    eapply matches_set_here. apply H. 
+    apply elem_of_union_r. assumption.
+  - (* matches_set_there *)
+    replace (rs' ∪ ({[r]} ∪ rs)) with ({[r]} ∪ (rs' ∪ rs)) by set_solver.
+    eapply matches_set_there.
+    assumption.
+Qed.    
+    
+    
+
+
+(******************************************************************************)
+
+(* No string matches the empty regex set *)
+Lemma not_matches_empty (s : string) : ~(matches_set s ∅).
+Proof.
+  unfold not. intros.
+  inversion H; subst; set_solver.
+Qed.  
+Hint Resolve not_matches_empty : core.
+
+(* If [s] matches [r], then [s] matches the singleton set containing [r] *)
+Lemma matches_singleton' (s : string) (r : re) : 
+  matches r s -> matches_set s {[ r ]}.
+Proof.
+  intros; eapply matches_set_here; eauto; set_solver.
+Qed.  
+
+Lemma singleton_union : forall (r1 r3 : re) (rs : gset re),
+  {[ r1 ]} ∪ rs = {[ r3 ]} -> r1 = r3.
+Proof. 
+  intros. set_solver.
+Qed.  
+
+(* If a string [s] matches a singleton set containing [r], then it's the same
+   as just saying [matches r s] *)
+Lemma matches_singleton (s : string) (r : re) : 
+  matches_set s {[ r ]} -> matches r s.
+Proof. 
+  intros; inversion H; subst. 
+  - (* matches_set_here *)
+    cut (r0 = r). intros. subst. assumption. set_solver.
+  - (* matches_set_there *)
+    set_unfold. (* TODO *)
+Admitted.
+
+(* The empty string matches the singleton set containing [Epsilon] *)
+Lemma matches_set_epsilon : matches_set [] {[Epsilon]}.
+Proof.
+  eapply matches_set_here.
+  - apply matches_epsilon.
+  - set_solver.
+Qed.
+
+
+Lemma a_der_matches_1 a r s : matches_set s (a_der r a) -> matches r (a :: s).
+Proof. 
+  revert s.
+  induction r; X; try (apply not_matches_empty in H; destruct H).
+  - (* Atom *)
+    inversion H; subst. set_unfold. subst. 
+Admitted. (* TODO *)    
+
+Lemma a_der_matches_2 a r s : matches r (a :: s) -> matches_set s (a_der r a).
+Proof.
+  revert s.
+  induction r; X; try set_solver.
+  - apply matches_set_epsilon.
+Admitted. (* TODO *)
