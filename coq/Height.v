@@ -143,12 +143,23 @@ Proof.
 Qed.
 
 (******************************************************************************)
-(* Number of Antimirov derivatives is linear in the size of the regex *)
 
-(* Not sure why this doesn't typecheck *)
-(* Lemma map_preserves_set_size : forall (f : re -> re) (s : gset re),
-  set_size (set_map f s) = set_size s. *)
+
+(* Helper lemma: proving that [map] presreves the size of a [gset] 
+   - We need to type annotation on the term [(set_map f s)], otherwise 
+     Coq can't figure out which typeclass instance for [set_size] to use *)
+Lemma map_preserves_set_size : 
+  forall (f : re -> re) (s : gset re),
+  set_size ((set_map f s) : gset re) = set_size s.
+Proof.
+  intros f s.
+  unfold set_size. simpl. 
+  f_equal.
+  unfold elements. unfold gset_elements. 
+Admitted. (* TODO *)  
   
+
+(* Number of Antimirov derivatives is linear in the size of the regex *)
 Lemma num_antimirov_derivs_linear_in_re_size : forall (c : char) (r : re),
   exists (k : nat), set_size (a_der r c) <= k * re_size r.
 Proof.
@@ -188,3 +199,4 @@ Proof.
     eexists. 
     admit. (* TODO: Same problem as the [Concat] case *)      
 Admitted.    
+
