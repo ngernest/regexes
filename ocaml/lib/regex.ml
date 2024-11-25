@@ -2,22 +2,34 @@ open Base_quickcheck
 open Sexplib.Conv
 
 let equal_char = Base.equal_char
+let compare_char = Base.compare_char
 
 (** A datatype for regular expressions *)
 type re = 
-  | Char of char [@quickcheck.generator Generator.char_lowercase]
-  | Void 
+  | Char of char [@quickcheck.generator Generator.of_list ['a'; 'b']]
+  | Void [@quickcheck.do_not_generate]
   | Epsilon 
   | Seq of re * re 
   | Alt of re * re 
   | Star of re
-[@@deriving quickcheck, sexp_of, equal]  
+[@@deriving quickcheck, sexp, equal, compare]  
 
- (** Smart constructor for alternation *)
- let alt (r1 : re) (r2 : re) : re =
+ (** Smart constructor for alternation: 
+    - Void is the identify element for [Alt]
+    - Reassociates all the [Alt]s to the left
+    - Sorts operands in increasing lexicographic order (using "bubble-sort")
+ *)
+let rec alt (r1 : re) (r2 : re) : re =
   match (r1, r2) with
   | _, Void -> r1
   | Void, _ -> r2
+  | Alt (r11, r12), _ -> alt r11 (alt r12 r2)
+  | a, Alt (b, c) -> 
+    if compare_re a b > 0 
+      then alt b (alt a c)
+    else 
+      Alt (r1, r2)
+  | r1', r2' when compare_re r1' r2' > 0 -> alt r2' r1'
   | _, _ -> Alt (r1, r2)
 
 (** Smart constructor for sequencing *)
@@ -43,16 +55,31 @@ let star (re : re) : re =
 (** Optimizes a regex *)  
 let rec optimize_re (r : re) : re = 
   match r with 
-  | Seq (r', Void) | Seq (Void, r') -> Void
+  | Seq (r', Void) | Seq (Void, r') -> 
+      Void
   | Seq (r', Epsilon) | Seq (Epsilon, r') 
-  | Alt (r', Void) | Alt (Void, r') -> optimize_re r' 
-  | Alt (r1, Alt (r2, r3)) -> alt (alt (optimize_re r1) (optimize_re r2)) (optimize_re r3)
-  | Alt (r1, r2) when equal_re r1 r2 -> optimize_re r1 
-  | Star Void | Star Epsilon -> Epsilon 
-  | Star (Star r') -> optimize_re @@ star r'
+  | Alt (r', Void) | Alt (Void, r') -> 
+      optimize_re r' 
+  | Alt (r1, Alt (r2, r3)) -> 
+      alt (alt (optimize_re r1) (optimize_re r2)) (optimize_re r3)
+  | Alt (r1, r2) when equal_re r1 r2 -> 
+      optimize_re r1 
+  | Star Void | Star Epsilon -> 
+      Epsilon 
+  | Star (Star r') -> 
+      optimize_re @@ star r'
+  | _ -> r
+
+(** Another version of [optimize_re] which just calls the
+   smart constructor  *)
+let rec optimize_re' (r : re) : re = 
+  match r with 
+  | Seq (r1, r2) -> seq (optimize_re' r1) (optimize_re' r2)
+  | Alt (r1, r2) -> alt (optimize_re' r1) (optimize_re' r2) 
+  | Star r' -> star (optimize_re' r')
   | _ -> r
   
-
+  
 (** Computes the {i size} (i.e. length) of a regex *)
 let rec re_size (r : re) : int =
   match r with
