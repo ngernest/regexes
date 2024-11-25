@@ -30,7 +30,7 @@ Proof. induction r; simpl; set_solver. Qed.
     With this lemma, we show that the set of Antimirov derivatives of r 
     with respect to any nonempty word is finite. 
     i.e. {a_der r w | w ∈ Σ+} is finite *)
-Theorem a_finite (r : re) : forall (a : re), a ∈ A_der r -> 
+Theorem a_finite_help (r : re) : forall (a : re), a ∈ A_der r -> 
   forall (c : char), a_der a c ⊆ A_der r.
 Proof. 
   induction r; X; fold A_der a_der in *.
@@ -59,25 +59,25 @@ Proof.
   - left. right. exists x0. split.
     + reflexivity.
     + cut (a_der r1 a ⊆ A_der r1). set_solver. 
-      apply a_finite. apply re_in_A_der.
+      apply a_finite_help. apply re_in_A_der.
   - left. right. exists x0. split.
     + reflexivity.
     + cut (a_der r1 a ⊆ A_der r1). set_solver. 
-      apply a_finite. apply re_in_A_der.
+      apply a_finite_help. apply re_in_A_der.
   - left. exists x0. split.
     + reflexivity.
     + cut (a_der r a ⊆ A_der r). set_solver. 
-      apply a_finite. apply re_in_A_der.
+      apply a_finite_help. apply re_in_A_der.
 Qed.
 
 Lemma subset_trans (A B C : gset re) : A ⊆ B -> B ⊆ C -> A ⊆ C.
 Proof. set_solver. Qed.
 
-(** Alternate statement *)
-Theorem a_finite' : forall (s : string) (r : re), a_der_str r s ⊆ A_der r.
+(** Antimirov derivative wrt a string is finite *)
+Theorem a_finite : forall (s : string) (r : re), a_der_str r s ⊆ A_der r.
 Proof. induction s; intros; simpl.
   - cut (r ∈ A_der r). set_solver. apply re_in_A_der.
-  - apply set_bind_subset. apply a_finite. 
+  - apply set_bind_subset. apply a_finite_help. 
     apply re_in_A_der. intros. 
     eapply subset_trans. apply IHs. eapply A_der_subset. apply H. 
 Qed.

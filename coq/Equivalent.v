@@ -71,10 +71,16 @@ Proof.
         right. specialize IHr2 with (a :: s). apply IHr2. 
         unfold a_matches. simpl. rewrite a_der_set_singleton.
         unfold nullable. X. 
-  - destruct H0. induction s; simpl in *. 
+  - destruct H0. destruct s; simpl in *. 
     + exists (Union r1 r2). simpl. split. 
       destruct isEmpty; eauto. destruct isEmpty.
       reflexivity. destruct H. set_solver.
-    + rewrite b_der_union in H. simpl in H. destruct isEmpty;
-      destruct isEmpty; simpl in *. 
+    + rewrite b_der_union in H. simpl in H. destruct isEmpty eqn:E1;
+      destruct isEmpty eqn:E2; simpl in *. 
+      * 
+      
+      exists (fold_left b_der s (b_der r1 a)). split. 
+        symmetry. apply E2. rewrite a_der_set_Union. 
+        rewrite fold_left_union. Search (_ ∈ _ ∪ _). 
+        apply elem_of_union_l. 
 Admitted.

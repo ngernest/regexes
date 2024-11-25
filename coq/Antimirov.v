@@ -115,47 +115,26 @@ Lemma set_bind_id (rs : gset re) :
 Proof. set_solver. Qed.
 Hint Rewrite set_bind_id : core.
 
-(* Lemma a_matches_matches' (r : re) (s : string) : 
-  a_matches r s <-> a_matches' r s.
-Proof. 
-  induction s.
-  - unfold a_matches, a_matches', nullable. X.
-  - unfold a_matches, a_matches', nullable in *. X. 
-    + destruct H5. 
-Admitted. *)
+Lemma a_matches_matches'_help : forall (s : string) (rs : gset re), 
+  fold_left a_der_set s rs =
+  set_bind (fun r => a_der_str r s) rs.
+Proof.
+  induction s. 
+  - simpl. intros. set_solver.
+  - intros. simpl. rewrite IHs. unfold a_der_set.
+    set_solver.
+Qed.
 
-(* Lemma a_matches_matches' (r : re) (s : string) : 
+(** The two a_matches definitions are equivalent *)
+Theorem a_matches_matches' (r : re) (s : string) : 
   a_matches r s <-> a_matches' r s.
-Proof. 
-  induction r; unfold a_matches, a_matches', nullable in *. 
-  - X; destruct H1; destruct s; simpl in *;
-    autorewrite with core in *; eauto. 
-  - X; destruct H1; destruct s; simpl in *;
-    autorewrite with core in *; eauto. 
-  - X; destruct H1; exists x; split; destruct s; eauto; simpl in *;
-    destruct char_dec; autorewrite with core in *; simpl in *;
-    destruct char_dec; destruct s; simpl in *; autorewrite with core in *; 
-    eauto; contradiction. 
-  - X; destruct H9; exists x; split; eauto; destruct s; eauto; simpl in *; 
-    autorewrite with core in *; simpl in *; autorewrite with core in *. 
-    + apply elem_of_union in H4. destruct H4.
-      * apply elem_of_union_l. induction s; simpl in *; eauto. 
-        -- rewrite set_bind_id. apply H4.
-        -- admit.
-      * apply elem_of_union_r. induction s; simpl in *; eauto.
-        -- rewrite set_bind_id. apply H4.
-        -- admit.
-    + admit.
-    + admit. 
-    + admit.
-    + admit. 
-    + admit. 
-    + admit. 
-    + admit. 
-  - X; destruct H9. exists (Concat x3 x1). split.
-    + simpl. rewrite <- H2, H0. rewrite andb_diag. reflexivity. 
-    + apply blah2. apply H8. apply H6. 
-Admitted. *)
+Proof.
+  unfold a_matches, a_matches'.
+  cut (fold_left a_der_set s {[ r ]} = a_der_str r s).
+  { intros. rewrite H. reflexivity. }
+  rewrite a_matches_matches'_help. 
+  rewrite set_bind_singleton. reflexivity.
+Qed.
 
 (** What it means for a string to match a set of regexes.
     - [matches_set_here]: if [s] matches [r], then [s] matches any regex set 
