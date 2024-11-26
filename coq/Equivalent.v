@@ -21,6 +21,19 @@ Proof.
   - destruct H2. exists (Star r). split; eauto.
 Qed.
 
+Lemma isEmpty_Concat : forall (s1 s2 : string) (r1 r2 : re),
+   isEmpty (fold_left b_der s1 r1) ->
+   isEmpty (fold_left b_der s2 r2) ->
+   isEmpty (fold_left b_der (s1 ++ s2) (Concat r1 r2)).
+Proof. 
+  induction s1. induction s2.
+  - intros. X. 
+  - intros. X. rewrite b_der_union. simpl. 
+    apply orb_prop_intro. right. apply H0.
+  - intros. X. rewrite b_der_union. simpl. 
+    apply orb_prop_intro. left. apply IHs1. apply H. apply H0.
+Qed.
+
 Theorem a_b_matches : forall (r : re) (s : string),
   a_matches r s <-> b_matches r s.
 Proof. 
@@ -90,5 +103,10 @@ Proof.
            X. exists x. split. apply H. rewrite a_der_set_singleton in *. simpl.
           rewrite fold_left_union. apply elem_of_union_r. apply H0.
         -- inversion H. 
-    - 
+  - assert (a_matches (Concat r1 r2) s).
+    { unfold a_matches, nullable. X. }
+    apply a_matches_concat in H1. destruct H1 as [s1 [s2 [H1 [H2]]]].
+    apply IHr1 in H2. apply IHr2 in H3.
+    unfold b_matches in *. X. 
+    apply isEmpty_Concat. apply H2. apply H3.
 Admitted.

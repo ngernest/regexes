@@ -136,6 +136,81 @@ Proof.
   rewrite set_bind_singleton. reflexivity.
 Qed.
 
+(** Lemmas about sets *)
+Lemma elem_of_a_der_set : forall (x : re) (c : char) (rs : gset re),
+  x ∈ a_der_set rs c ->
+  exists r, r ∈ rs /\ x ∈ a_der r c.
+Proof. set_solver. Qed.
+
+Lemma elem_of_a_der_subset : forall (s : string) (x : re) (rs rs' : gset re),
+  x ∈ fold_left a_der_set s rs -> 
+  rs ⊆ rs' -> x ∈ fold_left a_der_set s rs'.
+Proof. 
+  induction s.
+  - intros. simpl in *. set_solver.
+  - intros. simpl in *. eapply IHs in H. 
+    apply H. set_solver.
+Qed.
+
+Lemma elem_of_fold_left : forall (s : string) (x : re) (rs : gset re),
+  x ∈ fold_left a_der_set s rs ->
+  exists r, r ∈ rs /\ x ∈ fold_left a_der_set s {[ r ]}.
+Proof. 
+  induction s.
+  - intros. simpl in *. exists x; set_solver.
+  - intros. simpl in *. apply IHs in H. destruct H as [r [H1 H2]].
+    apply elem_of_a_der_set in H1. destruct H1 as [r0 [H3 H4]]. 
+    exists r0. split. apply H3. eapply elem_of_a_der_subset.
+    apply H2. set_solver.
+Qed.
+
+Lemma elem_of_set_map : forall (x : re) (rs : gset re) (f : re -> re),
+  x ∈ (set_map f rs : gset re) -> exists r, r ∈ rs /\ x = f r.
+Proof. set_solver. Qed.
+
+Lemma a_matches_concat : forall (s : string) (r1 r2 : re),
+  a_matches (Concat r1 r2) s ->
+  exists s1 s2, (s = s1 ++ s2) /\ a_matches r1 s1 /\ a_matches r2 s2.
+Proof. 
+  induction s; unfold a_matches, nullable; X.
+  - exists []. exists []. X.
+  - rewrite a_der_set_singleton in H0. simpl in H0.
+    destruct (isEmpty r1) eqn:E. 
+    + rewrite fold_left_union in H0. 
+      apply elem_of_union in H0. destruct H0.
+      * apply elem_of_fold_left in H0. 
+        destruct H0 as [r3 [H0 H1]].
+        apply elem_of_set_map in H0. 
+        destruct H0 as [r4 [H0 H2]].
+        assert (a_matches (Concat r4 r2) s).
+        { unfold a_matches, nullable. X. }
+        apply IHs in H3. destruct H3 as [s1 [s2 [H3 [H4 H5]]]]. 
+        exists (a :: s1). exists s2. repeat split; X.
+        destruct H2. unfold a_matches, nullable in H4. X. 
+        exists x0. split. apply H2. 
+        eapply elem_of_a_der_subset. 
+        apply H3. set_solver.
+      * apply elem_of_fold_left in H0. 
+        destruct H0 as [r3 [H0 H1]].
+        exists []. exists (a :: s). repeat split; X.
+        destruct H2. exists x. split.
+        apply H. eapply elem_of_a_der_subset.
+        apply H1. set_solver.
+        (* repeat *)
+    + apply elem_of_fold_left in H0. 
+      destruct H0 as [r3 [H0 H1]].
+      apply elem_of_set_map in H0. 
+      destruct H0 as [r4 [H0 H2]].
+      assert (a_matches (Concat r4 r2) s).
+      { unfold a_matches, nullable. X. }
+      apply IHs in H3. destruct H3 as [s1 [s2 [H3 [H4 H5]]]]. 
+      exists (a :: s1). exists s2. repeat split; X.
+      destruct H2. unfold a_matches, nullable in H4. X. 
+      exists x0. split. apply H2. 
+      eapply elem_of_a_der_subset. 
+      apply H3. set_solver.
+Qed.
+
 (** What it means for a string to match a set of regexes.
     - [matches_set_here]: if [s] matches [r], then [s] matches any regex set 
       containing [r] 
