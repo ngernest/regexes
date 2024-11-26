@@ -50,6 +50,53 @@ Inductive re :=
   | Concat : re -> re -> re
   | Star : re -> re.
 
+(* Comparison function for regular expressions *)
+Fixpoint re_compare (r1 r2 : re) : comparison :=
+  match r1, r2 with
+  | Void, Void => Eq
+  | Void, _ => Lt
+  | Epsilon, Void => Gt
+  | Epsilon, Epsilon => Eq
+  | Epsilon, _ => Lt
+  | Atom c1, Void => Gt
+  | Atom c1, Epsilon => Gt
+  | Atom c1, Atom c2 => compare (nat_of_ascii c1) (nat_of_ascii c2)
+  | Atom _, _ => Lt
+  | Union r1l r1r, Void => Gt
+  | Union r1l r1r, Epsilon => Gt
+  | Union r1l r1r, Atom _ => Gt
+  | Union r1l r1r, Union r2l r2r => 
+      match re_compare r1l r2l with
+      | Eq => re_compare r1r r2r
+      | c => c
+      end
+  | Union _ _, _ => Lt
+  | Concat r1l r1r, Void => Gt
+  | Concat r1l r1r, Epsilon => Gt
+  | Concat r1l r1r, Atom _ => Gt
+  | Concat r1l r1r, Union _ _ => Gt
+  | Concat r1l r1r, Concat r2l r2r => 
+      match re_compare r1l r2l with
+      | Eq => re_compare r1r r2r
+      | c => c
+      end
+  | Concat _ _, _ => Lt
+  | Star r1', Void => Gt
+  | Star r1', Epsilon => Gt
+  | Star r1', Atom _ => Gt
+  | Star r1', Union _ _ => Gt
+  | Star r1', Concat _ _ => Gt
+  | Star r1', Star r2' => re_compare r1' r2'
+  end.
+
+
+(* Converts regex comparison to Boolean [<] *)
+Definition re_lt (r1 r2 : re) : bool :=
+  match re_compare r1 r2 with
+  | Lt => true
+  | _ => false
+  end.
+
 (** Matching relation *)
 Inductive matches : re -> string -> Prop :=
   | matches_epsilon : matches Epsilon []
