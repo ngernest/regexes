@@ -16,6 +16,8 @@ module ListSet = struct
   let size s = s |> dedup |> List.length
   let union s1 s2 = s1 @ s2 |> dedup
   let intersect lst1 lst2 = List.filter (fun h -> mem h lst2) lst1
+
+  let map = List.map
 end
 
 (******************************************************************************)
@@ -70,7 +72,11 @@ type context = re list
 (** [zipper = (regexpr list) set] *)
 type zipper = context set
 
-let zipper_union : zipper -> zipper -> zipper = ListSet.union 
+
+let zipper_map f z = ListSet.map f z
+
+let zipper_union : zipper -> zipper -> zipper = 
+  ListSet.union 
 
 let focus (e : re) : zipper = [[e]]
 

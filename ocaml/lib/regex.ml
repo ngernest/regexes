@@ -78,6 +78,14 @@ let rec optimize_re' (r : re) : re =
   | Alt (r1, r2) -> alt (optimize_re' r1) (optimize_re' r2) 
   | Star r' -> star (optimize_re' r')
   | _ -> r
+
+(** Determines if a regex contains [Void] *)  
+let rec contains_void (r : re) : bool = 
+  match r with 
+  | Void -> true 
+  | Alt (r1, r2) | Seq (r1, r2) -> contains_void r1 || contains_void r2 
+  | Star r' -> contains_void r' 
+  | _ -> false  
   
   
 (** Computes the {i size} (i.e. length) of a regex *)

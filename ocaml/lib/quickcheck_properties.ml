@@ -12,8 +12,28 @@ open Sexplib.Conv
 (** Generator that generates a pair consisting of a regex 
     and an lowercase character *)
 let gen_re_char : (re * char) Generator.t = 
-  Generator.both (Generator.map quickcheck_generator_re ~f:optimize_re) 
+  Generator.both (Generator.map quickcheck_generator_re ~f:optimize_re') 
     Generator.char_lowercase
+
+(** A shrinker for regexes:
+    - All characters are shrunk to [Epsilon]
+    - For [Star], [Seq], and [Alt], we shrink via structural recursion and 
+      use the smart constructors to create shrunken regexes *)    
+let shrink_re : re Shrinker.t = 
+  let open Base in 
+  let open Sequence.Let_syntax in 
+  let rec aux (r : re) : re Sequence.t =
+    begin match r with 
+    | Epsilon | Void -> Sequence.empty 
+    | Char _ -> Sequence.singleton Epsilon
+    | Star r' -> Sequence.map ~f:star (aux r') 
+    | Seq (r1, r2) -> 
+      let%map r1' = aux r1 and r2' = aux r2 in seq r1' r2'
+    | Alt (r1, r2) -> 
+      let%map r1' = aux r1 and r2' = aux r2 in alt r1' r2'
+    end
+  in 
+  Shrinker.create aux
 
 (** Returns a generator that produces random strings matching the regex [r] 
     (if such a generator exists) *)  
@@ -72,23 +92,35 @@ let gen_re_char_nonempty_antimirov : (re * char) Generator.t =
 
 (** Shrinker that shrinkers both a regex and an alphabetic character *)  
 let shrink_re_char : (re * char) Shrinker.t = 
-  Shrinker.both quickcheck_shrinker_re Shrinker.char  
+  Shrinker.both shrink_re Shrinker.char  
 
 (** Default QuickCheck config: 10000 trials *)  
 let config : Base_quickcheck.Test.Config.t = 
   { Base_quickcheck.Test.default_config with 
-    test_count = 10_000_000; 
-    shrink_count = 10_000_000 }
+    test_count = 10_000; 
+    shrink_count = 10_000 }
 
+(* -------------------------------------------------------------------------- *)
+(*                       Helper functions for QuickCheck                      *)
+(* -------------------------------------------------------------------------- *)
 
+(** Converts a regex to a string *)
 let string_of_re (r : re) : string = 
   Base.Sexp.to_string_hum (sexp_of_re r)  
+
+(** Converts a [context] to a [re] *)
+let context_to_re (ctx : context) : re = 
+  List.fold_left seq Epsilon ctx 
+
+(** Simplifies each element of a list of regexes using rewrite rules,
+    then sorts the resultant list *)  
+let postprocess_regex_list (rs : re list) : re list = 
+  List.sort compare_re (List.map optimize_re' rs)  
 
 (* -------------------------------------------------------------------------- *)
 (*                            QuickCheck properties                           *)
 (* -------------------------------------------------------------------------- *)
 
-(* 
 
 let%quick_test "Brzozowski & Antimirov-based regex matchers accept the same strings!" 
   [@generator gen_re_string] [@config config] = 
@@ -108,132 +140,21 @@ let%quick_test {| The regex matchers based on Brzozowski derivatives & zippers
   [%expect {| |}]
 
 
+let%quick_test "underlying sets for zippers & Antimirov are the same" 
+  [@config config] = 
+  fun (r : re [@generator (Generator.map quickcheck_generator_re ~f:optimize_re')]
+              [@shrinker shrink_re]) 
+    (c : char [@generator Generator.of_list ['a'; 'b']]) -> 
+    let input = optimize_re' r in 
+    let lhs = postprocess_regex_list @@ 
+      zipper_map context_to_re (derive c (focus r)) in 
+    let rhs = postprocess_regex_list @@ 
+      RegexSet.to_list (aderiv c r) in 
+    let result = List.equal equal_re lhs rhs in 
+    assert result;
+  [%expect {| |}]
+  
 
-let%expect_test "counterexample" = 
-  let r = Alt (
-     Alt (Epsilon, Char 'k'), 
-     Star (Seq (Alt (Void, Char 'k'), Seq (Epsilon, Void)))
-  ) in 
-  let c = 'k' in 
-  let input = optimize_re' r in 
-  let lhs = optimize_re' @@ flatten_zipper (derive c (focus r)) in 
-  let rhs = optimize_re' @@ RegexSet.fold (fun r' acc -> alt r' acc) (aderiv c r) Void in 
-  let result = equal_re lhs rhs in 
-  Stdio.printf "optimized input = %s\n" (string_of_re input);
-  Stdio.printf "lhs = %s\n" (string_of_re lhs);
-  Stdio.printf "rhs = %s\n" (string_of_re rhs);
-  Stdio.printf "result = %b\n" result;
-  [@expect {| |}];
-  [%expect {|
-    optimized input = (Alt Epsilon (Alt (Char k) Epsilon))
-    lhs = Epsilon
-    rhs = Epsilon
-    result = true
-    |}]
-
-let%expect_test "counterexample 2" = 
-  let r = (Alt (Char '\135', (Seq ((Star (Alt (Char 'W', (Star (Char '1'))))), (Char 'W'))))) in 
-  let c = 'W' in 
-  let input = optimize_re' r in 
-  let lhs = optimize_re' @@ flatten_zipper (derive c (focus r)) in 
-  let rhs = optimize_re' @@ RegexSet.fold (fun r' acc -> alt r' acc) (aderiv c r) Void in 
-  let result = equal_re lhs rhs in 
-  Stdio.printf "optimized input = %s\n" (string_of_re input);
-  Stdio.printf "lhs = %s\n" (string_of_re lhs);
-  Stdio.printf "rhs = %s\n" (string_of_re rhs);
-  Stdio.printf "result = %b\n" result;
-  [@expect {| |}];
-  [%expect {|
-    optimized input = (Alt (Char "\135") (Seq (Star (Alt (Char W) (Star (Char 1)))) (Char W)))
-    lhs = (Alt Epsilon (Seq (Star (Alt (Char W) (Star (Char 1)))) (Char W)))
-    rhs = (Alt Epsilon (Seq (Star (Alt (Char W) (Star (Char 1)))) (Char W)))
-    result = true
-    |}]
-
-*)    
-
-(* let%expect_test "counterexample 3" = 
-  let r = (Alt (
-    (Star Epsilon),
-    (Alt (
-      (Seq (
-        (Seq (
-          (Star (
-            Seq (
-              (Alt (Void, (
-                Seq (
-                  (Seq (
-                    (Alt ((Char '3'), (Star (Star Epsilon)))),
-                    (Star (
-                      Alt (
-                        (Char 'U'),
-                        (Char 'G')))))),
-                  (Star (
-                    Alt (
-                      (Seq ((Char 'T'), (Star (Star (Alt ((Char 'H'), Epsilon)))))),
-                      (Alt (
-                        (Seq (
-                          (Alt ((Seq ((Char '3'), (Star (Char '\201')))), (Star Void))),
-                          (Char 't'))),
-                        Epsilon)))))))),
-              (Seq (Epsilon, Epsilon))))),
-          (Star (Star Void)))),
-        (Alt (
-          (Alt (
-            (Alt ((Char '3'), (Alt ((Seq (Epsilon, (Star Epsilon))), Epsilon)))),
-            (Char 'o'))),
-          (Seq (
-            (Alt (
-              (Char 'A'),
-              (Star Epsilon))),
-            Void)))))),
-      (Char 'V')))))) in 
-  let c = 'W' in 
-  let input = optimize_re' r in 
-  let lhs = optimize_re' @@ flatten_zipper (derive c (focus input)) in 
-  let rhs = optimize_re' @@ RegexSet.fold (fun r' acc -> alt r' acc) (aderiv c input) Void in 
-  let result = equal_re lhs rhs in 
-  Stdio.printf "optimized input = %s\n" (string_of_re input);
-  Stdio.printf "lhs = %s\n" (string_of_re lhs);
-  Stdio.printf "rhs = %s\n" (string_of_re rhs);
-  Stdio.printf "result = %b\n" result;
-  [@expect {| |}];
-  [%expect {|
-    optimized input = (Alt Epsilon
-     (Alt (Char V)
-      (Seq
-       (Star
-        (Seq (Seq (Alt (Char 3) Epsilon) (Star (Alt (Char G) (Char U))))
-         (Star
-          (Alt (Seq (Char T) (Star (Alt (Char H) Epsilon)))
-           (Alt Epsilon
-            (Seq (Alt Epsilon (Seq (Char 3) (Star (Char "\201")))) (Char t)))))))
-       (Alt (Char o) (Alt (Char 3) (Alt Epsilon Epsilon))))))
-    lhs = Void
-    rhs = Void
-    result = true
-    |}] 
-    
-  *)
-
-let rec contains_void (r : re) : bool = 
-  match r with 
-  | Void -> true 
-  | Alt (r1, r2) | Seq (r1, r2) -> contains_void r1 || contains_void r2 
-  | Star r' -> contains_void r' 
-  | _ -> false
-
-(* 
-
-Alternatively, we could just prove the following (gset equality):
-(TODO: you may want to check that this property holds in QuickCheck for now)
-
-Set.map context_to_re (derive c (focus r)) = aderiv c r
-  where 
-    context_to_re (ctx : context) : re = List.fold_left (fun acc r -> Seq (acc, r)) ctx 
-*)  
-
- 
 let%quick_test {| flattening a zipper and flattening the Antimirov derivative set 
   result in equivalent regexes |}
   [@generator gen_re_char] [@shrinker shrink_re_char] [@config config] = 
@@ -241,14 +162,13 @@ let%quick_test {| flattening a zipper and flattening the Antimirov derivative se
     let open Stdio in 
     let input = optimize_re' r in 
     let lhs = optimize_re' @@ flatten_zipper (derive c (focus r)) in 
-    let rhs = optimize_re' @@ RegexSet.fold (fun r' acc -> alt r' acc) (aderiv c r) Void in 
+    let rhs = optimize_re' @@ RegexSet.fold 
+      (fun r' acc -> alt r' acc) (aderiv c r) Void in 
     let result = equal_re lhs rhs in 
     assert (not (contains_void r));
     assert result;
   [%expect {| |}]
   
-
-(* 
 
 (* Technically, the lemma statement is that the no. of Antimirov deriatives
    is linear in the regex size, but there's no way to express 
@@ -275,11 +195,11 @@ let%quick_test ("Brzozowski is always contained in the set of Antimirov derivati
     assert (RegexSet.mem (Brzozowski.bderiv r c) (aderiv c r));
   [%expect {|
     ("quick test: test failed" (input ((Char b) T)))
-    (* CR require-failed: lib/quickcheck_properties.ml:183:0.
+    (* CR require-failed: lib/quickcheck_properties.ml:191:0.
        Do not 'X' this CR; instead make the required property true,
        which will make the CR disappear.  For more information, see
        [Expect_test_helpers_base.require]. *)
-    "Assert_failure lib/quickcheck_properties.ml:187:4"
+    "Assert_failure lib/quickcheck_properties.ml:195:4"
     |}]
 
 let%expect_test {| Example where a Brzozowski derivative is not contained in the set of Antimirov derivatives 
@@ -296,11 +216,10 @@ let%quick_test ("Brzozowski contained in Antimirov set when it is non-empty
     assert (RegexSet.mem (Brzozowski.bderiv_opt r c) antimirov_set);
   [%expect {|
     ("quick test: test failed" (input ((Char b) T)))
-    (* CR require-failed: lib/quickcheck_properties.ml:203:0.
+    (* CR require-failed: lib/quickcheck_properties.ml:211:0.
        Do not 'X' this CR; instead make the required property true,
        which will make the CR disappear.  For more information, see
        [Expect_test_helpers_base.require]. *)
-    "Assert_failure lib/quickcheck_properties.ml:208:4"
+    "Assert_failure lib/quickcheck_properties.ml:216:4"
     |}]
   
-*)    

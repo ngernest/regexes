@@ -4,16 +4,20 @@ Require Import Regex.
 
 (** Smart constructors for regexes *)
 
-(** Smart constructor for [Union] *)
-Definition union_opt (r1 : re) (r2 : re) : re :=
+(** Smart constructor for [Union] 
+    - TODO: finish translating the OCaml [alt] smart constructor to Gallina
+      (need to figure out how to satisfy the termination checker)
+*)
+Fixpoint union (r1 : re) (r2 : re) : re :=
   match (r1, r2) with 
   | (_, Void) => r1 
   | (Void, _) => r2 
+  | (Union r11 r12, _) => union r11 (union r12 r2)
   | (_, _) => Union r1 r2 
   end.
 
 (** Smart constructor for [Concat] *)
-Definition concat_opt (r1 : re) (r2 : re) : re :=
+Definition concat (r1 : re) (r2 : re) : re :=
   match (r1, r2) with 
   | (Void, _) => Void 
   | (_, Void) => Void 
@@ -26,7 +30,7 @@ Definition concat_opt (r1 : re) (r2 : re) : re :=
     - Iterating the empty string gives us the empty string
     - Zero or more occurrences of Void is empty
     - Two iterations of [Star] is the same as one *)
-Definition star_opt (r : re) := 
+Definition star (r : re) := 
   if isEmpty r || isVoid r then Epsilon 
   else match r with 
   | Star r' => Star r' 
@@ -45,10 +49,10 @@ Fixpoint N (r : re) : re :=
   | Void => Void 
   | Epsilon => Epsilon 
   | Atom c => Atom c 
-  | Union r1 r2 => union_opt (N r1) (N r2)
+  | Union r1 r2 => union (N r1) (N r2)
   | Concat r1 r2 => 
-    union_opt 
-      (union_opt (concat_opt (E r1) (N r2)) (concat_opt (N r1) (E r2)))
-      (concat_opt (N r1) (N r2))
-  | Star r' => concat_opt (N r') (star_opt (N r'))
+    union 
+      (union (concat (E r1) (N r2)) (concat (N r1) (E r2)))
+      (concat (N r1) (N r2))
+  | Star r' => concat (N r') (star (N r'))
   end.
