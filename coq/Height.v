@@ -1,5 +1,6 @@
 Require Import Antimirov.
 Require Import Brzozowski.
+Require Import Finite.
 
 (** Examining the height of Antimirov derivatives 
     Inspired by https://www.weaselhat.com/post-819.html *)
@@ -47,19 +48,20 @@ Proof.
 Qed.
 
 Lemma gset_elements_singleton {A : Type} `{Countable A} (x : A) :
-  gset_elements (gset_singleton x) = [x].
+  elements (({[ x ]}) : gset A) = [x].
 Proof.
-  unfold gset_elements. simpl. 
-  rewrite map_to_list_singleton. reflexivity.
+  simpl. 
+  set_unfold.
+  rewrite elements_singleton. reflexivity.
 Qed.
 
 (** Folding a function [f] over a singleton set is just the same as applying 
     [f] to the element in the set, along with the base case *)
 Lemma set_fold_singleton (f : re -> nat -> nat) (b : nat) (r : re) :
-  set_fold f b (gset_singleton r) = f r b.
+  set_fold f b ({[ r ]} : gset re) = f r b.
 Proof.
-  unfold set_fold, elements; simpl.
-  rewrite gset_elements_singleton.
+  simpl. unfold set_fold; simpl.
+  rewrite elements_singleton.
   simpl. reflexivity.
 Qed.  
 
@@ -68,9 +70,8 @@ Qed.
 Lemma set_map_singleton (f : re -> re) (x : re):
   set_map f ({[ x ]} : gset re) = ({[ f x ]} : gset re).
 Proof.
-  unfold set_map, elements.
-  replace {[ x ]} with (gset_singleton x) by set_solver.
-  rewrite gset_elements_singleton.
+  unfold set_map.
+  rewrite elements_singleton.
   simpl.
   set_solver.
 Qed.  
@@ -80,19 +81,11 @@ Qed.
 Lemma max_height_singleton : forall (r : re),
   max_height_re_set {[r]} = re_height r.
 Proof.
-  induction r; unfold max_height_re_set; simpl in *. 
-  - (* Void *) replace {[ Void ]} with (gset_singleton Void) by set_solver.
-    rewrite set_fold_singleton. reflexivity.
-  - (* Epsilon *) replace {[ Epsilon ]} with (gset_singleton Epsilon) by set_solver.
-    rewrite set_fold_singleton. reflexivity.
-  - (* Atom *) replace {[ Atom c ]} with (gset_singleton (Atom c)) by set_solver.
-    rewrite set_fold_singleton. reflexivity.
-  - (* Union *) replace {[ Union r1 r2 ]} with (gset_singleton (Union r1 r2)) by set_solver.
-    rewrite set_fold_singleton. reflexivity.
-  - (* Concat *) replace {[ Concat r1 r2 ]} with (gset_singleton (Concat r1 r2)) by set_solver.
-    rewrite set_fold_singleton. reflexivity.
-  - (* Star *) replace {[ Star r ]} with (gset_singleton (Star r)) by set_solver.
-    rewrite set_fold_singleton. reflexivity.
+  induction r; 
+    unfold max_height_re_set; 
+    simpl in *;
+    rewrite set_fold_singleton; 
+    reflexivity.
 Qed.    
 
 Lemma height_lemma :
@@ -161,7 +154,10 @@ Qed.
 
 (* Helper lemma: proving that [map] presreves the size of a [gset] 
    - We need to type annotation on the term [(set_map f s)], otherwise 
-     Coq can't figure out which typeclass instance for [set_size] to use *)
+     Coq can't figure out which typeclass instance for [set_size] to use 
+     
+NB: this is not true (need ot change = to <= )
+     *)
 Lemma map_preserves_set_size : 
   forall (f : re -> re) (s : gset re),
   set_size ((set_map f s) : gset re) = set_size s.
@@ -182,67 +178,33 @@ Admitted. (* TODO: not sure how to prove the last goal *)
   
 (* Union Bound for the size of two sets *)
 Lemma set_size_union_bound : forall (rs1 rs2 : gset re),
-  set_size (rs1 ∪ rs2) <= set_size rs1 + set_size rs2.
+  size (rs1 ∪ rs2) <= size rs1 + size rs2.
 Proof.
   intros.
-  induction rs2 using set_ind_L.
-  - (* rs2 = ∅ *)
-    replace (set_size ∅) with (size (∅ : gset re)) by set_solver. 
-    rewrite size_empty.
-    rewrite Nat.add_0_r.
-    replace (set_size (rs1 ∪ (∅ : gset re))) with (size (rs1 ∪ (∅ : gset re))) 
-      by set_solver.
-    replace (set_size rs1) with (size rs1) by set_solver.
-    rewrite size_union_alt.
-    replace ((∅ : gset re) ∖ rs1) with (∅ : gset re) by set_solver.
-    rewrite size_empty. 
-    lia.
-  - (* rs2 = {[ x ]} ∪ X *)
-    unfold set_size. simpl.
-    rewrite elements_union_singleton; eauto.
-    unfold set_size in IHrs2; simpl in *.
-    replace (rs1 ∪ ({[x]} ∪ X)) with ({[ x ]} ∪ (rs1 ∪ X)) by set_solver.
-    rewrite elements_union_singleton.
-    + simpl. lia.
-    + set_unfold. unfold not. intros. destruct H0 as [H1 | H2].
-      * admit. (* TODO: not sure how to prove that x ∈ rs1 *)
-      * apply H in H2. destruct H2.
-Admitted.      
-      
-  
+  rewrite size_union_alt.
+  rewrite size_difference_alt. lia.
+Qed.
 
-(* Number of Antimirov derivatives is linear in the size of the regex *)
-Lemma num_antimirov_derivs_linear_in_re_size : forall (c : char) (r : re),
-  exists (k : nat), set_size (a_der r c) <= k * re_size r.
+
+Theorem A_der_linear : exists (k : nat), 
+  forall (r : re), size (A_der r) <= k * re_size r. 
 Proof.
-  induction r; simpl.
-  - (* Void *) eexists. replace (set_size ∅) with 0 by set_solver. lia.
-  - (* Epsilon *) eexists. replace (set_size ∅) with 0 by set_solver. lia.
-  - (* Atom *) destruct (char_dec c c0).
-    + exists 1. 
-      unfold set_size; simpl.
-      rewrite elements_singleton.
-      simpl. lia.
-    + eexists. 
-      replace (set_size ∅) with 0 by set_solver. lia.
-  - (* Union *) destruct IHr1 as [k1 IHr1].
-    destruct IHr2 as [k2 IHr2]. eexists.
-    rewrite set_size_union_bound.
-    + eapply Nat.le_trans. eauto.
-      admit. (* TODO: not sure why we can't apply [Nat.plus_le_cases] here *)
-  - (* Concat *) destruct IHr1 as [k1 IHr1].
-    destruct IHr2 as [k2 IHr2].
-    destruct (isEmpty r1) eqn:E.
-    + (* isEmpty r1 = true *)    
-      admit. (* TODO *)
-    + (* isEmpty r2 = false *)
-      exists k1.
-      rewrite map_preserves_set_size.
-      lia.
-  - (* Star *)
-    destruct IHr as [k H].
-    exists k.
-    rewrite map_preserves_set_size. 
-    lia. 
-Admitted.    
+  Admitted.  (* TODO *)
+
+
+(* There exists some constant [k] which upper bounds the size of all Antimirov derivatives w.r.t. a string *) 
+Lemma num_antimirov_derivs_linear_in_re_size : exists (k : nat), 
+  forall (s : string) (r : re),
+    set_size (a_der_str r s) <= k * re_size r.
+Proof.
+  intros. 
+  destruct A_der_linear as [k H].
+  exists k. intros.
+Admitted. (* TODO *)  
+  (* TOOD: need to use some result that all elements of [a_der_str r s] ∈ [A_Der]
+     - need to think about whether [A_der] is actually linear in the size of [r]
+  
+   *)
+
+  
 
