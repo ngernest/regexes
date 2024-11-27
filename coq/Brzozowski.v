@@ -39,3 +39,26 @@ Proof.
   - reflexivity.
   - simpl in *. intros. apply IHs. 
 Qed.
+
+Lemma b_der_concat : forall (s : string) (r1 r2 : re),
+  b_matches (Concat r1 r2) s ->
+  exists s1 s2, (s = s1 ++ s2) /\ b_matches r1 s1 /\ b_matches r2 s2.
+Proof. 
+  induction s; unfold b_matches in *; X.
+  - exists []. exists []. X.
+  - rewrite b_der_union in H. simpl in H. 
+    destruct (isEmpty (fold_left b_der s (Concat (b_der r1 a) r2))) eqn:E1;
+    destruct (isEmpty (fold_left b_der s (b_der r2 a))) eqn:E2; simpl in *.
+    + assert (isEmpty (fold_left b_der s (Concat (b_der r1 a) r2))) by X.
+      apply IHs in H0. destruct H0 as [s1 [s2 [H0 [H1 H2]]]].
+      exists (a :: s1). exists s2. repeat split; X.
+    + assert (isEmpty (fold_left b_der s (Concat (b_der r1 a) r2))) by X.
+      apply IHs in H0. destruct H0 as [s1 [s2 [H0 [H1 H2]]]].
+      exists (a :: s1). exists s2. repeat split; X.
+    + assert (isEmpty (fold_left b_der s (b_der r2 a))) by X.
+      exists []. exists (a :: s). repeat split; X.
+    + destruct H.
+  - apply IHs in H. destruct H as [s1 [s2 [H0 [H1 H2]]]].
+    exists (a :: s1). exists s2. repeat split; X.
+Qed.
+

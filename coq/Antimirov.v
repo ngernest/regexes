@@ -211,6 +211,36 @@ Proof.
       apply H3. set_solver.
 Qed.
 
+Lemma a_matches_Concat : forall (s1 s2 : string) (r1 r2 : re),
+  a_matches r1 s1 ->
+  a_matches r2 s2 ->
+  a_matches (Concat r1 r2) (s1 ++ s2).
+Proof. 
+  induction s1. 
+  - unfold a_matches, nullable. X.
+    destruct H2. destruct s2. 
+    + exists (Concat r1 r2). X.
+    + simpl in *. rewrite a_der_set_singleton in *. simpl.
+      rewrite <- H. exists x. split.
+      apply H0. 
+      rewrite fold_left_union. apply elem_of_union_r. apply H1.
+  - intros. unfold a_matches, nullable. X. 
+    destruct H1. assert (exists r, r ∈ a_der r1 a /\ a_matches r s1).
+    { unfold a_matches, nullable in *. X. 
+      apply elem_of_fold_left in H2. destruct H2 as [r [H2 H3]].
+      rewrite a_der_set_singleton in H2. exists r. 
+      split. apply H2. X. }
+    destruct H1 as [r [H1 H2]]. 
+    specialize IHs1 with s2 r r2.
+    apply IHs1 in H2. unfold a_matches, nullable in H2. X. 
+    exists x. split. apply H2. rewrite a_der_set_singleton. 
+    simpl. destruct (isEmpty r1) eqn:E.
+    + rewrite fold_left_union. apply elem_of_union_l.
+      eapply elem_of_a_der_subset. apply H3. X. 
+    + eapply elem_of_a_der_subset. apply H3. X. 
+    + apply H0.
+Qed.
+
 (** What it means for a string to match a set of regexes.
     - [matches_set_here]: if [s] matches [r], then [s] matches any regex set 
       containing [r] 

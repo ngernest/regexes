@@ -109,4 +109,11 @@ Proof.
     apply IHr1 in H2. apply IHr2 in H3.
     unfold b_matches in *. X. 
     apply isEmpty_Concat. apply H2. apply H3.
+  - destruct H0. assert (b_matches (Concat r1 r2) s).
+    { unfold a_matches, nullable. X. }
+    apply b_der_concat in H0. destruct H0 as [s1 [s2 [H0 [H1 H2]]]].
+    apply IHr1 in H1. apply IHr2 in H2.
+    assert (a_matches (Concat r1 r2) (s1 ++ s2)).
+    apply a_matches_Concat. apply H1. apply H2.
+    unfold a_matches, nullable in H3. X. 
 Admitted.
