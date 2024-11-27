@@ -47,6 +47,64 @@ Qed.
 (******************************************************************************)
 (** Smart constructors for regexes *)
 
+Fixpoint merge_re (r : re) : re -> re :=
+  match r with 
+  | Union r1 r2 => 
+    (fix inner_merge (r' : re) : re :=
+      match r' with 
+      | Union r1' r2' => 
+        if re_le r1 r1' then 
+          Union r1 (merge_re r2 r')
+        else 
+          Union r2 (inner_merge r2')
+      | _ => Union r1 r2 
+      end)
+  | _ => fun r' => r'
+  end.
+
+Definition re_to_list (r : re) : list re :=
+  match r with 
+  | Union r1 r2 => [r1; r2]
+  | _ => [r]
+  end.
+
+Require Import Coq.Program.Wf.
+
+Lemma length_cons {A : Type} : forall (x : A) (xs : list A),
+  length (x :: xs) = 1 + length xs.
+Proof.
+  intros. destruct xs; simpl; reflexivity.
+Qed.
+
+
+Program Fixpoint merge_re' (xs ys : list re) 
+  { measure (length xs + length ys) } : list re :=
+  match xs, ys with 
+  | [], _ => ys 
+  | _, [] => xs 
+  | x::xs', y::ys' =>
+    if re_le x y then 
+      x :: (merge_re' xs' ys)
+    else 
+      y :: (merge_re' xs ys')
+  end.
+Next Obligation.
+  intros. subst.  
+  repeat (rewrite length_cons). lia.
+Defined.   
+Next Obligation. 
+  intros. subst.  
+  repeat (rewrite length_cons). lia.
+Defined.   
+Next Obligation. 
+  simpl. intros. unfold not. 
+  intros.
+  destruct H. discriminate H.
+Defined.
+Next Obligation.
+  Admitted. (* not sure how to satisfy this proof obligation involving [Acc] *)
+  
+
 (** Smart constructor for [Union] 
     - TODO: figure out how to satisfy the termination checker
       (reference the stuff involving measures in lecture 7)
