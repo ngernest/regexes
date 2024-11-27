@@ -9,11 +9,15 @@ open Sexplib.Conv
 (*                      QuickCheck Generators + Shrinkers                     *)
 (* -------------------------------------------------------------------------- *)
    
+(** Generates an optimized regex *)
+let gen_optimized_re : re Generator.t = 
+  let open Generator.Let_syntax in 
+  quickcheck_generator_re >>| optimize_re'
+
 (** Generator that generates a pair consisting of a regex 
     and an lowercase character *)
 let gen_re_char : (re * char) Generator.t = 
-  Generator.both (Generator.map quickcheck_generator_re ~f:optimize_re') 
-    Generator.char_lowercase
+  Generator.both gen_optimized_re Generator.char_lowercase
 
 (** A shrinker for regexes:
     - All characters are shrunk to [Epsilon]
@@ -94,12 +98,18 @@ let gen_re_char_nonempty_antimirov : (re * char) Generator.t =
 let shrink_re_char : (re * char) Shrinker.t = 
   Shrinker.both shrink_re Shrinker.char  
 
+(** Generates a regex that consists of an [Alt] at the top-level *)  
+let gen_alt : re Generator.t = 
+  let open Generator.Let_syntax in 
+  let%map r1 = gen_optimized_re and r2 = gen_optimized_re in 
+  alt r1 r2        
+
 (** Default QuickCheck config: 10000 trials *)  
 let config : Base_quickcheck.Test.Config.t = 
   { Base_quickcheck.Test.default_config with 
     test_count = 10_000; 
     shrink_count = 10_000 }
-
+    
 (* -------------------------------------------------------------------------- *)
 (*                       Helper functions for QuickCheck                      *)
 (* -------------------------------------------------------------------------- *)
@@ -117,10 +127,24 @@ let context_to_re (ctx : context) : re =
 let postprocess_regex_list (rs : re list) : re list = 
   List.sort compare_re (List.map optimize_re' rs)  
 
+(** Checks whether a regex containing [Alt]s is sorted (i.e. all the arguments 
+    to [Alt]s are sorted in increasing order wrt [compare_re]) *)  
+let rec is_sorted (r : re) : bool = 
+  match r with 
+  | Alt (r1, Alt (r2, r3)) -> compare_re r1 r2 <= 0 && is_sorted (Alt (r2, r3))
+  | Alt (r1, r2) -> is_sorted r1 && is_sorted r2 && compare_re r1 r2 <= 0
+  | Seq (r1, r2) -> is_sorted r1 && is_sorted r2 
+  | Star r' -> is_sorted r' 
+  | _ -> true 
+
 (* -------------------------------------------------------------------------- *)
 (*                            QuickCheck properties                           *)
 (* -------------------------------------------------------------------------- *)
 
+let%quick_test "alt smart constructor produces sorted regexes" = 
+  fun (r : re [@generator gen_alt] [@shrinker shrink_re]) ->
+    assert (is_sorted r);
+  [%expect {| |}]
 
 let%quick_test "Brzozowski & Antimirov-based regex matchers accept the same strings!" 
   [@generator gen_re_string] [@config config] = 
@@ -194,12 +218,12 @@ let%quick_test ("Brzozowski is always contained in the set of Antimirov derivati
   fun (r : re) (c : char) -> 
     assert (RegexSet.mem (Brzozowski.bderiv r c) (aderiv c r));
   [%expect {|
-    ("quick test: test failed" (input ((Char b) T)))
-    (* CR require-failed: lib/quickcheck_properties.ml:191:0.
+    ("quick test: test failed" (input (Epsilon T)))
+    (* CR require-failed: lib/quickcheck_properties.ml:216:0.
        Do not 'X' this CR; instead make the required property true,
        which will make the CR disappear.  For more information, see
        [Expect_test_helpers_base.require]. *)
-    "Assert_failure lib/quickcheck_properties.ml:195:4"
+    "Assert_failure lib/quickcheck_properties.ml:220:4"
     |}]
 
 let%expect_test {| Example where a Brzozowski derivative is not contained in the set of Antimirov derivatives 
@@ -215,11 +239,11 @@ let%quick_test ("Brzozowski contained in Antimirov set when it is non-empty
     let antimirov_set = aderiv_opt c r in 
     assert (RegexSet.mem (Brzozowski.bderiv_opt r c) antimirov_set);
   [%expect {|
-    ("quick test: test failed" (input ((Char b) T)))
-    (* CR require-failed: lib/quickcheck_properties.ml:211:0.
+    ("quick test: test failed" (input (Epsilon T)))
+    (* CR require-failed: lib/quickcheck_properties.ml:236:0.
        Do not 'X' this CR; instead make the required property true,
        which will make the CR disappear.  For more information, see
        [Expect_test_helpers_base.require]. *)
-    "Assert_failure lib/quickcheck_properties.ml:216:4"
+    "Assert_failure lib/quickcheck_properties.ml:241:4"
     |}]
   

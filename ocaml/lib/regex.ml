@@ -4,11 +4,17 @@ open Sexplib.Conv
 let equal_char = Base.equal_char
 let compare_char = Base.compare_char
 
-(** A datatype for regular expressions *)
+(** A datatype for regular expressions. 
+    - The constructors are ordered in increasing order, i.e. [Void] is the 
+      smallest possible [re], followed by [Epsilon], etc. 
+    - The derived [compare_re] function is a total order representing <= 
+      over regexes
+    - For simplicity, we do not generate [Void]s in our QuickCheck generator,
+      and we limit the alphabet used by the QC generator to [{a, b}]. *)
 type re = 
-  | Char of char [@quickcheck.generator Generator.of_list ['a'; 'b']]
   | Void [@quickcheck.do_not_generate]
   | Epsilon 
+  | Char of (char [@quickcheck.generator Generator.of_list ['a'; 'b']])
   | Seq of re * re 
   | Alt of re * re 
   | Star of re
@@ -50,7 +56,6 @@ let star (re : re) : re =
   | Void | Epsilon -> Epsilon
   | Star re' -> Star re'
   | _ -> Star re
-
 
 (** Optimizes a regex *)  
 let rec optimize_re (r : re) : re = 
