@@ -50,47 +50,6 @@ Inductive re :=
   | Concat : re -> re -> re
   | Star : re -> re.
 
-(* Comparison function (<=) for regular expressions *)
-Fixpoint re_le (r1 r2 : re) : bool :=
-  match r1, r2 with
-  | Void, Void 
-  | Void, _ => true
-  | Epsilon, Void => false
-  | Epsilon, Epsilon 
-  | Epsilon, _ => true
-  | Atom _, Void 
-  | Atom _, Epsilon => false
-  | Atom c1, Atom c2 => (nat_of_ascii c1) <=? (nat_of_ascii c2)
-  | Atom _, _ => true
-  | Union _ _, Void 
-  | Union _ _, Epsilon 
-  | Union _ _, Atom _ => false
-  | Union r11 r12, Union r21 r22 => re_le r11 r21 && re_le r12 r22
-  | Union _ _, _ => true
-  | Concat _ _, Void
-  | Concat _ _, Epsilon 
-  | Concat _ _, Atom _ 
-  | Concat _ _, Union _ _ => false
-  | Concat r11 r12, Concat r21 r22 => re_le r11 r21 && re_le r12 r22
-  | Concat _ _, _ => true
-  | Star r1', Star r2' => re_le r1' r2'
-  | Star _, _ => false  
-  end.
-
-(* <= for regexes is reflexive *)
-Lemma re_le_refl : forall (r : re),
-  re_le r r = true.
-Proof.
-  induction r; auto;
-  try (simpl; rewrite IHr1; rewrite IHr2; auto).
-  - (* Atom *)
-    simpl. remember (nat_of_ascii c) as n. 
-    rewrite leb_correct. 
-    + reflexivity. 
-    + lia.
-Qed.    
-
-
 (** Matching relation *)
 Inductive matches : re -> string -> Prop :=
   | matches_epsilon : matches Epsilon []
