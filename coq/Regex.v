@@ -1,4 +1,4 @@
-Require Export List Bool Ascii String Arith Lia Nat.
+Require Export List Bool Ascii String Arith Lia Nat PeanoNat.
 Export ListNotations BoolNotations.
 From stdpp Require Export gmap sets fin_sets.
 Open Scope list_scope.
@@ -50,52 +50,46 @@ Inductive re :=
   | Concat : re -> re -> re
   | Star : re -> re.
 
-(* Comparison function for regular expressions *)
-Fixpoint re_compare (r1 r2 : re) : comparison :=
+(* Comparison function (<=) for regular expressions *)
+Fixpoint re_le (r1 r2 : re) : bool :=
   match r1, r2 with
-  | Void, Void => Eq
-  | Void, _ => Lt
-  | Epsilon, Void => Gt
-  | Epsilon, Epsilon => Eq
-  | Epsilon, _ => Lt
-  | Atom c1, Void => Gt
-  | Atom c1, Epsilon => Gt
-  | Atom c1, Atom c2 => compare (nat_of_ascii c1) (nat_of_ascii c2)
-  | Atom _, _ => Lt
-  | Union r1l r1r, Void => Gt
-  | Union r1l r1r, Epsilon => Gt
-  | Union r1l r1r, Atom _ => Gt
-  | Union r1l r1r, Union r2l r2r => 
-      match re_compare r1l r2l with
-      | Eq => re_compare r1r r2r
-      | c => c
-      end
-  | Union _ _, _ => Lt
-  | Concat r1l r1r, Void => Gt
-  | Concat r1l r1r, Epsilon => Gt
-  | Concat r1l r1r, Atom _ => Gt
-  | Concat r1l r1r, Union _ _ => Gt
-  | Concat r1l r1r, Concat r2l r2r => 
-      match re_compare r1l r2l with
-      | Eq => re_compare r1r r2r
-      | c => c
-      end
-  | Concat _ _, _ => Lt
-  | Star r1', Void => Gt
-  | Star r1', Epsilon => Gt
-  | Star r1', Atom _ => Gt
-  | Star r1', Union _ _ => Gt
-  | Star r1', Concat _ _ => Gt
-  | Star r1', Star r2' => re_compare r1' r2'
+  | Void, Void 
+  | Void, _ => true
+  | Epsilon, Void => false
+  | Epsilon, Epsilon 
+  | Epsilon, _ => true
+  | Atom _, Void 
+  | Atom _, Epsilon => false
+  | Atom c1, Atom c2 => (nat_of_ascii c1) <=? (nat_of_ascii c2)
+  | Atom _, _ => true
+  | Union _ _, Void 
+  | Union _ _, Epsilon 
+  | Union _ _, Atom _ => false
+  | Union r11 r12, Union r21 r22 => re_le r11 r21 && re_le r12 r22
+  | Union _ _, _ => true
+  | Concat _ _, Void
+  | Concat _ _, Epsilon 
+  | Concat _ _, Atom _ 
+  | Concat _ _, Union _ _ => false
+  | Concat r11 r12, Concat r21 r22 => re_le r11 r21 && re_le r12 r22
+  | Concat _ _, _ => true
+  | Star r1', Star r2' => re_le r1' r2'
+  | Star _, _ => false  
   end.
 
+(* <= for regexes is reflexive *)
+Lemma re_le_refl : forall (r : re),
+  re_le r r = true.
+Proof.
+  induction r; auto;
+  try (simpl; rewrite IHr1; rewrite IHr2; auto).
+  - (* Atom *)
+    simpl. remember (nat_of_ascii c) as n. 
+    rewrite leb_correct. 
+    + reflexivity. 
+    + lia.
+Qed.    
 
-(* Converts regex comparison to Boolean [<] *)
-Definition re_lt (r1 r2 : re) : bool :=
-  match re_compare r1 r2 with
-  | Lt => true
-  | _ => false
-  end.
 
 (** Matching relation *)
 Inductive matches : re -> string -> Prop :=
