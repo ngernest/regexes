@@ -241,6 +241,69 @@ Proof.
     + apply H0.
 Qed.
 
+Lemma a_matches_epsilon : a_matches Epsilon [].
+Proof. 
+  unfold a_matches, nullable. X. 
+  destruct H. exists Epsilon. X.
+Qed.
+
+Lemma nil_matches_epsilon : forall (s : string),
+  a_matches Epsilon s -> [] = s.
+Proof. 
+  destruct s. auto. intros. 
+  unfold a_matches, nullable in H. X.
+  rewrite a_der_set_singleton in H0. simpl in H0. 
+  rewrite fold_left_empty in H0. inversion H0.
+Qed.
+
+Lemma a_matches_star : forall (s : string) (r : re),
+  a_matches (Star r) s ->
+  exists n, a_matches (Concat_n n r) s.
+Proof. 
+  induction s using strong_induction.
+  intros. destruct n.
+  - exists 0. simpl. apply a_matches_epsilon.
+  - unfold a_matches, nullable in H0. X. 
+    rewrite a_der_set_singleton in H1. simpl in H1. 
+    apply elem_of_fold_left in H1. destruct H1 as [r0 [H2 H1]].
+    apply elem_of_set_map in H2. destruct H2 as [r1 [H2 H3]].
+    assert (a_matches (Concat r1 (Star r)) n).
+    {unfold a_matches, nullable. X. }
+    apply a_matches_concat in H4. 
+    destruct H4 as [s1 [s2 [H4 [H5 H6]]]].
+    assert (exists x2, a_matches (Concat_n x2 r) s2).
+    { apply H. rewrite H4. rewrite app_length. lia. apply H6. }
+    destruct H7 as [m H7].
+    exists (S m). simpl. rewrite H4. 
+    replace (a :: s1 ++ s2) with ((a :: s1) ++ s2) by auto.
+    apply a_matches_Concat.
+    + unfold a_matches, nullable. 
+      unfold a_matches, nullable in H5.
+      X. destruct H5. exists x0. split. 
+      apply H3. rewrite a_der_set_singleton.
+      eapply elem_of_a_der_subset.
+      apply H4. X.
+    + apply H7.
+Qed.
+
+Lemma a_matches_Star : forall (s1 s2 : string) (r : re),
+  a_matches r s1 ->
+  a_matches (Star r) s2 ->
+  a_matches (Star r) (s1 ++ s2).
+Proof. 
+  destruct s1. 
+  - X. 
+  - X. assert (a_matches (Concat r (Star r)) ((a :: s1) ++ s2)).
+    { apply a_matches_Concat. apply H. apply H0. }
+    unfold a_matches, nullable in *. X. destruct H5. 
+    rewrite a_der_set_singleton in *. simpl in *. 
+    exists x. split. apply H1. 
+    destruct (isEmpty r).
+    + rewrite fold_left_union in H2. apply elem_of_union in H2.
+      destruct H2. apply H2. apply H2.
+    + apply H2.
+Qed.
+
 (** What it means for a string to match a set of regexes.
     - [matches_set_here]: if [s] matches [r], then [s] matches any regex set 
       containing [r] 

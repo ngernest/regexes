@@ -245,3 +245,20 @@ Proof.
   apply inj_countable with (f := encode_regex) (g := decode_regex). 
   intros. apply decode_encode_regex.
 Qed.
+
+Fixpoint Concat_n (n : nat) (r : re) :=
+  match n with
+  | 0 => Epsilon
+  | S n' => Concat r (Concat_n n' r)
+  end.
+
+Lemma strong_induction {A} (P : list A -> Prop) :
+  (forall n, (forall m, length m < length n -> P m) -> P n) -> 
+  forall n, P n.
+Proof. 
+  intros. apply H. induction n.
+  - intros. inversion H0.
+  - intros. apply H. intros. 
+    apply IHn. eapply Nat.lt_le_trans.
+    apply H1. simpl in H0. lia.
+Qed.

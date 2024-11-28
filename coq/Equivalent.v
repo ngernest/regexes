@@ -21,17 +21,32 @@ Proof.
   - destruct H2. exists (Star r). split; eauto.
 Qed.
 
-Lemma isEmpty_Concat : forall (s1 s2 : string) (r1 r2 : re),
-   isEmpty (fold_left b_der s1 r1) ->
-   isEmpty (fold_left b_der s2 r2) ->
-   isEmpty (fold_left b_der (s1 ++ s2) (Concat r1 r2)).
-Proof. 
-  induction s1. induction s2.
-  - intros. X. 
-  - intros. X. rewrite b_der_union. simpl. 
-    apply orb_prop_intro. right. apply H0.
-  - intros. X. rewrite b_der_union. simpl. 
-    apply orb_prop_intro. left. apply IHs1. apply H. apply H0.
+Lemma star_help : forall (n : nat) (r : re) (s : string),
+  (∀ x0 : string, a_matches r x0 ↔ b_matches r x0) ->
+  a_matches (Concat_n n r) s → isEmpty (fold_left b_der s (Star r)).
+Proof. induction n.
+  - X. apply nil_matches_epsilon in H0. X. 
+  - X. apply a_matches_concat in H0. 
+    destruct H0 as [s1 [s2 [H1 [H2 H3]]]].
+    apply IHn in H3. 
+    rewrite H1. 
+    apply isEmpty_Star.
+    apply H in H2. unfold b_matches in H2. 
+    apply H2. apply H3. apply H.
+Qed.
+
+Lemma star_help' : forall (n : nat) (r : re) (s : string),
+  (∀ x0 : string, a_matches r x0 ↔ b_matches r x0) ->
+  b_matches (Concat_n n r) s → a_matches (Star r) s.
+Proof. induction n.
+  - X. apply b_nil_matches_epsilon in H0. X. 
+    unfold a_matches, nullable. X. destruct H0. 
+    exists (Star r). X.
+  - X. apply b_der_concat in H0. 
+    destruct H0 as [s1 [s2 [H1 [H2 H3]]]].
+    apply IHn in H3. apply H in H2. rewrite H1. 
+    clear IHn H. 
+    apply a_matches_Star. apply H2. apply H3. apply H.
 Qed.
 
 Theorem a_b_matches : forall (r : re) (s : string),
@@ -109,11 +124,26 @@ Proof.
     apply IHr1 in H2. apply IHr2 in H3.
     unfold b_matches in *. X. 
     apply isEmpty_Concat. apply H2. apply H3.
-  - destruct H0. assert (b_matches (Concat r1 r2) s).
-    { unfold a_matches, nullable. X. }
+  - destruct H0. assert (b_matches (Concat r1 r2) s) by X.
     apply b_der_concat in H0. destruct H0 as [s1 [s2 [H0 [H1 H2]]]].
     apply IHr1 in H1. apply IHr2 in H2.
     assert (a_matches (Concat r1 r2) (s1 ++ s2)).
     apply a_matches_Concat. apply H1. apply H2.
     unfold a_matches, nullable in H3. X. 
-Admitted.
+  - assert (a_matches (Star r) s).
+    { unfold a_matches, nullable. X. }
+    apply a_matches_star in H1. destruct H1 as [n H1].
+    destruct n.
+    + simpl in *. apply nil_matches_epsilon in H1. X.
+    + eapply star_help. apply IHr. apply H1. 
+  - destruct H0. assert (b_matches (Star r) s) by X.
+    apply b_der_star in H0. destruct H0 as [s1 [s2 [H0 [H1 H2]]]]. 
+    apply IHr in H1. apply b_matches_Star in H2.
+    destruct H2. 
+    apply star_help' in H2. 
+    assert (a_matches (Star r) s).
+    rewrite H0. apply a_matches_Star.
+    apply H1. apply H2. 
+    unfold a_matches, nullable in H3. X.
+    apply IHr.
+Qed.
