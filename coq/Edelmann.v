@@ -17,6 +17,7 @@ Open Scope char_class_scope.
 
 (* Input characters. *)
 Definition char := ascii.
+Definition char_dec := ascii_dec.
 
 (* Input words. *)
 Definition word := list char.
@@ -214,8 +215,8 @@ Definition zipper_union := set_union context_eq_dec.
 (* Addition of a context in a zipper. *)
 Definition zipper_add := set_add context_eq_dec.
 
-Definition zipper_map (f : context -> context) (z : zipper) :=
-  ListSet.set_map context_eq_dec f z.
+Definition zipper_map (f : context -> re) (z : zipper) : set re :=
+  ListSet.set_map re_eq_dec f z.
 
 (* Convert a regular expression into a zipper. *)
 Definition focus (e: re): zipper := [[e]].
