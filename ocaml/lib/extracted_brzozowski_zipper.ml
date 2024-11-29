@@ -73,7 +73,8 @@ type context = re list
 type zipper = context set
 
 
-let zipper_map f z = ListSet.map f z
+let zipper_map (f : context -> 'a) (z : zipper) : 'a set = 
+  ListSet.map f z
 
 let zipper_union : zipper -> zipper -> zipper = 
   ListSet.union 

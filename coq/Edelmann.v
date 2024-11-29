@@ -23,6 +23,7 @@ Definition word := list char.
 
 (***** REGULAR EXPRESSIONS *****)
 
+
 (* Semantics of regular expressions as 
  * a predicate on words.
  *)
@@ -212,6 +213,9 @@ Definition zipper_union := set_union context_eq_dec.
 
 (* Addition of a context in a zipper. *)
 Definition zipper_add := set_add context_eq_dec.
+
+Definition zipper_map (f : context -> context) (z : zipper) :=
+  ListSet.set_map context_eq_dec f z.
 
 (* Convert a regular expression into a zipper. *)
 Definition focus (e: re): zipper := [[e]].

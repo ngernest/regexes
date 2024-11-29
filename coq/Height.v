@@ -1,6 +1,8 @@
-Require Import Antimirov.
-Require Import Brzozowski.
-Require Import Finite.
+From stdpp Require Import gmap sets fin_sets.
+Require Import Antimirov Brzozowski Finite.
+
+Require Export Nat PeanoNat.
+Open Scope nat_scope.
 
 (** Examining the height of Antimirov derivatives 
     Inspired by https://www.weaselhat.com/post-819.html *)
@@ -87,6 +89,7 @@ Proof.
     rewrite set_fold_singleton; 
     reflexivity.
 Qed.    
+
 
 Lemma height_lemma :
   ∀ (X : nat) (rs : gset re),
