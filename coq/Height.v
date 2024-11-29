@@ -8,9 +8,9 @@ Require Import Finite.
 (** Computes the size of a regex (no. of AST nodes) *)
 Fixpoint re_size (r : re) : nat :=
   match r with
-  | Void => 0
+  | Void => 1
   | Epsilon => 1
-  | Atom _ => 1
+  | Atom _ => 2
   | Concat re1 re2 => 1 + re_size re1 + re_size re2
   | Union re1 re2 => 1 + re_size re1 + re_size re2
   | Star re' => 1 + re_size re'
@@ -20,7 +20,7 @@ Fixpoint re_size (r : re) : nat :=
     (height of the binary tree formed by the AST) *)
 Fixpoint re_height (r : re) : nat :=
   match r with
-  | Void => 0
+  | Void => 1
   | Epsilon => 1
   | Atom _ => 1
   | Concat re1 re2 => 1 + max (re_height re1) (re_height re2)
@@ -149,32 +149,52 @@ Qed.
 
 (******************************************************************************)
 
+(* Nonexistent elements have an empty intersection with the original set *)
+Lemma empty_intersection_with_absent_element : 
+  forall (x : re) (X : gset re), x ∉ X -> X ∩ {[ x ]} = ∅.
+Proof. intros. set_solver. Qed.  
 
+(* Subtracting a nonexistent element from a set 
+   preserves the original set's size *)
+Lemma removing_nonexistent_elem_preserves_size : 
+  forall (x : re) (X : gset re), x ∉ X -> size (X ∖ {[ x ]}) = size X.
+Proof.
+  intros.
+  rewrite size_difference_alt.
+  rewrite empty_intersection_with_absent_element. 
+  rewrite size_empty.
+  lia. assumption.
+Qed.  
 
-
-(* Helper lemma: proving that [map] presreves the size of a [gset] 
-   - We need to type annotation on the term [(set_map f s)], otherwise 
-     Coq can't figure out which typeclass instance for [set_size] to use 
-     
-NB: this is not true (need ot change = to <= )
-     *)
-Lemma map_preserves_set_size : 
+(* Calling [map] on a set results in a set whose size is at most 
+   the size of the original set. 
+   - Note: We need type annotations on the term [(set_map f s)], otherwise 
+     Coq can't figure out which typeclass instance to use for [size] *)
+Lemma size_map_upper_bound : 
   forall (f : re -> re) (s : gset re),
-  set_size ((set_map f s) : gset re) = set_size s.
+  size ((set_map f s) : gset re) <= size s.
 Proof.
   intros f s.
-  unfold set_size. simpl. 
+  simpl.
   induction s using set_ind_L; eauto.
   rewrite set_map_union_L.
   rewrite set_map_singleton. 
-  repeat (rewrite elements_union_singleton).
-  - simpl. rewrite IHs. eauto. 
-  - assumption.
-  - (* Goal: f x ∉ set_map f X *)
-    set_unfold.
-    intros H'. 
-    destruct H' as [x0 [H1 H2]].
-Admitted. (* TODO: not sure how to prove the last goal *)
+  repeat (rewrite size_union_alt).
+  rewrite size_singleton.
+  replace (size ({[x]} ∪ X)) with (size ({[ x ]} : gset re) + size (X ∖ {[ x ]})).
+  - rewrite size_singleton. 
+    assert (size (X ∖ {[ x ]}) = size X).
+    { rewrite removing_nonexistent_elem_preserves_size. 
+      auto. assumption. }
+    rewrite H0. 
+    rewrite size_difference_alt.
+    assert (
+      size (set_map f X : gset re) - size (set_map f X ∩ {[ f x ]} : gset re) 
+      <= size X
+    ) by lia.
+    X.
+  - rewrite <- size_union_alt. auto.
+Qed. 
   
 (* Union Bound for the size of two sets *)
 Lemma set_size_union_bound : forall (rs1 rs2 : gset re),
@@ -185,13 +205,58 @@ Proof.
   rewrite size_difference_alt. lia.
 Qed.
 
-
+(* The size of the set [A_der r] (which overapproximates the set of 
+   Antimirov derivatives) is linear in the size of the original regex *)
 Theorem A_der_linear : exists (k : nat), 
   forall (r : re), size (A_der r) <= k * re_size r. 
 Proof.
-  Admitted.  (* TODO *)
-
-
+  eexists. intros.
+  induction r. 
+  - (* Void *)
+    unfold A_der, re_size. 
+    rewrite size_singleton.
+    assert (1 <= 1 * 1) by lia. 
+    apply H.
+  - (* Epsilon *)
+    unfold A_der, re_size. 
+    rewrite size_singleton. 
+    assert (1 <= 1 * 1) by lia. 
+    apply H.
+  - (* Atom *)
+    unfold A_der, re_size. 
+    assert (size ({[ Epsilon; Atom c ]} : gset re) = 2).
+    { admit. 
+      (* TODO: not sure how to assert that the size has size 2 *) }
+    lia. 
+  - (* Union *)
+    simpl. 
+    rewrite set_size_union_bound.
+    rewrite size_union_alt.
+    rewrite size_difference_alt.
+    rewrite size_singleton. 
+    X.
+  - (* Concat *)
+    simpl.
+    repeat (rewrite size_union_alt).
+    assert (size ((set_map (λ r' : re, (Concat r' r2 : re)) (A_der r1 : gset re)) : gset re)
+      <= size (A_der r1 : gset re)).
+    { rewrite size_map_upper_bound. lia. } 
+    simpl in *. 
+    repeat (rewrite size_difference_alt). 
+    X.
+    admit. (* TODO: not sure how to proceed *)
+  - (* Star *)
+    simpl.
+    rewrite size_union_alt. 
+    assert (size ((set_map (λ r' : re, (Concat r' (Star r) : re)) (A_der r : gset re)) : gset re)
+      <= size (A_der r : gset re)).
+    { rewrite size_map_upper_bound. lia. }
+    simpl in *.
+    rewrite size_difference_alt.
+    rewrite size_singleton.
+    X.
+Admitted. 
+  
 (* There exists some constant [k] which upper bounds the size of all Antimirov derivatives w.r.t. a string *) 
 Lemma num_antimirov_derivs_linear_in_re_size : exists (k : nat), 
   forall (s : string) (r : re),
@@ -203,7 +268,6 @@ Proof.
 Admitted. (* TODO *)  
   (* TOOD: need to use some result that all elements of [a_der_str r s] ∈ [A_Der]
      - need to think about whether [A_der] is actually linear in the size of [r]
-  
    *)
 
   
