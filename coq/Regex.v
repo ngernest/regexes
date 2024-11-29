@@ -43,36 +43,35 @@ Definition char_dec := ascii_dec.
 
 (** Regular expressions *)
 Inductive re :=
-  | Void : re
-  | Epsilon : re
-  | Atom : char -> re
-  | Union : re -> re -> re
-  | Concat : re -> re -> re
-  | Star : re -> re.
+| Void : re
+| Epsilon : re
+| Atom : char -> re
+| Union : re -> re -> re
+| Concat : re -> re -> re
+| Star : re -> re.
 
 (** Matching relation *)
 Inductive matches : re -> string -> Prop :=
-  | matches_epsilon : matches Epsilon []
-  | matches_atom a : matches (Atom a) [a]
-  | matches_union_l r1 r2 s :
-      matches r1 s -> 
-      matches (Union r1 r2) s
-  | matches_union_r r1 r2 s :
-      matches r2 s -> 
-      matches (Union r1 r2) s
-  | matches_concat r1 r2 s1 s2 s3 : 
-      matches r1 s1 -> 
-      matches r2 s2 ->
-      s3 = s1 ++ s2 -> 
-      matches (Concat r1 r2) s3
-  | matches_star_empty r : 
-      matches (Star r) []
-  | matches_star_step r s1 s2 s3 : 
-      matches r s1 -> 
-      matches (Star r) s2 -> 
-      s3 = s1 ++ s2 -> 
-      matches (Star r) s3.
-
+| matches_epsilon : matches Epsilon []
+| matches_atom a : matches (Atom a) [a]
+| matches_union_l r1 r2 s :
+  matches r1 s -> 
+  matches (Union r1 r2) s
+| matches_union_r r1 r2 s :
+  matches r2 s -> 
+  matches (Union r1 r2) s
+| matches_concat r1 r2 s1 s2 s3 : 
+  matches r1 s1 -> 
+  matches r2 s2 ->
+  s3 = s1 ++ s2 -> 
+  matches (Concat r1 r2) s3
+| matches_star_empty r : 
+  matches (Star r) []
+| matches_star_step r s1 s2 s3 : 
+  matches r s1 -> 
+  matches (Star r) s2 -> 
+  s3 = s1 ++ s2 -> 
+  matches (Star r) s3.
 Hint Constructors matches : core.
 
 (** A lemma relating cons and [++] *)
@@ -85,7 +84,7 @@ Proof.
 Qed.
 
 (** Inversion lemma for [Star] *)
-Lemma star_inv r s : 
+Lemma star_inv (r : re) (s : string) : 
   s ≠ [] -> matches (Star r) s -> 
   exists (s1 s2 : string), s1 ≠ [] /\ s = s1 ++ s2 
   /\ matches r s1 /\ matches (Star r) s2.
@@ -120,10 +119,10 @@ Fixpoint isEmpty (r : re) : bool :=
   | Star _ => true
   end.
 
-Lemma isEmpty_matches_1 r : isEmpty r = true -> matches r [].
+Lemma isEmpty_matches_1 (r : re) : isEmpty r = true -> matches r [].
 Proof. induction r; X. Qed.
 
-Lemma isEmpty_matches_2 r : matches r [] -> isEmpty r = true.
+Lemma isEmpty_matches_2 (r : re) : matches r [] -> isEmpty r = true.
 Proof. remember []. induction 1; X. Qed.
 
 Hint Resolve isEmpty_matches_1 isEmpty_matches_2 : core.
@@ -199,12 +198,14 @@ Proof.
   intros. apply decode_encode_regex.
 Qed.
 
+(** Concatenating a regex with itself n times *)
 Fixpoint Concat_n (n : nat) (r : re) :=
   match n with
   | 0 => Epsilon
   | S n' => Concat r (Concat_n n' r)
   end.
 
+(** Strong induction on lists *)
 Lemma strong_induction {A} (P : list A -> Prop) :
   (forall n, (forall m, length m < length n -> P m) -> P n) -> 
   forall n, P n.

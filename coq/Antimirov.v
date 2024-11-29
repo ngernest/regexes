@@ -51,17 +51,17 @@ Lemma a_der_set_Union (c : char) (r1 r2 : re) :
   a_der_set {[ Union r1 r2 ]} c = a_der_set {[ r1 ]} c ∪ a_der_set {[ r2 ]} c.
 Proof. rewrite ! a_der_set_singleton. simpl. reflexivity. Qed.
 
-Lemma a_der_set_eps (c : char) : a_der_set {[ Epsilon ]} c = ∅.
+Lemma a_der_set_Eps (c : char) : a_der_set {[ Epsilon ]} c = ∅.
 Proof. rewrite a_der_set_singleton. reflexivity. Qed. 
-Hint Rewrite a_der_set_eps : core.
+Hint Rewrite a_der_set_Eps : core.
 
-Lemma a_der_set_atom (c : char) : a_der_set {[ Atom c ]} c = {[ Epsilon ]}.
+Lemma a_der_set_Atom (c : char) : a_der_set {[ Atom c ]} c = {[ Epsilon ]}.
 Proof. 
   rewrite a_der_set_singleton. simpl. destruct char_dec. 
   reflexivity. contradiction. 
 Qed.
 
-Lemma a_der_set_atom' (c a : char) : a ≠ c -> 
+Lemma a_der_set_Atom' (c a : char) : a ≠ c -> 
   a_der_set {[ Atom c ]} a = ∅.
 Proof. 
   rewrite a_der_set_singleton. simpl. destruct char_dec. 
@@ -168,7 +168,8 @@ Lemma elem_of_set_map : forall (x : re) (rs : gset re) (f : re -> re),
   x ∈ (set_map f rs : gset re) -> exists r, r ∈ rs /\ x = f r.
 Proof. set_solver. Qed.
 
-Lemma a_matches_concat : forall (s : string) (r1 r2 : re),
+(** Lemmas about a_matches *)
+Lemma a_matches_Concat_destruct : forall (s : string) (r1 r2 : re),
   a_matches (Concat r1 r2) s ->
   exists s1 s2, (s = s1 ++ s2) /\ a_matches r1 s1 /\ a_matches r2 s2.
 Proof. 
@@ -241,13 +242,13 @@ Proof.
     + apply H0.
 Qed.
 
-Lemma a_matches_epsilon : a_matches Epsilon [].
+Lemma a_matches_Epsilon : a_matches Epsilon [].
 Proof. 
   unfold a_matches, nullable. X. 
   destruct H. exists Epsilon. X.
 Qed.
 
-Lemma nil_matches_epsilon : forall (s : string),
+Lemma nil_matches_Epsilon : forall (s : string),
   a_matches Epsilon s -> [] = s.
 Proof. 
   destruct s. auto. intros. 
@@ -256,20 +257,20 @@ Proof.
   rewrite fold_left_empty in H0. inversion H0.
 Qed.
 
-Lemma a_matches_star : forall (s : string) (r : re),
+Lemma a_matches_Star_destruct : forall (s : string) (r : re),
   a_matches (Star r) s ->
   exists n, a_matches (Concat_n n r) s.
 Proof. 
   induction s using strong_induction.
   intros. destruct n.
-  - exists 0. simpl. apply a_matches_epsilon.
+  - exists 0. simpl. apply a_matches_Epsilon.
   - unfold a_matches, nullable in H0. X. 
     rewrite a_der_set_singleton in H1. simpl in H1. 
     apply elem_of_fold_left in H1. destruct H1 as [r0 [H2 H1]].
     apply elem_of_set_map in H2. destruct H2 as [r1 [H2 H3]].
     assert (a_matches (Concat r1 (Star r)) n).
     {unfold a_matches, nullable. X. }
-    apply a_matches_concat in H4. 
+    apply a_matches_Concat_destruct in H4. 
     destruct H4 as [s1 [s2 [H4 [H5 H6]]]].
     assert (exists x2, a_matches (Concat_n x2 r) s2).
     { apply H. rewrite H4. rewrite app_length. lia. apply H6. }
