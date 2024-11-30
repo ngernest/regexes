@@ -17,6 +17,12 @@ Definition zipper_map (f : context -> re) (z : zipper) : ListSet.set re :=
 Definition context_to_re (ctx : context) : re :=
   List.fold_left RegexOpt.concat ctx Epsilon.
 
+Lemma empty_context_is_epsilon : 
+  context_to_re [] = Epsilon.
+Proof.
+  unfold context_to_re. simpl. reflexivity.
+Qed.      
+
 (* The underlying regex set that forms the zipper representation of 
    Brozozwski derivatives (from Edelmann's dissertation) *)
 Definition underlying_zipper_set (r : re) (c : char) : gset re :=
@@ -25,6 +31,66 @@ Definition underlying_zipper_set (r : re) (c : char) : gset re :=
 (* The underlying regex set formed after taking the Antimirov derivative *)
 Definition underlying_antimirov_set (r : re) (c : char) : gset re :=
   a_der r c.
+  
+Lemma zipper_union_distributes_over_derive_down: forall (c : char) (r1 r2 : re),
+  zipper_map context_to_re
+  (zipper_union
+    (derive_down c r1 [])
+    (derive_down c r2 [])) = 
+  ListSet.set_union re_eq_dec
+    (zipper_map context_to_re (derive_down c r1 []))
+    (zipper_map context_to_re (derive_down c r2 [])).
+Proof.
+  intros. 
+  revert r1. induction r2; simpl; eauto.
+  - (* Atom *)
+    destruct ((c0 =? c)%char) eqn:E1.
+    simpl. rewrite empty_context_is_epsilon.
+    induction r1; simpl; eauto.
+    + destruct ((c1 =? c)%char) eqn:E2.
+      simpl. destruct (context_eq_dec [] []); X.
+      simpl. repeat (rewrite empty_context_is_epsilon).
+      reflexivity.
+    + admit. (* TODO *)
+    + destruct (Edelmann.nullable r1_1) eqn:E2.
+      admit. (* TODO *)
+Admitted. (* TODO *)
+  
+        
+
+    
+    
+
+Lemma derive_down_empty_context_eq : forall (c : char) (r : re),
+  list_to_set (zipper_map context_to_re (ListSet.set_add context_eq_dec [] 
+    (derive_down c r []))) = 
+    list_to_set (zipper_map context_to_re (derive_down c r [])) ∪ 
+    ({[ Epsilon ]} : gset re).
+Proof.
+  intros.
+  induction r; simpl; eauto.
+  - (* Atom *)
+    destruct ((c0 =? c)%char) eqn:E1.
+    + (* c0 = c *)
+      simpl. destruct (context_eq_dec [] []).
+      * simpl. repeat (rewrite empty_context_is_epsilon).
+        replace ({[Epsilon]} ∪ ∅ ∪ {[Epsilon]}) with ({[ Epsilon ]} : gset re) 
+          by set_solver.
+        replace ({[Epsilon]} ∪ ∅) with ({[ Epsilon ]} : gset re) 
+          by set_solver.
+        reflexivity.
+      * unfold not in n. destruct n. reflexivity.
+    + (* c0 <> c *)
+      simpl. rewrite empty_context_is_epsilon. 
+      set_solver.
+  - (* Union *) 
+     rewrite zipper_union_distributes_over_derive_down.
+     admit.     
+  - (* Concat *) admit.
+  - (* Star *) admit.
+Admitted. (* TODO *)
+      
+
 
 (* The zipper of a union is the union of two zippers *)
 Lemma zipper_union_homomorphism : forall (r1 r2 : re) (c : char),
@@ -42,8 +108,31 @@ Proof.
   - (* Atom *)
     destruct (Edelmann.nullable r1); simpl.
     destruct ((c0 =? c)%char) eqn:E.
-    + (* c = c0 *)
-      simpl. 
+    + (* c0 = c *)
+      simpl.
+      rewrite empty_context_is_epsilon. 
+      replace ({[ Epsilon ]} ∪ ∅) with ({[ Epsilon ]} : gset re) by set_solver.
+      rewrite derive_down_empty_context_eq. reflexivity.
+    + (* c0 <> c *)
+      simpl. set_solver.
+    + destruct ((c0 =? c)%char) eqn:E.
+      * (* c0 = c *)
+        simpl. rewrite empty_context_is_epsilon.
+        replace ({[ Epsilon ]} ∪ ∅) with ({[ Epsilon ]} : gset re) 
+          by set_solver.
+        rewrite derive_down_empty_context_eq. reflexivity.
+      * (* c0 <> c *)
+        simpl. set_solver.
+  - (* Concat *)
+    destruct (Edelmann.nullable r1) eqn:E1; simpl.
+    + (* nullable r1 = true *)
+      remember (Edelmann.nullable r2_1 || Edelmann.nullable r2_2) as nullable_bool.
+      destruct nullable_bool eqn:E2; simpl.
+      * (* nullable_bool = true *)
+        rewrite zipper_union_distributes_over_derive_down.
+        admit. (* TODO *)
+      * admit. (* TODO *)
+    + admit. (* TODO *)      
       (* TODO: figure out how to continue this *)
 Admitted.       
     

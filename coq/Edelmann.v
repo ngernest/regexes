@@ -296,7 +296,7 @@ Qed.
 (***** DERIVATION *****)
 
 (* Downwards phase of Brzozowski's derivation on zippers. *)
-Fixpoint derive_down (c: char) (e: re) (ctx: context): zipper :=
+Fixpoint derive_down (c : char) (e : re) (ctx : context) : zipper :=
   match e with
   | Atom cl => if Ascii.eqb cl c then [ctx] else []
   | Union l r => zipper_union (derive_down c l ctx) (derive_down c r ctx)
