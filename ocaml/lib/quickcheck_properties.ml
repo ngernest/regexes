@@ -137,6 +137,9 @@ let rec is_sorted (r : re) : bool =
   | Star r' -> is_sorted r' 
   | _ -> true 
 
+let underlying_zipper_set (r : re) (c : char) : re list = 
+  zipper_map context_to_re (derive c (focus r))  
+
 (* -------------------------------------------------------------------------- *)
 (*                            QuickCheck properties                           *)
 (* -------------------------------------------------------------------------- *)
@@ -163,21 +166,135 @@ let%quick_test {| The regex matchers based on Brzozowski derivatives & zippers
     assert (Bool.equal brzozowski_result zipper_result);
   [%expect {| |}]
 
-
+let%expect_test "counterexample for zipper union homomorphism property" = 
+  let r1 = optimize_re' @@ Alt (Epsilon, Epsilon) in 
+  let r2 = optimize_re' @@ (Star (
+    Seq (
+      (Alt (Epsilon, (Char 'a'))),
+      (Seq (
+        (Star (Alt (Epsilon, (Alt (Epsilon, (Char 'a')))))),
+        (Star (
+          Alt (
+            (Char 'b'),
+            (Alt (
+              (Seq ((Star (Char 'a')), (Char 'b'))),
+              (Seq (
+                (Star (Alt (Epsilon, (Char 'b')))),
+                (Alt (Epsilon, Epsilon)))))))))))))) in 
+  let c = 'a' in 
+  let lhs = postprocess_regex_list @@ underlying_zipper_set (alt r1 r2) c in 
+  let rhs = postprocess_regex_list @@ ListSet.union (underlying_zipper_set r1 c) (underlying_zipper_set r2 c) in 
+  Stdio.printf "lhs = %s\n" (String.concat ";" @@ List.map (fun r -> optimize_re' r |> string_of_re) lhs);
+  Stdio.printf "rhs = %s\n" (String.concat ";" @@ List.map (fun r -> optimize_re' r |> string_of_re) rhs);
+  [%expect {|
+    lhs = (Seq
+     (Seq (Seq (Star (Char a)) (Char b))
+      (Star
+       (Alt (Char b)
+        (Alt (Seq (Star (Char a)) (Char b))
+         (Seq (Star (Alt Epsilon (Char b))) (Alt Epsilon Epsilon))))))
+     (Star
+      (Seq (Alt Epsilon (Char a))
+       (Seq (Star (Alt Epsilon (Alt Epsilon (Char a))))
+        (Star
+         (Alt (Char b)
+          (Alt (Seq (Star (Char a)) (Char b))
+           (Seq (Star (Alt Epsilon (Char b))) (Alt Epsilon Epsilon)))))))));(Seq
+     (Seq (Star (Alt Epsilon (Alt Epsilon (Char a))))
+      (Star
+       (Alt (Char b)
+        (Alt (Seq (Star (Char a)) (Char b))
+         (Seq (Star (Alt Epsilon (Char b))) (Alt Epsilon Epsilon))))))
+     (Star
+      (Seq (Alt Epsilon (Char a))
+       (Seq (Star (Alt Epsilon (Alt Epsilon (Char a))))
+        (Star
+         (Alt (Char b)
+          (Alt (Seq (Star (Char a)) (Char b))
+           (Seq (Star (Alt Epsilon (Char b))) (Alt Epsilon Epsilon)))))))));(Seq
+     (Seq (Star (Alt Epsilon (Alt Epsilon (Char a))))
+      (Star
+       (Alt (Char b)
+        (Alt (Seq (Star (Char a)) (Char b))
+         (Seq (Star (Alt Epsilon (Char b))) (Alt Epsilon Epsilon))))))
+     (Star
+      (Seq (Alt Epsilon (Char a))
+       (Seq (Star (Alt Epsilon (Alt Epsilon (Char a))))
+        (Star
+         (Alt (Char b)
+          (Alt (Seq (Star (Char a)) (Char b))
+           (Seq (Star (Alt Epsilon (Char b))) (Alt Epsilon Epsilon)))))))))
+    rhs = (Seq
+     (Seq (Seq (Star (Char a)) (Char b))
+      (Star
+       (Alt (Char b)
+        (Alt (Seq (Star (Char a)) (Char b))
+         (Seq (Star (Alt Epsilon (Char b))) (Alt Epsilon Epsilon))))))
+     (Star
+      (Seq (Alt Epsilon (Char a))
+       (Seq (Star (Alt Epsilon (Alt Epsilon (Char a))))
+        (Star
+         (Alt (Char b)
+          (Alt (Seq (Star (Char a)) (Char b))
+           (Seq (Star (Alt Epsilon (Char b))) (Alt Epsilon Epsilon)))))))));(Seq
+     (Seq (Star (Alt Epsilon (Alt Epsilon (Char a))))
+      (Star
+       (Alt (Char b)
+        (Alt (Seq (Star (Char a)) (Char b))
+         (Seq (Star (Alt Epsilon (Char b))) (Alt Epsilon Epsilon))))))
+     (Star
+      (Seq (Alt Epsilon (Char a))
+       (Seq (Star (Alt Epsilon (Alt Epsilon (Char a))))
+        (Star
+         (Alt (Char b)
+          (Alt (Seq (Star (Char a)) (Char b))
+           (Seq (Star (Alt Epsilon (Char b))) (Alt Epsilon Epsilon)))))))))
+    |}]
+  
+let%quick_test "the zipper of a union is the union of the zippers" 
+  [@config config] = 
+  fun (r1 : re [@generator gen_optimized_re] [@shrinker shrink_re]) 
+    (r2 : re [@generator gen_optimized_re] [@shrinker shrink_re]) 
+    (c : char [@generator Generator.of_list ['a'; 'b']]) -> 
+      let lhs = postprocess_regex_list @@ 
+        underlying_zipper_set (Alt (r1, r2)) c in 
+      let rhs = postprocess_regex_list @@ 
+        ListSet.union (underlying_zipper_set r1 c) (underlying_zipper_set r2 c) in 
+      assert (List.equal equal_re lhs rhs);
+  [%expect {|
+    ("quick test: test failed" (
+      input (
+        (Alt Epsilon Epsilon)
+        (Star (
+          Seq
+          (Alt Epsilon (Char a))
+          (Seq
+            (Star (Alt Epsilon (Alt Epsilon (Char a))))
+            (Star (
+              Alt
+              (Char b)
+              (Alt
+                (Seq (Star (Char a)) (Char b))
+                (Seq (Star (Alt Epsilon (Char b))) (Alt Epsilon Epsilon))))))))
+        a)))
+    (* CR require-failed: lib/quickcheck_properties.ml:256:0.
+       Do not 'X' this CR; instead make the required property true,
+       which will make the CR disappear.  For more information, see
+       [Expect_test_helpers_base.require]. *)
+    "Assert_failure lib/quickcheck_properties.ml:263:6"
+    |}]
+  
 let%quick_test "underlying sets for zippers & Antimirov are the same" 
   [@config config] = 
-  fun (r : re [@generator (Generator.map quickcheck_generator_re ~f:optimize_re')]
-              [@shrinker shrink_re]) 
+  fun (r : re [@generator gen_optimized_re] [@shrinker shrink_re]) 
     (c : char [@generator Generator.of_list ['a'; 'b']]) -> 
     let input = optimize_re' r in 
-    let lhs = postprocess_regex_list @@ 
-      zipper_map context_to_re (derive c (focus r)) in 
+    let lhs = postprocess_regex_list (underlying_zipper_set r c) in 
     let rhs = postprocess_regex_list @@ 
       RegexSet.to_list (aderiv c r) in 
     let result = List.equal equal_re lhs rhs in 
     assert result;
-  [%expect {| |}]
-  
+  [%expect {| |}]    
 
 let%quick_test {| flattening a zipper and flattening the Antimirov derivative set 
   result in equivalent regexes |}
@@ -193,7 +310,6 @@ let%quick_test {| flattening a zipper and flattening the Antimirov derivative se
     assert result;
   [%expect {| |}]
   
-
 (* Technically, the lemma statement is that the no. of Antimirov deriatives
    is linear in the regex size, but there's no way to express 
    existential quantification in OCaml's QuickCheck library, so we 
@@ -219,11 +335,11 @@ let%quick_test ("Brzozowski is always contained in the set of Antimirov derivati
     assert (RegexSet.mem (Brzozowski.bderiv r c) (aderiv c r));
   [%expect {|
     ("quick test: test failed" (input (Epsilon T)))
-    (* CR require-failed: lib/quickcheck_properties.ml:216:0.
+    (* CR require-failed: lib/quickcheck_properties.ml:348:0.
        Do not 'X' this CR; instead make the required property true,
        which will make the CR disappear.  For more information, see
        [Expect_test_helpers_base.require]. *)
-    "Assert_failure lib/quickcheck_properties.ml:220:4"
+    "Assert_failure lib/quickcheck_properties.ml:352:4"
     |}]
 
 let%expect_test {| Example where a Brzozowski derivative is not contained in the set of Antimirov derivatives 
@@ -240,10 +356,10 @@ let%quick_test ("Brzozowski contained in Antimirov set when it is non-empty
     assert (RegexSet.mem (Brzozowski.bderiv_opt r c) antimirov_set);
   [%expect {|
     ("quick test: test failed" (input (Epsilon T)))
-    (* CR require-failed: lib/quickcheck_properties.ml:236:0.
+    (* CR require-failed: lib/quickcheck_properties.ml:368:0.
        Do not 'X' this CR; instead make the required property true,
        which will make the CR disappear.  For more information, see
        [Expect_test_helpers_base.require]. *)
-    "Assert_failure lib/quickcheck_properties.ml:241:4"
+    "Assert_failure lib/quickcheck_properties.ml:373:4"
     |}]
   
