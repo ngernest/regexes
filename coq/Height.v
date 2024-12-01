@@ -60,6 +60,12 @@ Proof.
   simpl. reflexivity.
 Qed.  
 
+(* Essentially inlining the definition of foldr for a set w/ 2 elements *)
+Lemma set_fold_two_elements (f : re -> nat -> nat) (b : nat) (r1 r2 : re) :
+  set_fold f b ({[ r1; r2 ]} : gset re) = f r2 (f r1 b).
+Proof. Admitted. (* TODO: not sure how to use [set_fold_ind_L] here *)  
+  
+  
 (** Mapping a function [f] over a singleton set returns a singleton 
     set containing the result [f x].  *)
 Lemma set_map_singleton (f : re -> re) (x : re):
@@ -86,25 +92,31 @@ Qed.
 
 
 Lemma max_height_union_singleton : forall (r : re) (rs : gset re),
-  max_height_re_set (rs ∪ {[ r ]}) = max (re_height r) (max_height_re_set rs).
+  max_height_re_set ({[ r ]} ∪ rs) = max (re_height r) (max_height_re_set rs).
 Proof.
   intros r rs.
   revert r.
   induction rs using set_ind_L.
   - (* rs = ∅ *) 
     intros. rewrite max_height_empty_set.
-    rewrite union_empty_l_L.
+    rewrite union_empty_r_L.
     rewrite Nat.max_0_r.
     rewrite max_height_singleton.
     reflexivity.
-  - (* rs = X ∪ {[ r ]} *)
-    replace ({[x]} ∪ X) with (X ∪ {[ x ]}) by set_solver.
-    rewrite IHrs.
-Admitted. (* TODO *)    
+  - (* rs = X ∪ {[ x ]} *)
+    assert (max_height_re_set ({[ x ]} ∪ X) = re_height x `max` max_height_re_set X).
+    { specialize IHrs with x. apply IHrs. }
+    intros r. specialize IHrs with r.
+    rewrite H0.
+    rewrite union_assoc_L.
+    assert (max_height_re_set ({[r; x]}) = re_height r `max` re_height x).
+    { unfold max_height_re_set. 
+      rewrite set_fold_two_elements. 
+      rewrite Nat.max_0_r, Nat.max_comm. 
+      reflexivity. }    
+Admitted. (* TODO: not sure how to use [H1] here *)    
     
-    
-    
-
+  
 
 (** The max height over a union of two sets is just the max height of each 
     of the constituent subsets *)
@@ -135,8 +147,8 @@ Proof.
     + apply Nat.max_comm.
 Qed.    
 
-
-Lemma height_lemma :
+(* The height of each element in a regex set [X] is <= [max_height_re_set X]. *)
+Lemma element_height_bounded_by_max_height :
   ∀ (X : nat) (rs : gset re),
     max_height_re_set rs <= X <-> 
     ∀ (r : re), r ∈ rs -> re_height r <= X.
@@ -164,34 +176,40 @@ Lemma a_deriv_height : forall (c : char) (r : re),
   max_height_re_set (a_der r c) <= 2 * re_height r.
 Proof.
   induction r; simpl.
-  - (* Void *) rewrite max_height_empty_set. lia.
-  - (* Epsilon *) rewrite max_height_empty_set. lia.
-  - (* Atom *) destruct (char_dec c c0).
+  - (* Void *) 
+    rewrite max_height_empty_set. lia.
+  - (* Epsilon *) 
+    rewrite max_height_empty_set. lia.
+  - (* Atom *) 
+    destruct (char_dec c c0).
     + unfold max_height_re_set.
       rewrite max_height_singleton.
       simpl. lia.
     + rewrite max_height_empty_set. lia.
-  - (* Union *) rewrite max_height_union. lia.
-  - (* Concat *) destruct (isEmpty r1) eqn:E.
-    + apply height_lemma.
+  - (* Union *) 
+    rewrite max_height_union. lia.
+  - (* Concat *) 
+    destruct (isEmpty r1) eqn:E.
+    + apply element_height_bounded_by_max_height.
       intros. simpl in *.
       (* [set_unfold] looks at statements involving ∈ and rewrites them *)
       set_unfold. destruct H as [[x [H11 H12]] | H2].
-      * rewrite height_lemma in IHr1.
+      * rewrite element_height_bounded_by_max_height in IHr1.
         apply IHr1 in H12. subst; simpl in *; lia. 
-      * rewrite height_lemma in IHr2.
+      * rewrite element_height_bounded_by_max_height in IHr2.
         apply IHr2 in H2. simpl in *. lia.
     + (* isEmpty r1 = false *) 
-      apply height_lemma. intros. simpl in *. 
+      apply element_height_bounded_by_max_height. intros. simpl in *. 
       set_unfold.
       destruct H as [x [H1 H2]].
       subst; simpl. 
-      rewrite height_lemma in IHr1.
+      rewrite element_height_bounded_by_max_height in IHr1.
       specialize (IHr1 _ H2). lia.
-  - (* Star *) apply height_lemma. intros; simpl in *.
+  - (* Star *) 
+    apply element_height_bounded_by_max_height. intros; simpl in *.
     set_unfold. destruct H as [x [H1 H2]].
     subst; simpl.
-    rewrite height_lemma in IHr.
+    rewrite element_height_bounded_by_max_height in IHr.
     specialize (IHr _ H2). lia.
 Qed.
 
@@ -253,6 +271,20 @@ Proof.
   rewrite size_difference_alt. lia.
 Qed.
 
+Lemma two_element_set_has_size_2 : forall (r1 r2 : re), r1 <> r2 -> 
+  size ({[ r1; r2 ]} : gset re) = 2.
+Proof.
+  intros. 
+  replace (size {[ r1; r2 ]}) with (size ({[ r1 ]} : gset re) + size ({[ r2 ]} : gset re)).
+  - repeat (rewrite size_singleton). lia.
+  - replace {[ r1; r2 ]} with (({[ r1 ]} : gset re) ∪ {[ r2 ]}) by set_solver.
+    rewrite size_union_alt.
+    rewrite size_difference_alt. 
+    assert (({[ r2 ]} : gset re) ∩ {[ r1 ]} = ∅) by set_solver. 
+    rewrite H0. rewrite size_empty. lia. 
+Qed.
+  
+
 (* The size of the set [A_der r] (which overapproximates the set of 
    Antimirov derivatives) is linear in the size of the original regex *)
 Theorem A_der_linear : exists (k : nat), 
@@ -273,8 +305,9 @@ Proof.
   - (* Atom *)
     unfold A_der, re_size. 
     assert (size ({[ Epsilon; Atom c ]} : gset re) = 2).
-    { admit. 
-      (* TODO: not sure how to assert that the size has size 2 *) }
+    { apply two_element_set_has_size_2.
+      unfold not. intros.
+      inversion H. }
     lia. 
   - (* Union *)
     simpl. 
@@ -292,7 +325,6 @@ Proof.
     simpl in *. 
     repeat (rewrite size_difference_alt). 
     X.
-    admit. (* TODO: not sure how to proceed *)
   - (* Star *)
     simpl.
     rewrite size_union_alt. 
@@ -303,7 +335,7 @@ Proof.
     rewrite size_difference_alt.
     rewrite size_singleton.
     X.
-Admitted. 
+Qed.
   
 (* There exists some constant [k] which upper bounds the size of all Antimirov derivatives w.r.t. a string *) 
 Lemma num_antimirov_derivs_linear_in_re_size : exists (k : nat), 
