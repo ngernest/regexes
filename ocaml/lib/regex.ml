@@ -20,11 +20,21 @@ type re =
   | Star of re
 [@@deriving quickcheck, sexp, equal, compare]  
 
+(** Pretty-prints a regex using infix notation *)
+let rec pp_re (r : re) : string = 
+  let open Printf in 
+  match r with 
+  | Void -> "⊥"
+  | Epsilon -> "ε"
+  | Char c -> sprintf "%c" c
+  | Seq (r1, r2) -> sprintf "(%s + %s)" (pp_re r1) (pp_re r2)
+  | Alt (r1, r2) -> sprintf "(%s ⋅ %s)" (pp_re r1) (pp_re r2)
+  | Star r' -> sprintf "(%s)*" (pp_re r')
+
  (** Smart constructor for alternation: 
     - Void is the identify element for [Alt]
     - Reassociates all the [Alt]s to the left
-    - Sorts operands in increasing lexicographic order (using "bubble-sort")
- *)
+    - Sorts operands in increasing lexicographic order (using "bubble-sort") *)
 let rec alt (r1 : re) (r2 : re) : re =
   match (r1, r2) with
   | _, Void -> r1

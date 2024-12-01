@@ -123,9 +123,9 @@ let context_to_re (ctx : context) : re =
   List.fold_left seq Epsilon ctx 
 
 (** Simplifies each element of a list of regexes using rewrite rules,
-    then sorts the resultant list *)  
+    sorts the resultant list and removes duplicates *)  
 let postprocess_regex_list (rs : re list) : re list = 
-  List.sort compare_re (List.map optimize_re' rs)  
+  Base.List.dedup_and_sort ~compare:compare_re (List.map optimize_re' rs)  
 
 (** Checks whether a regex containing [Alt]s is sorted (i.e. all the arguments 
     to [Alt]s are sorted in increasing order wrt [compare_re]) *)  
@@ -165,91 +165,6 @@ let%quick_test {| The regex matchers based on Brzozowski derivatives & zippers
     let zipper_result = zipper_match r s in 
     assert (Bool.equal brzozowski_result zipper_result);
   [%expect {| |}]
-
-let%expect_test "counterexample for zipper union homomorphism property" = 
-  let r1 = optimize_re' @@ Alt (Epsilon, Epsilon) in 
-  let r2 = optimize_re' @@ (Star (
-    Seq (
-      (Alt (Epsilon, (Char 'a'))),
-      (Seq (
-        (Star (Alt (Epsilon, (Alt (Epsilon, (Char 'a')))))),
-        (Star (
-          Alt (
-            (Char 'b'),
-            (Alt (
-              (Seq ((Star (Char 'a')), (Char 'b'))),
-              (Seq (
-                (Star (Alt (Epsilon, (Char 'b')))),
-                (Alt (Epsilon, Epsilon)))))))))))))) in 
-  let c = 'a' in 
-  let lhs = postprocess_regex_list @@ underlying_zipper_set (alt r1 r2) c in 
-  let rhs = postprocess_regex_list @@ ListSet.union (underlying_zipper_set r1 c) (underlying_zipper_set r2 c) in 
-  Stdio.printf "lhs = %s\n" (String.concat ";" @@ List.map (fun r -> optimize_re' r |> string_of_re) lhs);
-  Stdio.printf "rhs = %s\n" (String.concat ";" @@ List.map (fun r -> optimize_re' r |> string_of_re) rhs);
-  [%expect {|
-    lhs = (Seq
-     (Seq (Seq (Star (Char a)) (Char b))
-      (Star
-       (Alt (Char b)
-        (Alt (Seq (Star (Char a)) (Char b))
-         (Seq (Star (Alt Epsilon (Char b))) (Alt Epsilon Epsilon))))))
-     (Star
-      (Seq (Alt Epsilon (Char a))
-       (Seq (Star (Alt Epsilon (Alt Epsilon (Char a))))
-        (Star
-         (Alt (Char b)
-          (Alt (Seq (Star (Char a)) (Char b))
-           (Seq (Star (Alt Epsilon (Char b))) (Alt Epsilon Epsilon)))))))));(Seq
-     (Seq (Star (Alt Epsilon (Alt Epsilon (Char a))))
-      (Star
-       (Alt (Char b)
-        (Alt (Seq (Star (Char a)) (Char b))
-         (Seq (Star (Alt Epsilon (Char b))) (Alt Epsilon Epsilon))))))
-     (Star
-      (Seq (Alt Epsilon (Char a))
-       (Seq (Star (Alt Epsilon (Alt Epsilon (Char a))))
-        (Star
-         (Alt (Char b)
-          (Alt (Seq (Star (Char a)) (Char b))
-           (Seq (Star (Alt Epsilon (Char b))) (Alt Epsilon Epsilon)))))))));(Seq
-     (Seq (Star (Alt Epsilon (Alt Epsilon (Char a))))
-      (Star
-       (Alt (Char b)
-        (Alt (Seq (Star (Char a)) (Char b))
-         (Seq (Star (Alt Epsilon (Char b))) (Alt Epsilon Epsilon))))))
-     (Star
-      (Seq (Alt Epsilon (Char a))
-       (Seq (Star (Alt Epsilon (Alt Epsilon (Char a))))
-        (Star
-         (Alt (Char b)
-          (Alt (Seq (Star (Char a)) (Char b))
-           (Seq (Star (Alt Epsilon (Char b))) (Alt Epsilon Epsilon)))))))))
-    rhs = (Seq
-     (Seq (Seq (Star (Char a)) (Char b))
-      (Star
-       (Alt (Char b)
-        (Alt (Seq (Star (Char a)) (Char b))
-         (Seq (Star (Alt Epsilon (Char b))) (Alt Epsilon Epsilon))))))
-     (Star
-      (Seq (Alt Epsilon (Char a))
-       (Seq (Star (Alt Epsilon (Alt Epsilon (Char a))))
-        (Star
-         (Alt (Char b)
-          (Alt (Seq (Star (Char a)) (Char b))
-           (Seq (Star (Alt Epsilon (Char b))) (Alt Epsilon Epsilon)))))))));(Seq
-     (Seq (Star (Alt Epsilon (Alt Epsilon (Char a))))
-      (Star
-       (Alt (Char b)
-        (Alt (Seq (Star (Char a)) (Char b))
-         (Seq (Star (Alt Epsilon (Char b))) (Alt Epsilon Epsilon))))))
-     (Star
-      (Seq (Alt Epsilon (Char a))
-       (Seq (Star (Alt Epsilon (Alt Epsilon (Char a))))
-        (Star
-         (Alt (Char b)
-          (Alt (Seq (Star (Char a)) (Char b))
-           (Seq (Star (Alt Epsilon (Char b))) (Alt Epsilon Epsilon)))))))))
-    |}]
   
 let%quick_test "the zipper of a union is the union of the zippers" 
   [@config config] = 
@@ -261,28 +176,7 @@ let%quick_test "the zipper of a union is the union of the zippers"
       let rhs = postprocess_regex_list @@ 
         ListSet.union (underlying_zipper_set r1 c) (underlying_zipper_set r2 c) in 
       assert (List.equal equal_re lhs rhs);
-  [%expect {|
-    ("quick test: test failed" (
-      input (
-        (Alt Epsilon Epsilon)
-        (Star (
-          Seq
-          (Alt Epsilon (Char a))
-          (Seq
-            (Star (Alt Epsilon (Alt Epsilon (Char a))))
-            (Star (
-              Alt
-              (Char b)
-              (Alt
-                (Seq (Star (Char a)) (Char b))
-                (Seq (Star (Alt Epsilon (Char b))) (Alt Epsilon Epsilon))))))))
-        a)))
-    (* CR require-failed: lib/quickcheck_properties.ml:256:0.
-       Do not 'X' this CR; instead make the required property true,
-       which will make the CR disappear.  For more information, see
-       [Expect_test_helpers_base.require]. *)
-    "Assert_failure lib/quickcheck_properties.ml:263:6"
-    |}]
+  [%expect {| |}]
   
 let%quick_test "underlying sets for zippers & Antimirov are the same" 
   [@config config] = 
@@ -335,11 +229,11 @@ let%quick_test ("Brzozowski is always contained in the set of Antimirov derivati
     assert (RegexSet.mem (Brzozowski.bderiv r c) (aderiv c r));
   [%expect {|
     ("quick test: test failed" (input (Epsilon T)))
-    (* CR require-failed: lib/quickcheck_properties.ml:348:0.
+    (* CR require-failed: lib/quickcheck_properties.ml:225:0.
        Do not 'X' this CR; instead make the required property true,
        which will make the CR disappear.  For more information, see
        [Expect_test_helpers_base.require]. *)
-    "Assert_failure lib/quickcheck_properties.ml:352:4"
+    "Assert_failure lib/quickcheck_properties.ml:229:4"
     |}]
 
 let%expect_test {| Example where a Brzozowski derivative is not contained in the set of Antimirov derivatives 
@@ -356,10 +250,10 @@ let%quick_test ("Brzozowski contained in Antimirov set when it is non-empty
     assert (RegexSet.mem (Brzozowski.bderiv_opt r c) antimirov_set);
   [%expect {|
     ("quick test: test failed" (input (Epsilon T)))
-    (* CR require-failed: lib/quickcheck_properties.ml:368:0.
+    (* CR require-failed: lib/quickcheck_properties.ml:245:0.
        Do not 'X' this CR; instead make the required property true,
        which will make the CR disappear.  For more information, see
        [Expect_test_helpers_base.require]. *)
-    "Assert_failure lib/quickcheck_properties.ml:373:4"
+    "Assert_failure lib/quickcheck_properties.ml:250:4"
     |}]
   
