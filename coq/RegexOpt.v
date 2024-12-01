@@ -1,6 +1,7 @@
-Require Export List Bool Ascii String Arith Lia Nat.
+Require Export List Bool Ascii Arith Lia Nat.
 Export ListNotations BoolNotations.
 Require Import Regex.
+Open Scope list_scope.
 
 (******************************************************************************)
 

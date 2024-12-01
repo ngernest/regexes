@@ -3,6 +3,7 @@
 
 Require Export List ListSet Ascii Bool.
 Require Extraction.
+Require Import Regex.
 Import ListNotations.
 
 (* Tell Coq to genearate Boolean equality for lists + 
@@ -16,84 +17,77 @@ Open Scope char_class_scope.
 
 (* Input characters. *)
 Definition char := ascii.
+Definition char_dec := ascii_dec.
 
 (* Input words. *)
 Definition word := list char.
 
 (***** REGULAR EXPRESSIONS *****)
 
-(* Regular expressions. *)
-Inductive regexpr: Type :=
-  | Failure
-  | Epsilon
-  | Character (c: char)
-  | Disjunction (l r: regexpr)
-  | Sequence (l r: regexpr)
-  | Repetition (e: regexpr).
 
 (* Semantics of regular expressions as 
  * a predicate on words.
  *)
-Inductive matches: regexpr -> word -> Prop :=
+Inductive matches: re -> word -> Prop :=
   | MEps : matches Epsilon []
   | MChar (cl: char) (c : char):
       Ascii.eqb cl c = true ->
-      matches (Character cl) [c]
-  | MDisL (l r: regexpr) (w: word):
+      matches (Atom cl) [c]
+  | MDisL (l r: re) (w: word):
       matches l w ->
-      matches (Disjunction l r) w
-  | MDisR (l r: regexpr) (w: word):
+      matches (Union l r) w
+  | MDisR (l r: re) (w: word):
       matches r w ->
-      matches (Disjunction l r) w
-  | MSeq (l r: regexpr) (wl wr: word):
+      matches (Union l r) w
+  | MSeq (l r: re) (wl wr: word):
       matches l wl ->
       matches r wr ->
-      matches (Sequence l r) (wl ++ wr)
-  | MRepO (e: regexpr):
-      matches (Repetition e) []
-  | MRepS (e: regexpr) (we wr: word):
+      matches (Concat l r) (wl ++ wr)
+  | MRepO (e: re):
+      matches (Star e) []
+  | MRepS (e: re) (we wr: word):
       matches e we ->
-      matches (Repetition e) wr ->
-      matches (Repetition e) (we ++ wr).
+      matches (Star e) wr ->
+      matches (Star e) (we ++ wr).
 
 Local Hint Constructors matches : matches.
 
 (* Regular expressions can be compared for equality. *)
-Lemma regexpr_eq_dec : forall (e1 e2: regexpr),
+Lemma re_eq_dec : forall (e1 e2: re),
   {e1 = e2} + {e1 <> e2}.
 Proof.
   repeat decide equality.
 Qed.
 
 (* Boolean equality for regexes *)
-Fixpoint regex_eqb (r1 r2 : regexpr) : bool :=
+Fixpoint regex_eqb (r1 r2 : re) : bool :=
   match (r1, r2) with 
-  | (Failure, Failure) | (Epsilon, Epsilon) =>
+  | (Void, Void) | (Epsilon, Epsilon) =>
       true 
-  | (Character c1, Character c2) => 
+  | (Atom c1, Atom c2) => 
       Ascii.eqb c1 c2
-  | (Disjunction r11 r12, Disjunction r21 r22) 
-  | (Sequence r11 r12, Sequence r21 r22) => 
+  | (Union r11 r12, Union r21 r22) 
+  | (Concat r11 r12, Concat r21 r22) => 
       regex_eqb r11 r21 && regex_eqb r21 r22
-  | (Repetition r1', Repetition r2') => regex_eqb r1' r2'
+  | (Star r1', Star r2') => regex_eqb r1' r2'
   | (_, _) => false 
   end.
 
 
 (* Unfold one non-empty instance from
- * a Repetition's matches.
+ * a Star's matches.
  *)
 Lemma MRep1 : forall e w,
-  matches (Repetition e) w ->
+  matches (Star e) w ->
   w <> [] ->
   exists w1 w2,
     w = w1 ++ w2 /\
     w1 <> [] /\
     matches e w1 /\
-    matches (Repetition e) w2.
+    matches (Star e) w2.
 Proof.
   intros.
-  remember (Repetition e) as re in H.
+  remember (Star e) as re in H.
   induction H; inversion Heqre.
   { contradiction. }
   subst.
@@ -102,18 +96,17 @@ Proof.
     apply IHmatches2; eauto.
   - exists we, wr.
     repeat split; subst; eauto.
-    intros A. inversion A.
 Qed.
 
 (* Does the expression e accept the empty string? *)
-Fixpoint nullable (e: regexpr) : bool :=
+Fixpoint nullable (e: re) : bool :=
   match e with
-  | Failure => false
+  | Void => false
   | Epsilon => true
-  | Character _ => false
-  | Disjunction l r => orb (nullable l) (nullable r)
-  | Sequence l r => andb (nullable l) (nullable r)
-  | Repetition _ => true
+  | Atom _ => false
+  | Union l r => orb (nullable l) (nullable r)
+  | Concat l r => andb (nullable l) (nullable r)
+  | Star _ => true
   end.
 
 (* Computation of nullable is correct with respect to semantics. *)
@@ -148,7 +141,7 @@ Qed.
 (***** CONTEXTS AND ZIPPERS *****)
 
 (* Contexts are sequences of regular expressions. *)
-Definition context := list regexpr.
+Definition context := list re.
 
 (* The semantics of contexts. *)
 Inductive context_matches : context -> word -> Prop :=
@@ -169,7 +162,7 @@ Qed.
 
 (* Boolean equality for contexts *)
 Definition context_eqb (xs : context) (ys : context) : bool := 
-  list_beq regexpr regex_eqb xs ys.
+  list_beq re regex_eqb xs ys.
 
 
 (* Find the first non-empty instance given a context's match. *)
@@ -216,14 +209,14 @@ Definition zipper := set context.
 Definition zipper_matches z w : Prop :=
   exists ctx, set_In ctx z /\ context_matches ctx w.
 
-(* Disjunction of two zippers. *)
+(* Union of two zippers. *)
 Definition zipper_union := set_union context_eq_dec.
 
 (* Addition of a context in a zipper. *)
 Definition zipper_add := set_add context_eq_dec.
 
 (* Convert a regular expression into a zipper. *)
-Definition focus (e: regexpr): zipper := [[e]].
+Definition focus (e: re): zipper := [[e]].
 
 (* Correctness of focus. *)
 Theorem focus_correct : forall e w,
@@ -246,12 +239,12 @@ Proof.
     + inversion H3.
 Qed.
 
-(* Conversion from zipper back to regexpr. 
+(* Conversion from zipper back to re. 
  * Unused, but provides some intuition on zippers.
  *)
-Definition unfocus (z: zipper): regexpr :=
-  let ds := map (fun ctx => fold_right Sequence Epsilon ctx) z in
-  fold_right Disjunction Failure ds.
+Definition unfocus (z: zipper): re :=
+  let ds := map (fun ctx => fold_right Concat Epsilon ctx) z in
+  fold_right Union Void ds.
 
 (* Correctness of unfocus. *)
 Theorem unfocus_correct : forall z w,
@@ -303,16 +296,16 @@ Qed.
 (***** DERIVATION *****)
 
 (* Downwards phase of Brzozowski's derivation on zippers. *)
-Fixpoint derive_down (c: char) (e: regexpr) (ctx: context): zipper :=
+Fixpoint derive_down (c : char) (e : re) (ctx : context) : zipper :=
   match e with
-  | Character cl => if Ascii.eqb cl c then [ctx] else []
-  | Disjunction l r => zipper_union (derive_down c l ctx) (derive_down c r ctx)
-  | Sequence l r => if (nullable l)
+  | Atom cl => if Ascii.eqb cl c then [ctx] else []
+  | Union l r => zipper_union (derive_down c l ctx) (derive_down c r ctx)
+  | Concat l r => if (nullable l)
     then
       zipper_union (derive_down c l (r :: ctx)) (derive_down c r ctx)
     else
       derive_down c l (r :: ctx)
-  | Repetition e' => derive_down c e' (e :: ctx) 
+  | Star e' => derive_down c e' (e :: ctx) 
   | _ => []
   end.
 
@@ -401,7 +394,7 @@ Proof.
       * rewrite app_comm_cons.
         apply MSeq; assumption.
       * assumption.
-  + unshelve epose proof IHe (Repetition e :: ctx) c w _.
+  + unshelve epose proof IHe (Star e :: ctx) c w _.
     { exists ctx'. split; assumption. }
     destruct H as [we [wctx [Eqw [Me MC]]]].
     inversion MC; subst.
@@ -539,7 +532,7 @@ Proof.
       { contradiction. }
       simpl in Eqw.
       inversion Eqw; subst.
-      unshelve epose proof (IHe (Repetition e :: ctx) c0 w1 (w2 ++ wctx) M1 _).
+      unshelve epose proof (IHe (Star e :: ctx) c0 w1 (w2 ++ wctx) M1 _).
       { apply MCCons; assumption. }
       rewrite <- app_assoc.
       apply H.
@@ -738,11 +731,11 @@ Qed.
 (* Does the regular expression e accept the word w?
  * Finds out using zippers!
  *)
-Definition accepts (e : regexpr) (w : list char) : bool :=
+Definition accepts (e : re) (w : list char) : bool :=
   zipper_accepts (focus e) w.
 
-(* Unit test: does the character literal ['c'] match [Character 'c']? *)
-(* Compute (accepts (Character "c"%char) ["c"%char]). *)
+(* Unit test: does the character literal ['c'] match [Atom 'c']? *)
+(* Compute (accepts (Atom "c"%char) ["c"%char]). *)
 
 (* Correctness of the zipper-based recogniser. *)
 Theorem accepts_correct : forall e w,
@@ -758,12 +751,12 @@ Qed.
 (***** FINITENESS *****)
 
 (* Downwards phase of the maximal zipper. *)
-Fixpoint max_zipper_down (e: regexpr) (ctx: context): set context :=
+Fixpoint max_zipper_down (e: re) (ctx: context): set context :=
   match e with
-  | Character _ => [ctx]
-  | Disjunction l r => zipper_union (max_zipper_down l ctx) (max_zipper_down r ctx)
-  | Sequence l r => zipper_union (max_zipper_down l (r :: ctx)) (max_zipper_down r ctx)
-  | Repetition e' => max_zipper_down e' (e :: ctx)
+  | Atom _ => [ctx]
+  | Union l r => zipper_union (max_zipper_down l ctx) (max_zipper_down r ctx)
+  | Concat l r => zipper_union (max_zipper_down l (r :: ctx)) (max_zipper_down r ctx)
+  | Star e' => max_zipper_down e' (e :: ctx)
   | _ => []
   end.
 
@@ -995,7 +988,7 @@ Proof.
   - unfold max_zipper in H.
     apply zippers_union_elim in H as [z [I1 I2]].
     unfold max_zipper.
-    unshelve epose proof IHe (Repetition e :: ectx) ctx c _.
+    unshelve epose proof IHe (Star e :: ectx) ctx c _.
     { unfold max_zipper.
       apply zippers_union_intro with z; assumption. }
     unfold max_zipper in H. simpl in H.
@@ -1116,11 +1109,11 @@ Qed.
 Fixpoint productive e :=
   match e with
   | Epsilon => true
-  | Failure => false
-  | Character _ => true
-  | Disjunction l r => orb (productive l) (productive r)
-  | Sequence l r => andb (productive l) (productive r)
-  | Repetition _ => true
+  | Void => false
+  | Atom _ => true
+  | Union l r => orb (productive l) (productive r)
+  | Concat l r => andb (productive l) (productive r)
+  | Star _ => true
   end.
 
 Lemma productive_complete :
@@ -1147,13 +1140,13 @@ Qed.
 Fixpoint has_first e :=
   match e with
   | Epsilon => false
-  | Failure => false
-  | Character _ => true
-  | Disjunction l r => orb (has_first l) (has_first r)
-  | Sequence l r => orb
+  | Void => false
+  | Atom _ => true
+  | Union l r => orb (has_first l) (has_first r)
+  | Concat l r => orb
     (andb (has_first l) (productive r))
     (andb (nullable l) (has_first r))
-  | Repetition e => has_first e
+  | Star e => has_first e
   end.
 
 Lemma has_first_productive_nullable :

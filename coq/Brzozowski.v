@@ -1,3 +1,4 @@
+From stdpp Require Import gmap sets fin_sets.
 Require Export Regex.
 
 (** Brzozowski derivative of a regex with respect to a character *)
