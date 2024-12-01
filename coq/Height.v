@@ -34,16 +34,9 @@ Fixpoint re_height (r : re) : nat :=
 Definition max_height_re_set (rs : gset re) : nat := 
   set_fold (fun r acc => max (re_height r) acc) 0 rs.
 
-(** The max height over a union of two sets is just the max height of each 
-    of the constituent subsets *)
-Lemma max_height_union (s1 s2 : gset re) :
-  max_height_re_set (s1 ∪ s2) = max (max_height_re_set s1) (max_height_re_set s2).
-Proof.
-  Admitted. (* TODO *)
-
 (** Empty set has [max_height = 0] *)
 Lemma max_height_empty_set : 
-  max_height_re_set gset_empty = 0. 
+  max_height_re_set ∅ = 0. 
 Proof.
   unfold max_height_re_set.
   apply set_fold_empty.
@@ -91,6 +84,58 @@ Proof.
 Qed.    
 
 
+
+Lemma max_height_union_singleton : forall (r : re) (rs : gset re),
+  max_height_re_set (rs ∪ {[ r ]}) = max (re_height r) (max_height_re_set rs).
+Proof.
+  intros r rs.
+  revert r.
+  induction rs using set_ind_L.
+  - (* rs = ∅ *) 
+    intros. rewrite max_height_empty_set.
+    rewrite union_empty_l_L.
+    rewrite Nat.max_0_r.
+    rewrite max_height_singleton.
+    reflexivity.
+  - (* rs = X ∪ {[ r ]} *)
+    replace ({[x]} ∪ X) with (X ∪ {[ x ]}) by set_solver.
+    rewrite IHrs.
+Admitted. (* TODO *)    
+    
+    
+    
+
+
+(** The max height over a union of two sets is just the max height of each 
+    of the constituent subsets *)
+Lemma max_height_union (s1 s2 : gset re) :
+  max_height_re_set (s1 ∪ s2) = max (max_height_re_set s1) (max_height_re_set s2).
+Proof.
+  revert s1.
+  induction s2 using set_ind_L.
+  - (* s2 = ∅ *)
+    intros. rewrite max_height_empty_set.
+    rewrite Nat.max_comm.
+    rewrite Nat.max_0_l.
+    rewrite union_empty_r_L.
+    reflexivity.
+  - (* s2 = {[ x ]} ∪ X *)
+    intros. 
+    rewrite union_assoc_L.
+    remember (s1 ∪ {[ x ]}) as rs.
+    specialize IHs2 with rs. subst. 
+    rewrite IHs2. subst.
+    rewrite max_height_union_singleton.
+    rewrite union_comm_L.
+    rewrite max_height_union_singleton.
+    rewrite Nat.max_assoc. 
+    replace (max_height_re_set s1 `max` re_height x) 
+      with (re_height x `max` max_height_re_set s1).
+    + reflexivity.
+    + apply Nat.max_comm.
+Qed.    
+
+
 Lemma height_lemma :
   ∀ (X : nat) (rs : gset re),
     max_height_re_set rs <= X <-> 
@@ -118,7 +163,7 @@ Qed.
 Lemma a_deriv_height : forall (c : char) (r : re),
   max_height_re_set (a_der r c) <= 2 * re_height r.
 Proof.
-  induction r; simpl; try unfold "∅".
+  induction r; simpl.
   - (* Void *) rewrite max_height_empty_set. lia.
   - (* Epsilon *) rewrite max_height_empty_set. lia.
   - (* Atom *) destruct (char_dec c c0).
