@@ -23,6 +23,8 @@ Lemma b_der_matches_2 (c : char) (r : re) (s : string) :
 Proof. revert s. induction r; X. apply isEmpty_matches_2 in H2. X. Qed.
 Hint Resolve b_der_matches_1 b_der_matches_2 : core.
 
+Definition b_der_str (r : re) (s : string) := fold_left b_der s r.
+
 (** True if r matches s, using b_der *)
 Definition b_matches (r : re) (s : string) : bool :=
   isEmpty (fold_left b_der s r).
