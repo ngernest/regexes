@@ -31,6 +31,31 @@ Definition underlying_zipper_set (r : re) (c : char) : gset re :=
 (* The underlying regex set formed after taking the Antimirov derivative *)
 Definition underlying_antimirov_set (r : re) (c : char) : gset re :=
   a_der r c.
+
+Lemma zipper_map_listset_add_commutes : forall (z : zipper),
+  zipper_map context_to_re (ListSet.set_add context_eq_dec [] z) 
+    = ListSet.set_add re_eq_dec Epsilon (zipper_map context_to_re z).
+Proof.
+  intros. induction z as [| x xs IHxs].
+  - (* z = [] *)
+    simpl. rewrite empty_context_is_epsilon. reflexivity.
+  - (* z = x :: xs *)
+    simpl. 
+    destruct (context_eq_dec [] x).
+    simpl.
+    + (* x = [] *) 
+      subst. 
+      repeat (rewrite empty_context_is_epsilon). 
+      rewrite <- IHxs.
+(* TODO: convert all listsets to gsets? this would require reworking 
+   Edelmann's Coq proofs significantly though.
+
+  For this lemma, when z = [], LHS = [Epsilon] but RHS = [Epsilon; Epsilon],
+  and these are not equal as ListSets, but if we convert them to gsets,
+  they would be equal.
+*)      
+Admitted.       
+      
   
 Lemma zipper_union_distributes_over_derive_down: forall (c : char) (r1 r2 : re),
   zipper_map context_to_re
@@ -56,10 +81,6 @@ Proof.
       admit. (* TODO *)
 Admitted. (* TODO *)
   
-        
-
-    
-    
 
 Lemma derive_down_empty_context_eq : forall (c : char) (r : re),
   list_to_set (zipper_map context_to_re (ListSet.set_add context_eq_dec [] 
