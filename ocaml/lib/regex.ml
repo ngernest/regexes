@@ -27,8 +27,8 @@ let rec pp_re (r : re) : string =
   | Void -> "⊥"
   | Epsilon -> "ε"
   | Char c -> sprintf "%c" c
-  | Seq (r1, r2) -> sprintf "(%s + %s)" (pp_re r1) (pp_re r2)
-  | Alt (r1, r2) -> sprintf "(%s ⋅ %s)" (pp_re r1) (pp_re r2)
+  | Seq (r1, r2) -> sprintf "(%s ⋅ %s)" (pp_re r1) (pp_re r2)
+  | Alt (r1, r2) -> sprintf "(%s + %s)" (pp_re r1) (pp_re r2)
   | Star r' -> sprintf "(%s)*" (pp_re r')
 
  (** Smart constructor for alternation: 

@@ -257,3 +257,10 @@ let%quick_test ("Brzozowski contained in Antimirov set when it is non-empty
     "Assert_failure lib/quickcheck_properties.ml:250:4"
     |}]
   
+(********************)    
+
+let%expect_test "Laura's example" = 
+  let r = Alt (Star (Char 'a'), Char 'b') in 
+  let result = bderiv r 'a' in 
+  Stdio.printf "%s\n" (pp_re result);
+  [%expect {| ((ε ⋅ (a)*) + ⊥) |}]    
