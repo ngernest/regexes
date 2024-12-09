@@ -256,15 +256,4 @@ let%quick_test ("Brzozowski contained in Antimirov set when it is non-empty
        [Expect_test_helpers_base.require]. *)
     "Assert_failure lib/quickcheck_properties.ml:250:4"
     |}]
-<<<<<<< Updated upstream
   
-=======
-  
-(********************)    
-
-let%expect_test "Laura's example" = 
-  let r = Alt (Star (Char 'a'), Char 'b') in 
-  let result = bderiv r 'a' in 
-  Stdio.printf "%s\n" (pp_re result);
-  [%expect {| |}]    
->>>>>>> Stashed changes
