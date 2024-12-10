@@ -310,7 +310,7 @@ Fixpoint derive_down (c : char) (e : re) (ctx : context) : zipper :=
   end.
 
 (* Upwards phase of Brzozowski's derivation on zippers. *)
-Fixpoint derive_up (c: char) (ctx: context): zipper :=
+Fixpoint derive_up (c: char) (ctx: context) : zipper :=
   match ctx with
   | [] => []
   | e :: ctx' => if nullable e
