@@ -655,7 +655,7 @@ Proof.
 Qed.
 
 (* Does the zipper z accept the empty word? *)
-Definition zipper_nullable z : bool :=
+Definition zipper_nullable (z : zipper) : bool :=
   existsb (fun ctx => forallb nullable ctx) z.
 
 (* Correctness of nullability checks on zippers. *)

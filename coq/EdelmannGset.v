@@ -111,9 +111,23 @@ Fixpoint derive_word (w : word) (z : zipper) : zipper :=
   | c :: w' => derive_word w' (derive c z)
   end.
 
-(* Checks if the zipper z accept the empty word
-   - TODO: find the [stdpp] equivalents of [existsb] and [forallb] *)
-(* Definition zipper_nullable (z : zipper) : bool :=
-  existsb (fun ctx => forallb nullable ctx) z. *)
+(* Note: the following 3 functions return [Prop] instead of [bool], 
+   as is the case for their implementations in [Edelmann.v].
+   This is because there does not exist a version of [existsb] for [gset]s 
+   ([existsb] comes from [ListSet] only).
+   
+   TODO: can we pattern match on [gset]s and implement our own version of 
+   [existsb] for [gset bool]? *)  
 
-(* TODO: continue porting the rest of Edelmann.v to gsets *)
+(* Checks if the zipper z accept the empty word *)
+Definition zipper_nullable (z : zipper) : Prop :=
+  set_Exists (fun ctx => forallb nullable ctx) z.
+
+(* Checks if zipper [z] accepts the word [w] *)
+Definition zipper_accepts (z : zipper) (w : word) : Prop :=
+  zipper_nullable (derive_word w z).  
+
+(* Checks if the word [w] matches the regular expression [e] *)
+Definition accepts (e : re) (w : list char) : Prop :=
+  zipper_accepts (focus e) w.  
+
