@@ -28,7 +28,7 @@ Definition context := list re.
 Definition zipper := gset context.
 
 (* Union of two zippers. *)
-Definition zipper_union : zipper -> zipper -> zipper := gset_union.
+Definition zipper_union (z1 : zipper) (z2 : zipper) : zipper := z1 ∪ z2.
 
 (* Addition of a context in a zipper. *)
 Definition zipper_add (ctx : context) (z : zipper) : zipper := 
@@ -102,7 +102,7 @@ Instance ZipperSingleton : Singleton zipper zipper := {
 (* Brzozowski derivatives for zippers *)
 Definition derive (c : char) (z : zipper) : zipper :=
   set_fold zipper_union ∅  
-    (set_map (derive_up c) z : zipper).
+    (set_map (fun ctx => derive_up c ctx) z : zipper).
 
 (* Generalisation of derivatives to words. *)
 Fixpoint derive_word (w : word) (z : zipper) : zipper :=

@@ -116,7 +116,22 @@ let config : Base_quickcheck.Test.Config.t =
 
 (** Converts a regex to a string *)
 let string_of_re (r : re) : string = 
-  Base.Sexp.to_string_hum (sexp_of_re r)  
+  Base.Sexp.to_string_hum (sexp_of_re r) 
+  
+(** Converts a [context] to a string *)
+let string_of_ctx (ctx : context) : string = 
+  match ctx with 
+  | [] -> "[]"
+  | rs -> 
+    let contents = Base.String.concat ~sep:"; " (List.map string_of_re rs) in 
+    Printf.sprintf "[ %s ]" contents
+
+(** Converts a [zipper] to a string *)  
+let string_of_zipper (z : zipper) : string = 
+  match z with 
+  | [] -> "∅"
+  | ctxs -> Printf.sprintf "{ %s }" 
+    (Base.String.concat ~sep:", " (List.map string_of_ctx ctxs)) 
 
 (** Converts a [context] to a [re] *)
 let context_to_re (ctx : context) : re = 
