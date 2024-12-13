@@ -39,13 +39,6 @@ Instance SingletonReZipper : Singleton re zipper := {
   singleton := fun r => {[ [r] ]}
 }.
 
-(* Mapping [context_to_re] over the singleton zipper containing the empty context
-  yields the singleton set containing [Epsilon ]*)
-Lemma singleton_empty_ctx_is_singleton_epsilon : 
-  set_map context_to_re ({[ [] ]} : zipper) = ({[ Epsilon ]} : zipper).
-Proof.
-  unfold set_map. set_solver.  
-Qed.  
   
 (* Typeclass instance needed to make [zipper_union_empty_r_L] below typecheck *)
 Instance ZipperEmpty : Empty zipper := {
@@ -80,6 +73,16 @@ Instance ElementsCtxRe : Elements context re := {
 Instance ElementsCtxZipper : Elements context zipper := {
   elements := fun z => elements z
 }.
+
+
+(* Mapping [context_to_re] over the singleton zipper containing the empty context
+  yields the singleton set containing [Epsilon ]*)
+Lemma singleton_empty_ctx_is_singleton_epsilon : 
+  @set_map _ _ _ _ _ _ EmptyZipper _ context_to_re ({[ [] ]} : zipper) = 
+  ({[ Epsilon ]} : zipper).
+Proof.
+  unfold set_map. set_solver.  
+Qed.  
 
 Lemma another : forall x (z : zipper),
   x ∈ z -> x ∈ z ∪ {[[]]}.
@@ -132,23 +135,125 @@ Admitted.
       (* * symmetry. apply singleton_empty_ctx_is_singleton_epsilon. *)
 
 
-(* TODO: convert the rest of [ZipperAntimirov.v] from [ListSet] to [gset] *)      
+
+Lemma set_map_singleton_zipper : forall (ctx : context) (f : context -> zipper),
+  set_map f ({[ ctx ]} : zipper) = f ctx.
+Proof.
+  Admitted.  
+
+Lemma set_map_singleton_re_gset : forall (ctx : context) (f : context -> re),
+  set_map f ({[ ctx ]} : zipper) = ({[ f ctx ]} : gset re).
+Proof.
+  Admitted.    
 
 (******************************************************************************)
-
-Compute (derive_up "a"%char [Void]).
 
 (* The zipper of a union is the union of two zippers *)
 Lemma zipper_union_homomorphism : forall (r1 r2 : re) (c : char),
   underlying_zipper_set (Regex.Union r1 r2) c = 
   underlying_zipper_set r1 c ∪ underlying_zipper_set r2 c.
 Proof.
-Admitted.
-  (* intros.
+  intros.
   unfold underlying_zipper_set. 
   induction r2; unfold derive, focus; 
-    simpl; eauto.
+    cbn; eauto.
   - (* Void *)
-    simpl.
+    rewrite !zipper_union_empty_r_L.
+    rewrite !set_map_singleton_zipper.
+Admitted.
+
+
+Lemma zipper_map_union_comm : forall (z1 z2 : zipper) (f : context -> re),
+  zipper_map f (z1 ∪ z2) = zipper_map f z1 ∪ zipper_map f z2.
+Proof.
+  Admitted. (* TODO *)  
+
+(* The underlying sets for zippers & Antimirov derivatives are equivalent *)
+Lemma zipper_antimirov_equivalent : forall (r : re) (c : char),
+  underlying_zipper_set r c = underlying_antimirov_set r c.
+Proof.
+  intros. induction r; unfold underlying_zipper_set, derive, focus.
+  - (* Void *)
+    cbn. 
+    rewrite zipper_union_empty_r_L. 
+    rewrite set_map_singleton_zipper.
+    simpl. auto.
   - (* Epsilon *) 
-    destruct (EdelmannGset.nullable r1); simpl; set_solver. *)
+    cbn. rewrite zipper_union_empty_r_L. 
+    rewrite set_map_singleton_zipper. 
+    simpl. auto.
+  - (* Atom *)
+     cbn.
+     destruct (char_dec c c0).
+     + (* c = c0 *) 
+       unfold focus, derive. simpl. 
+       assert ((c =? c0)%char = true).
+      { rewrite <- reflect_iff. apply e.
+         apply Ascii.eqb_spec. }
+      rewrite zipper_union_empty_r_L, set_map_singleton_zipper. simpl.
+      rewrite Ascii.eqb_sym.
+      rewrite H. simpl. 
+      unfold zipper_map.
+      rewrite set_map_singleton_re_gset. 
+      rewrite empty_context_is_epsilon. reflexivity.
+      (* rewrite singleton_empty_ctx_is_singleton_epsilon. *)
+     + (* c <> c0 *)
+       simpl. unfold context_to_re.
+       unfold focus, derive. simpl.
+       assert ((c =? c0)%char = false).
+       { rewrite Ascii.eqb_neq. assumption. }
+       rewrite zipper_union_empty_r_L, set_map_singleton_zipper. simpl.
+       rewrite Ascii.eqb_sym. 
+       rewrite H. simpl. set_solver.
+  - (* Union *)
+    simpl. 
+    rewrite set_map_singleton_zipper.
+    rewrite <- IHr1, <- IHr2.
+    unfold underlying_zipper_set. 
+    unfold derive, focus.
+    rewrite !set_map_singleton_zipper. 
+    unfold derive_up. simpl.
+    destruct (isEmpty r1) eqn:E1.
+    + (* isEmpty r1 = true *)
+      cbn.
+      rewrite !zipper_union_empty_r_L.
+      destruct (isEmpty r2) eqn:E2; 
+        unfold zipper_union;
+        apply zipper_map_union_comm.
+    + (* isEmpty r1 = false *)
+      cbn. 
+      destruct (isEmpty r2) eqn:E2; 
+        unfold zipper_union;
+        rewrite !zipper_union_empty_r_L;
+        apply zipper_map_union_comm.
+  - (* Concat *)
+    simpl.
+    rewrite <- IHr1, <- IHr2.
+    rewrite set_map_singleton_zipper. 
+    destruct (isEmpty r1) eqn:E1. 
+    + (* isEmpty r1 = true *)
+      simpl. 
+      rewrite !zipper_union_empty_r_L.
+      rewrite E1. cbn.
+      destruct (isEmpty r2) eqn:E2; 
+        rewrite zipper_union_empty_r_L.
+      * (* isEmpty r2 = true *)
+        unfold zipper_union.
+        rewrite zipper_map_union_comm. 
+        admit. (* TODO *)
+      * (* isEmpty r2 = false *)
+        unfold zipper_union.
+        rewrite zipper_map_union_comm. 
+        admit. (* TODO *)
+    + (* isEmpty r1 = false *)
+      simpl. rewrite E1; cbn.
+      rewrite zipper_union_empty_r_L.
+      admit. (* TODO *)
+  - (* Star *)
+    simpl. 
+    rewrite set_map_singleton_zipper. 
+    rewrite <- IHr.
+    cbn.
+    rewrite !zipper_union_empty_r_L.
+        
+Admitted. (* TODO *)  
