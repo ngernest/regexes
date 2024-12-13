@@ -30,8 +30,9 @@ Definition b_der_str (r : re) (s : string) := fold_left b_der s r.
 Definition b_matches (r : re) (s : string) : bool :=
   isEmpty (fold_left b_der s r).
 
+(* Brzozowski-based matcher agrees with the inductive proposition [matches] *)
 Lemma b_matches_matches (r : re) (s : string) : 
-b_matches r s = true <-> matches r s.
+  b_matches r s = true <-> matches r s.
 Proof. unfold b_matches. split; revert r; induction s; X. Qed.
 
 Lemma b_der_Void : forall (s : string), fold_left b_der s Void = Void.
@@ -100,6 +101,7 @@ Proof.
   X. apply isEmpty_Concat. apply H. apply H0. 
 Qed.
 
+(* If [s ~= ε], then [s = ε] *)
 Lemma b_matches_Epsilon : forall (s : string),
   b_matches Epsilon s -> s = [].
 Proof. 
@@ -107,6 +109,7 @@ Proof.
   rewrite  b_der_Void in H. contradiction H. 
 Qed.
 
+(* If [s ~= r*], then [s ~= r^n] for some [n] *)
 Lemma b_matches_Star_Concat : forall (r : re) (s : string),
   b_matches (Star r) s -> 
   exists n, b_matches (Concat_n n r) s.
