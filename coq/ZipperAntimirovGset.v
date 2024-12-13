@@ -329,11 +329,23 @@ Proof.
       * (* isEmpty r2 = false *)
         unfold zipper_union.
         rewrite zipper_map_union_comm. 
-        admit. (* TODO *)
+        unfold underlying_zipper_set, derive, focus.
+        rewrite !set_map_singleton_zipper.
+        cbn.
+        rewrite !zipper_union_empty_r_L. 
+        rewrite E1, E2.
+        rewrite zipper_map_post_compose_concat.
+        reflexivity.
     + (* isEmpty r1 = false *)
       simpl. rewrite E1; cbn.
       rewrite zipper_union_empty_r_L.
       unfold underlying_zipper_set.
+      unfold focus, derive.
+      rewrite !set_map_singleton_zipper.
+      unfold derive_up. 
+      rewrite E1. 
+      cbn. 
+      rewrite zipper_union_empty_r_L. 
       admit. (* TODO *)
   - (* Star *)
     simpl. 
