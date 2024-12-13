@@ -15,7 +15,7 @@ Definition zipper_map (f : context -> re) (z : zipper) : gset re :=
 (* Converts a [context] (used in Edelmann's zipper representation) to a regex 
    by folding the [concat] smart constructor over the context *)
 Definition context_to_re (ctx : context) : re :=
-  List.fold_left RegexOpt.concat ctx Epsilon.
+  List.fold_left Regex.Concat ctx Epsilon.
 
 (* Empty context corresponds to [Epsilon] *)
 Lemma empty_context_is_epsilon : 
@@ -154,6 +154,11 @@ Proof.
   set_solver.
 Qed.  
 
+Lemma set_map_singleton_re_re : forall r (f : re -> re),
+  set_map f ({[ r ]} : gset re) = ({[ f r ]} : gset re).
+Proof.
+  Admitted.  
+
 (******************************************************************************)
 
 (* The zipper of a union is the union of two zippers *)
@@ -174,6 +179,55 @@ Admitted.
 Lemma zipper_map_union_comm : forall (z1 z2 : zipper) (f : context -> re),
   zipper_map f (z1 ∪ z2) = zipper_map f z1 ∪ zipper_map f z2.
 Proof. intros. set_solver. Qed.  
+
+(* TODO: try to prove this *)
+Lemma zipper_map_post_compose_concat : forall c r1 r2,
+  (zipper_map context_to_re (derive_down c r1 [r2])) =
+  set_map (λ r : re, Concat r r2)
+    (zipper_map context_to_re (derive_down c r1 [])).
+Proof.
+  intros. revert c r2.
+  induction r1; intros.
+  - (* Void *)
+    simpl. set_solver.
+  - (* Epsilon *)
+    simpl. set_solver.
+  - (* Atom *)
+    unfold derive_down. 
+    destruct (c =? c0)%char eqn:E.
+    + (* c0 = c *)
+      unfold zipper_map.
+      rewrite !set_map_singleton_re_gset.
+      rewrite empty_context_is_epsilon.
+      unfold context_to_re.
+      simpl.
+      rewrite set_map_singleton_re_re.
+      reflexivity.
+    + (* c0 <> c *)
+      replace (zipper_map context_to_re ∅) with (∅ : gset re) by set_solver.
+      set_solver.
+  - (* Union *)
+    simpl.
+    unfold zipper_union. 
+    rewrite !zipper_map_union_comm.
+    rewrite IHr1_1.
+    set_solver.
+  - (* Concat *)
+    simpl.
+    destruct (isEmpty r1_1) eqn:E.
+    + (* isEmpty r1_1 = true *)
+      unfold zipper_union. 
+      rewrite !zipper_map_union_comm.
+      admit. (* TODO *)
+    + (* isEmpty r1_1 = false *)
+      unfold zipper_map.
+      admit. (* TODO *) 
+  - (* Star *)
+    simpl. 
+    unfold zipper_map. 
+    admit. (* TODO *)
+Admitted.    
+        
 
 (* The underlying sets for zippers & Antimirov derivatives are equivalent *)
 Lemma zipper_antimirov_equivalent : forall (r : re) (c : char),
@@ -203,7 +257,6 @@ Proof.
       unfold zipper_map.
       rewrite set_map_singleton_re_gset. 
       rewrite empty_context_is_epsilon. reflexivity.
-      (* rewrite singleton_empty_ctx_is_singleton_epsilon. *)
      + (* c <> c0 *)
        simpl. unfold context_to_re.
        unfold focus, derive. simpl.
@@ -247,7 +300,12 @@ Proof.
       * (* isEmpty r2 = true *)
         unfold zipper_union.
         rewrite zipper_map_union_comm. 
-        admit. (* TODO *)
+        unfold underlying_zipper_set, focus, derive. 
+        rewrite !set_map_singleton_zipper.
+        cbn.
+        rewrite !zipper_union_empty_r_L. 
+        rewrite E1, E2.
+        rewrite zipper_map_post_compose_concat. reflexivity.
       * (* isEmpty r2 = false *)
         unfold zipper_union.
         rewrite zipper_map_union_comm. 

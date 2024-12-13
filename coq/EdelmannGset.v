@@ -1,6 +1,6 @@
 
 Require Export List Ascii Bool.
-Require Import Regex.
+Require Import Regex RegexOpt.
 Import ListNotations.
 From stdpp Require Import gmap sets fin_sets.
 
@@ -47,7 +47,7 @@ Instance ContextElements : Elements re context := {
  * Unused, but provides some intuition on zippers.
  *)
 Definition unfocus (z : zipper) : re :=
-  let ds := set_map (fun ctx => set_fold Concat Epsilon ctx) z in
+  let ds := set_map (fun ctx => set_fold RegexOpt.concat Epsilon ctx) z in
   set_fold Regex.Union Void (ds : gset re).
 
 (***** DERIVATION *****)
