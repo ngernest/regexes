@@ -222,7 +222,23 @@ Proof.
     + (* isEmpty r1_1 = true *)
       unfold zipper_union. 
       rewrite !zipper_map_union_comm.
-      admit. (* TODO *)
+      destruct r1_1 eqn:E1; simpl.
+      * (* r1_1 = Void *)
+        set_solver.
+      * (* r1_1 = Epsilon *)
+        set_solver.
+      * (* r1_1 = Atom c *)
+        inversion E.
+      * (* r1_1 = Union r1 r3 *)
+        admit. 
+      * (* r1_1 = Concat r1 r3 *)
+        inversion E.
+        rewrite andb_true_iff in H0. 
+        destruct H0 as [H1 H2].
+        rewrite H1. 
+        admit. 
+      * (* r1_1 = Star *)
+        admit. (* TODO *)
     + (* isEmpty r1_1 = false *)
       unfold zipper_map.
       admit. (* TODO *) 
@@ -317,6 +333,7 @@ Proof.
     + (* isEmpty r1 = false *)
       simpl. rewrite E1; cbn.
       rewrite zipper_union_empty_r_L.
+      unfold underlying_zipper_set.
       admit. (* TODO *)
   - (* Star *)
     simpl. 
