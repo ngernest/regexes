@@ -2,6 +2,7 @@ open Regex
 open Antimirov 
 open Brzozowski
 open Extracted_brzozowski_zipper
+open Utils
 open Base_quickcheck
 open Sexplib.Conv
 
@@ -82,8 +83,7 @@ let gen_re_string : (re * string) Generator.t =
   | None -> failwith @@ 
       Printf.sprintf "No string matches regex %s\n" 
       (Base.Sexp.to_string_hum (sexp_of_re r))
-  end 
-      
+  end       
 
 (** Only generates pairs of regexes and chars for which the set of 
     Antimirov derivatives is non-empty *)  
@@ -109,51 +109,6 @@ let config : Base_quickcheck.Test.Config.t =
   { Base_quickcheck.Test.default_config with 
     test_count = 10_000; 
     shrink_count = 10_000 }
-    
-(* -------------------------------------------------------------------------- *)
-(*                       Helper functions for QuickCheck                      *)
-(* -------------------------------------------------------------------------- *)
-
-(** Converts a regex to a string *)
-let string_of_re (r : re) : string = 
-  Base.Sexp.to_string_hum (sexp_of_re r) 
-  
-(** Converts a [context] to a string *)
-let string_of_ctx (ctx : context) : string = 
-  match ctx with 
-  | [] -> "[]"
-  | rs -> 
-    let contents = Base.String.concat ~sep:"; " (List.map string_of_re rs) in 
-    Printf.sprintf "[ %s ]" contents
-
-(** Converts a [zipper] to a string *)  
-let string_of_zipper (z : zipper) : string = 
-  match z with 
-  | [] -> "∅"
-  | ctxs -> Printf.sprintf "{ %s }" 
-    (Base.String.concat ~sep:", " (List.map string_of_ctx ctxs)) 
-
-(** Converts a [context] to a [re] *)
-let context_to_re (ctx : context) : re = 
-  List.fold_left seq Epsilon ctx 
-
-(** Simplifies each element of a list of regexes using rewrite rules,
-    sorts the resultant list and removes duplicates *)  
-let postprocess_regex_list (rs : re list) : re list = 
-  Base.List.dedup_and_sort ~compare:compare_re (List.map optimize_re' rs)  
-
-(** Checks whether a regex containing [Alt]s is sorted (i.e. all the arguments 
-    to [Alt]s are sorted in increasing order wrt [compare_re]) *)  
-let rec is_sorted (r : re) : bool = 
-  match r with 
-  | Alt (r1, Alt (r2, r3)) -> compare_re r1 r2 <= 0 && is_sorted (Alt (r2, r3))
-  | Alt (r1, r2) -> is_sorted r1 && is_sorted r2 && compare_re r1 r2 <= 0
-  | Seq (r1, r2) -> is_sorted r1 && is_sorted r2 
-  | Star r' -> is_sorted r' 
-  | _ -> true 
-
-let underlying_zipper_set (r : re) (c : char) : re list = 
-  zipper_map context_to_re (derive c (focus r))  
 
 (* -------------------------------------------------------------------------- *)
 (*                            QuickCheck properties                           *)
@@ -244,11 +199,11 @@ let%quick_test ("Brzozowski is always contained in the set of Antimirov derivati
     assert (RegexSet.mem (Brzozowski.bderiv r c) (aderiv c r));
   [%expect {|
     ("quick test: test failed" (input (Epsilon T)))
-    (* CR require-failed: lib/quickcheck_properties.ml:225:0.
+    (* CR require-failed: lib/quickcheck_properties.ml:195:0.
        Do not 'X' this CR; instead make the required property true,
        which will make the CR disappear.  For more information, see
        [Expect_test_helpers_base.require]. *)
-    "Assert_failure lib/quickcheck_properties.ml:229:4"
+    "Assert_failure lib/quickcheck_properties.ml:199:4"
     |}]
 
 let%expect_test {| Example where a Brzozowski derivative is not contained in the set of Antimirov derivatives 
@@ -265,10 +220,10 @@ let%quick_test ("Brzozowski contained in Antimirov set when it is non-empty
     assert (RegexSet.mem (Brzozowski.bderiv_opt r c) antimirov_set);
   [%expect {|
     ("quick test: test failed" (input (Epsilon T)))
-    (* CR require-failed: lib/quickcheck_properties.ml:245:0.
+    (* CR require-failed: lib/quickcheck_properties.ml:215:0.
        Do not 'X' this CR; instead make the required property true,
        which will make the CR disappear.  For more information, see
        [Expect_test_helpers_base.require]. *)
-    "Assert_failure lib/quickcheck_properties.ml:250:4"
+    "Assert_failure lib/quickcheck_properties.ml:220:4"
     |}]
   
