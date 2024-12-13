@@ -162,11 +162,10 @@ Proof.
     rewrite !set_map_singleton_zipper.
 Admitted.
 
-
+(* [zipper_map] and [∪] commutes *)
 Lemma zipper_map_union_comm : forall (z1 z2 : zipper) (f : context -> re),
   zipper_map f (z1 ∪ z2) = zipper_map f z1 ∪ zipper_map f z2.
-Proof.
-  Admitted. (* TODO *)  
+Proof. intros. set_solver. Qed.  
 
 (* The underlying sets for zippers & Antimirov derivatives are equivalent *)
 Lemma zipper_antimirov_equivalent : forall (r : re) (c : char),
@@ -253,7 +252,17 @@ Proof.
     simpl. 
     rewrite set_map_singleton_zipper. 
     rewrite <- IHr.
-    cbn.
-    rewrite !zipper_union_empty_r_L.
-        
+  
+   (* Issue: for [Star], [derive_down] just accumulates an increasing list of [r]s :
+
+      derive_up c [Star r]
+      === zipper_union (derive_down c (Star r) []) (derive_up c [])
+      === zipper_union (derive_down c (Star r) []) ∅ 
+      === derive_down c (Star r) []
+      === derive down c r [r; Star r]
+      === derive down c r [r; r; Star r]
+      === ... 
+    
+    *)
+    admit.
 Admitted. (* TODO *)  
