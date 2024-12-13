@@ -2,12 +2,15 @@ open Regex
 open Antimirov 
 open Brzozowski
 open Extracted_brzozowski_zipper
-open Base_quickcheck
-open Sexplib.Conv
+open Utils
 
-(* TODO: complete this expect test *)
 
-let%expect_test {| Example where a Brzozowski derivative is not contained in the set of Antimirov derivatives 
-  (e.g. when the Brzozowski derivative is [Void] and the Antimirov derivative set is the empty set) |} = 
-  let res = derive_up 'a' [Void] in ()
-  
+let%expect_test "derive_up a [Void] " = 
+  let z = derive_up 'a' [Void] in 
+  Stdio.printf "%s\n" (string_of_zipper z);
+  [%expect {| ∅ |}]
+
+let%expect_test "" = 
+  let r = context_to_re [Char 'a'] in 
+  Stdio.printf "%s\n" (string_of_re r);
+  [%expect {| (Char a) |}]
