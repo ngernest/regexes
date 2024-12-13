@@ -346,7 +346,8 @@ Proof.
       rewrite E1. 
       cbn. 
       rewrite zipper_union_empty_r_L. 
-      admit. (* TODO *)
+      rewrite zipper_map_post_compose_concat.      
+      reflexivity.
   - (* Star *)
     simpl. 
     rewrite set_map_singleton_zipper. 

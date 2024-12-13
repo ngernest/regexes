@@ -170,6 +170,9 @@ Lemma elem_of_set_map : forall (x : re) (rs : gset re) (f : re -> re),
 Proof. set_solver. Qed.
 
 (** Lemmas about a_matches *)
+
+(* If [s ~= Concat r1 r2], then [s] can be decomposed as [s1 ++ s2] such that 
+   [s1 ~= r1] and [s2 ~= r2] *)
 Lemma a_matches_Concat_destruct : forall (s : string) (r1 r2 : re),
   a_matches (Concat r1 r2) s ->
   exists s1 s2, (s = s1 ++ s2) /\ a_matches r1 s1 /\ a_matches r2 s2.
@@ -213,6 +216,7 @@ Proof.
       apply H3. set_solver.
 Qed.
 
+(* If [s1 ~= r1] and [s2 ~= r2], then [s1 ++ s2 ~= Concat r1 r2] *)
 Lemma a_matches_Concat : forall (s1 s2 : string) (r1 r2 : re),
   a_matches r1 s1 ->
   a_matches r2 s2 ->
@@ -258,6 +262,7 @@ Proof.
   rewrite fold_left_empty in H0. inversion H0.
 Qed.
 
+(* If [s ~= r^*], then ∃ n s.t. [s ~= r^n] *)
 Lemma a_matches_Star_destruct : forall (s : string) (r : re),
   a_matches (Star r) s ->
   exists n, a_matches (Concat_n n r) s.
