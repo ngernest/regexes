@@ -52,24 +52,13 @@ Definition unfocus (z : zipper) : re :=
 
 (***** DERIVATION *****)
 
-(* Does the expression e accept the empty string? *)
-Fixpoint nullable (e : re) : bool :=
-  match e with
-  | Void => false
-  | Epsilon => true
-  | Atom _ => false
-  | Regex.Union l r => orb (nullable l) (nullable r)
-  | Concat l r => andb (nullable l) (nullable r)
-  | Star _ => true
-  end.
-
 (* Downwards phase of Brzozowski's derivation on zippers. *)
 Fixpoint derive_down (c : char) (e : re) (ctx : context) : zipper :=
   match e with
   | Atom cl => if Ascii.eqb cl c then {[ ctx ]} else ∅ 
   | Regex.Union l r => zipper_union (derive_down c l ctx) (derive_down c r ctx)
   | Concat l r => 
-    if (nullable l) then
+    if (isEmpty l) then
       zipper_union (derive_down c l (r :: ctx)) (derive_down c r ctx)
     else
       derive_down c l (r :: ctx)
@@ -81,7 +70,7 @@ Fixpoint derive_down (c : char) (e : re) (ctx : context) : zipper :=
 Fixpoint derive_up (c : char) (ctx : context) : zipper :=
   match ctx with
   | [] => ∅ 
-  | e :: ctx' => if nullable e
+  | e :: ctx' => if isEmpty e
     then 
       zipper_union (derive_down c e ctx') (derive_up c ctx')
     else
@@ -102,7 +91,7 @@ Instance ZipperSingleton : Singleton zipper zipper := {
 (* Brzozowski derivatives for zippers *)
 Definition derive (c : char) (z : zipper) : zipper :=
   set_fold zipper_union ∅  
-    (set_map (fun ctx => derive_up c ctx) z : zipper).
+    (set_map (derive_up c) z : zipper).
 
 (* Generalisation of derivatives to words. *)
 Fixpoint derive_word (w : word) (z : zipper) : zipper :=
@@ -121,7 +110,7 @@ Fixpoint derive_word (w : word) (z : zipper) : zipper :=
 
 (* Checks if the zipper z accept the empty word *)
 Definition zipper_nullable (z : zipper) : Prop :=
-  set_Exists (fun ctx => forallb nullable ctx) z.
+  set_Exists (fun ctx => forallb isEmpty ctx) z.
 
 (* Checks if zipper [z] accepts the word [w] *)
 Definition zipper_accepts (z : zipper) (w : word) : Prop :=
