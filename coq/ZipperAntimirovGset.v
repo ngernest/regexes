@@ -139,12 +139,20 @@ Admitted.
 Lemma set_map_singleton_zipper : forall (ctx : context) (f : context -> zipper),
   set_map f ({[ ctx ]} : zipper) = f ctx.
 Proof.
-  Admitted.  
+  intros.
+  unfold set_map. 
+  rewrite elements_singleton. simpl. 
+  set_solver.
+Qed.  
 
 Lemma set_map_singleton_re_gset : forall (ctx : context) (f : context -> re),
   set_map f ({[ ctx ]} : zipper) = ({[ f ctx ]} : gset re).
 Proof.
-  Admitted.    
+  intros.
+  unfold set_map.
+  rewrite elements_singleton. simpl. 
+  set_solver.
+Qed.  
 
 (******************************************************************************)
 
