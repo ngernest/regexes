@@ -157,7 +157,11 @@ Qed.
 Lemma set_map_singleton_re_re : forall r (f : re -> re),
   set_map f ({[ r ]} : gset re) = ({[ f r ]} : gset re).
 Proof.
-  Admitted.  
+  intros.
+  unfold set_map.
+  rewrite elements_singleton. simpl.
+  set_solver.
+Qed.
 
 (******************************************************************************)
 
