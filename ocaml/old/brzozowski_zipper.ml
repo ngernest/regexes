@@ -11,8 +11,8 @@ open Lib.Regex
 type regex = 
   | Failure 
   | Epsilon 
-  | Char of char [@quickcheck.generator Generator.char_lowercase]
-  | Sequence of regex * regex 
+  | Atom of char [@quickcheck.generator Generator.char_lowercase]
+  | Concatuence of regex * regex 
   | Disjunction of regex * regex 
   | Star of regex
 [@@deriving equal, quickcheck, sexp]
@@ -25,9 +25,9 @@ let rec re_of_regex (regex : regex) : re =
   match regex with 
   | Failure -> Void 
   | Epsilon -> Epsilon 
-  | Char c -> Char c 
-  | Sequence (r1, r2) -> Seq (re_of_regex r1, re_of_regex r2)
-  | Disjunction (r1, r2) -> Alt (re_of_regex r1, re_of_regex r2)
+  | Atom c -> Atom c 
+  | Concatuence (r1, r2) -> Concat (re_of_regex r1, re_of_regex r2)
+  | Disjunction (r1, r2) -> Union (re_of_regex r1, re_of_regex r2)
   | Star r -> Star (re_of_regex r)
   
 (** Converts the [re] type defined in [regex.ml] to the [regex] type above *)    
@@ -35,9 +35,9 @@ let rec regex_of_re (re : re) : regex =
   match re with 
   | Void -> Failure 
   | Epsilon -> Epsilon 
-  | Char c -> Char c 
-  | Seq (r1, r2) -> Sequence (regex_of_re r1, regex_of_re r2)
-  | Alt (r1, r2) -> Disjunction (regex_of_re r1, regex_of_re r2)
+  | Atom c -> Atom c 
+  | Concat (r1, r2) -> Concatuence (regex_of_re r1, regex_of_re r2)
+  | Union (r1, r2) -> Disjunction (regex_of_re r1, regex_of_re r2)
   | Star r -> Star (regex_of_re r)
 
 let%quick_test "round-trip property for re <-> regex conversion functions" 
@@ -49,10 +49,10 @@ let%quick_test "round-trip property for re <-> regex conversion functions"
 (** Checks if a regex accepts the empty string *)  
 let rec is_nullable (r : regex) : bool = 
   match r with 
-  | Failure | Char _ -> false 
+  | Failure | Atom _ -> false 
   | Epsilon | Star _ -> true 
   | Disjunction (r1, r2) -> is_nullable r1 || is_nullable r2 
-  | Sequence (r1, r2) -> is_nullable r1 && is_nullable r2 
+  | Concatuence (r1, r2) -> is_nullable r1 && is_nullable r2 
 
 (** A [context] is a list of [regex]es. 
     Semantically, these represent {i sequences} of regexes, specifically 
@@ -78,7 +78,7 @@ let zipper_concat_map (f : context -> Zipper.t) (z : Zipper.t) : Zipper.t =
 let unfocus (zipper : Zipper.t) : regex = 
   (* Converts a singular [context] to a [regex] *)
   let uncontext (ctx : context) : regex = 
-    List.fold_left (fun r acc -> Sequence (r, acc)) Epsilon ctx in 
+    List.fold_left (fun r acc -> Concatuence (r, acc)) Epsilon ctx in 
   Zipper.fold 
     (fun ctx acc -> Disjunction (acc, uncontext ctx))
     zipper
@@ -87,7 +87,7 @@ let unfocus (zipper : Zipper.t) : regex =
 (* Example from Huet's dissertation: 
   {[
     r1 = unfocus @@ Zipper.of_list [[e1; e2]; [e3]] in 
-    r2 = Disjunction (Sequence (e1, e2), e3) 
+    r2 = Disjunction (Concatuence (e1, e2), e3) 
   ]}
   [r1] and [r2] should be semantically equivalent regexes
   (need to apply some rewrite rules) *)
@@ -119,15 +119,15 @@ let derive (zipper : Zipper.t) (c : char) : Zipper.t =
   (** Moves the focus down the regex *)
   and down (r : regex) (ctx : context) : Zipper.t = 
     begin match r with 
-    | Char d when Base.Char.equal d c ->
-        (* When a context matches a [Char], we collect them in a set
+    | Atom d when Base.Char.equal d c ->
+        (* When a context matches a [Atom], we collect them in a set
            and form the resulting [zipper] using this set *) 
         Zipper.singleton ctx
     | Disjunction (left, right) -> 
         Zipper.union (down left ctx) (down right ctx)
-    | Sequence (left, right) when is_nullable left -> 
+    | Concatuence (left, right) when is_nullable left -> 
         Zipper.union (down left (right :: ctx)) (down right ctx)
-    | Sequence (left, right) -> 
+    | Concatuence (left, right) -> 
         down left (right :: ctx)
     | Star r' -> 
         down r' (r :: ctx)
@@ -188,13 +188,13 @@ let%expect_test {| Epsilon ~= "" |} =
   [%expect {| true |}]
 
 (* Not sure why this expect test doesn't pass *)  
-let%expect_test "accepts Char" = 
-  Stdio.printf "%b\n" (accepts (Char 'c') ['c']);
+let%expect_test "accepts Atom" = 
+  Stdio.printf "%b\n" (accepts (Atom 'c') ['c']);
   [%expect {| false |}]
 
 (* Not sure why this expect test doesn't pass *)  
-let%expect_test {| Char c ~= 'c' |} =
-  Stdio.printf "%b\n" (zipper_match (Char 'c') (Base.Char.to_string 'c'));
+let%expect_test {| Atom c ~= 'c' |} =
+  Stdio.printf "%b\n" (zipper_match (Atom 'c') (Base.Char.to_string 'c'));
   [%expect {| false |}]
 
 (* -------------------------------------------------------------------------- *)
@@ -210,11 +210,11 @@ let max_zipper (z : Zipper.t) : Zipper.t =
     end 
   and down (r : regex) (ctx : context) : Zipper.t = 
     begin match r with 
-    | Char _ -> 
+    | Atom _ -> 
         Zipper.singleton ctx 
     | Disjunction (left, right) -> 
         Zipper.union (down left ctx) (down right ctx)
-    | Sequence (left, right) -> 
+    | Concatuence (left, right) -> 
         Zipper.union (down left (right :: ctx)) (down right ctx)
     | Star r' -> 
         down r' (r :: ctx)
@@ -249,6 +249,6 @@ let max_zipper (z : Zipper.t) : Zipper.t =
   while the term $2 ^ |maxZipper (focus r)|$ represents the no. of subsets 
   in [maxZipper (focus r)]. 
 
-- The size of [maxZipper (focus r)] is also bounded by the no. of [Character]
+- The size of [maxZipper (focus r)] is also bounded by the no. of [Atomacter]
   AST nodes in the original regex [r]
 *)

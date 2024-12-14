@@ -111,28 +111,28 @@ let re_match (t : table) (s : string) : bool =
 
 (** Constructs a regex that a set of characters in a string *)
 let charset (s : string) : re = 
-  enum (fun i r -> Alt(Char s.[i], r)) Void 0 (String.length s)
+  enum (fun i r -> Union(Atom s.[i], r)) Void 0 (String.length s)
 
 (** Constructs a regex that matches exactly the string [s] *)  
 let string (s : string) : re = 
-  enum (fun i r -> Seq(r, Char s.[i])) Epsilon 0 (String.length s)
+  enum (fun i r -> Concat(r, Atom s.[i])) Epsilon 0 (String.length s)
 
-(** Folds [Seq] over a list of regexes *)  
+(** Folds [Concat] over a list of regexes *)  
 let seq (rs : re list) : re = 
-  List.fold_right (fun r rs -> Seq(r, rs)) rs Epsilon
+  List.fold_right (fun r rs -> Concat(r, rs)) rs Epsilon
 
-(** Folds [Alt] over a list of regexes *)
+(** Folds [Union] over a list of regexes *)
 let alt (rs : re list) : re = 
-  List.fold_right (fun r rs -> Alt(r, rs)) rs Void
+  List.fold_right (fun r rs -> Union(r, rs)) rs Void
 
 (** Regex indicating that [r] is optional *)
-let opt (r : re) : re = Alt (r, Epsilon)
+let opt (r : re) : re = Union (r, Epsilon)
 
 (** Kleene star *)
 let star (r : re) : re = Star r
 
 (** Matches one or more occurrences of a regex [r] *)
-let plus (r : re) : re = Seq (r, star r)
+let plus (r : re) : re = Concat (r, star r)
 
 (* -------------------------------------------------------------------------- *)
 (*                               Pretty-printing                              *)
@@ -157,7 +157,7 @@ let print_table (out : Format.formatter) (t : table) : unit =
 module Test = struct
   let digit = charset "0123456789"
   let sign = charset "+-"
-  let dot = Char '.'
+  let dot = Atom '.'
   let dotted = alt [ seq [star digit; dot; plus digit];
                       seq [plus digit; dot; star digit] ]
   let exponent = seq [charset "eE"; opt sign; plus digit]

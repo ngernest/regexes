@@ -14,9 +14,9 @@ let compare_char = Base.compare_char
 type re = 
   | Void [@quickcheck.do_not_generate]
   | Epsilon 
-  | Char of (char [@quickcheck.generator Generator.of_list ['a'; 'b']])
-  | Seq of re * re 
-  | Alt of re * re 
+  | Atom of (char [@quickcheck.generator Generator.of_list ['a'; 'b']])
+  | Concat of re * re 
+  | Union of re * re 
   | Star of re
 [@@deriving quickcheck, sexp, equal, compare]  
 
@@ -26,27 +26,27 @@ let rec pp_re (r : re) : string =
   match r with 
   | Void -> "⊥"
   | Epsilon -> "ε"
-  | Char c -> sprintf "%c" c
-  | Seq (r1, r2) -> sprintf "(%s ⋅ %s)" (pp_re r1) (pp_re r2)
-  | Alt (r1, r2) -> sprintf "(%s + %s)" (pp_re r1) (pp_re r2)
+  | Atom c -> sprintf "%c" c
+  | Concat (r1, r2) -> sprintf "(%s ⋅ %s)" (pp_re r1) (pp_re r2)
+  | Union (r1, r2) -> sprintf "(%s + %s)" (pp_re r1) (pp_re r2)
   | Star r' -> sprintf "(%s)*" (pp_re r')
 
  (** Smart constructor for alternation: 
-    - Void is the identify element for [Alt]
-    - Reassociates all the [Alt]s to the left
+    - Void is the identify element for [Union]
+    - Reassociates all the [Union]s to the left
     - Sorts operands in increasing lexicographic order (using "bubble-sort") *)
 let rec alt (r1 : re) (r2 : re) : re =
   match (r1, r2) with
   | _, Void -> r1
   | Void, _ -> r2
-  | Alt (r11, r12), _ -> alt r11 (alt r12 r2)
-  | a, Alt (b, c) -> 
+  | Union (r11, r12), _ -> alt r11 (alt r12 r2)
+  | a, Union (b, c) -> 
     if compare_re a b > 0 
       then alt b (alt a c)
     else 
-      Alt (r1, r2)
+      Union (r1, r2)
   | r1', r2' when compare_re r1' r2' > 0 -> alt r2' r1'
-  | _, _ -> Alt (r1, r2)
+  | _, _ -> Union (r1, r2)
 
 (** Smart constructor for sequencing *)
 let seq (r1 : re) (r2 : re) : re =
@@ -55,7 +55,7 @@ let seq (r1 : re) (r2 : re) : re =
   | _, Void -> Void
   | _, Epsilon -> r1
   | Epsilon, _ -> r2
-  | _, _ -> Seq (r1, r2)
+  | _, _ -> Concat (r1, r2)
 
 (** Smart constructor for [star]. Note that:
     - Iterating the empty string gives the empty string, 
@@ -70,14 +70,14 @@ let star (re : re) : re =
 (** Optimizes a regex *)  
 let rec optimize_re (r : re) : re = 
   match r with 
-  | Seq (r', Void) | Seq (Void, r') -> 
+  | Concat (r', Void) | Concat (Void, r') -> 
       Void
-  | Seq (r', Epsilon) | Seq (Epsilon, r') 
-  | Alt (r', Void) | Alt (Void, r') -> 
+  | Concat (r', Epsilon) | Concat (Epsilon, r') 
+  | Union (r', Void) | Union (Void, r') -> 
       optimize_re r' 
-  | Alt (r1, Alt (r2, r3)) -> 
+  | Union (r1, Union (r2, r3)) -> 
       alt (alt (optimize_re r1) (optimize_re r2)) (optimize_re r3)
-  | Alt (r1, r2) when equal_re r1 r2 -> 
+  | Union (r1, r2) when equal_re r1 r2 -> 
       optimize_re r1 
   | Star Void | Star Epsilon -> 
       Epsilon 
@@ -89,8 +89,8 @@ let rec optimize_re (r : re) : re =
    smart constructor  *)
 let rec optimize_re' (r : re) : re = 
   match r with 
-  | Seq (r1, r2) -> seq (optimize_re' r1) (optimize_re' r2)
-  | Alt (r1, r2) -> alt (optimize_re' r1) (optimize_re' r2) 
+  | Concat (r1, r2) -> seq (optimize_re' r1) (optimize_re' r2)
+  | Union (r1, r2) -> alt (optimize_re' r1) (optimize_re' r2) 
   | Star r' -> star (optimize_re' r')
   | _ -> r
 
@@ -98,7 +98,7 @@ let rec optimize_re' (r : re) : re =
 let rec contains_void (r : re) : bool = 
   match r with 
   | Void -> true 
-  | Alt (r1, r2) | Seq (r1, r2) -> contains_void r1 || contains_void r2 
+  | Union (r1, r2) | Concat (r1, r2) -> contains_void r1 || contains_void r2 
   | Star r' -> contains_void r' 
   | _ -> false  
   
@@ -108,9 +108,9 @@ let rec re_size (r : re) : int =
   match r with
   | Void -> 0
   | Epsilon -> 1
-  | Char _ -> 1
-  | Seq (re1, re2) -> 1 + re_size re1 + re_size re2
-  | Alt (re1, re2) -> 1 + re_size re1 + re_size re2
+  | Atom _ -> 1
+  | Concat (re1, re2) -> 1 + re_size re1 + re_size re2
+  | Union (re1, re2) -> 1 + re_size re1 + re_size re2
   | Star re' -> 1 + re_size re'
 
 (* Computes the height of a regex 
@@ -119,18 +119,18 @@ let rec re_height (r : re) : int =
   match r with 
   | Void -> 0
   | Epsilon -> 1
-  | Char _ -> 1
-  | Seq (re1, re2) -> 1 + max (re_height re1) (re_height re2)
-  | Alt (re1, re2) -> 1 + max (re_height re1) (re_height re2)
+  | Atom _ -> 1
+  | Concat (re1, re2) -> 1 + max (re_height re1) (re_height re2)
+  | Union (re1, re2) -> 1 + max (re_height re1) (re_height re2)
   | Star re' -> 1 + re_height re'
 
 (** Checks if a regex accepts the empty string *)
 let rec accepts_empty (r : re) : bool = 
   match r with 
-  | Char _ | Void -> false
+  | Atom _ | Void -> false
   | Epsilon | Star _ -> true
-  | Alt (r1, r2) -> accepts_empty r1 || accepts_empty r2
-  | Seq (r1, r2) -> accepts_empty r1 && accepts_empty r2
+  | Union (r1, r2) -> accepts_empty r1 || accepts_empty r2
+  | Concat (r1, r2) -> accepts_empty r1 && accepts_empty r2
 
 (** [R] is the type of finite sets of regexes *)  
 module RegexSet = struct

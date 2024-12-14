@@ -6,7 +6,7 @@ open! Base
 type regexp =
   | Zero
   | One
-  | Char of char
+  | Atom of char
   | Times of regexp * regexp
   | Plus of regexp * regexp
   | Star of regexp
@@ -17,8 +17,8 @@ let rec acc (r : regexp) (cs : char list) (k : char list -> bool) : bool =
   match (r, cs) with
   | Zero, _ -> false
   | One, _ -> k cs
-  | Char _, [] -> false
-  | Char d, c :: cs -> if Char.equal c d then k cs else false
+  | Atom _, [] -> false
+  | Atom d, c :: cs -> if Char.equal c d then k cs else false
   | Plus (r1, r2), _ -> acc r1 cs k || acc r2 cs k
   | Times (r1, r2), _ -> acc r1 cs (fun cs' -> acc r2 cs' k)
   | Star r1, _ -> k cs || acc r1 cs (fun cs' -> acc r cs' k)
