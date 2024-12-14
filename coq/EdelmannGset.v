@@ -112,6 +112,8 @@ Definition derive (c : char) (z : zipper) : zipper :=
   set_fold zipper_union ∅  
     (set_map (derive_up c) z : zipper).
 
+    
+
 (* Generalisation of derivatives to words. *)
 Fixpoint derive_word (w : word) (z : zipper) : zipper :=
   match w with

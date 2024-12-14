@@ -27,7 +27,7 @@ Qed.
 (* The underlying regex set that forms the zipper representation of 
    Brozozwski derivatives (from Edelmann's dissertation) *)
 Definition underlying_zipper_set (r : re) (c : char) : gset re :=
-  zipper_map context_to_re (derive c (focus r)).
+  zipper_map context_to_re_opt (derive c (focus r)).
   
 (* The underlying regex set formed after taking the Antimirov derivative *)
 Definition underlying_antimirov_set (r : re) (c : char) : gset re :=
@@ -184,9 +184,9 @@ Lemma zipper_map_union_comm : forall (z1 z2 : zipper) (f : context -> re),
   zipper_map f (z1 ∪ z2) = zipper_map f z1 ∪ zipper_map f z2.
 Proof. intros. set_solver. Qed.  
 
-(* TODO: figure out how to use [zipper_map_post_compose_concat'] 
+(* TODO: figure out how to use [zipper_map_post_compose_concat_opt] 
    in the main Antimirov - Zipper equivalence proof *)
-Lemma zipper_map_post_compose_concat' : forall c r1 r2 ctx,
+Lemma zipper_map_post_compose_concat_opt : forall c r1 r2 ctx,
   zipper_map context_to_re_opt (derive_down c r1 (ctx ++ [r2])) =
   set_map (λ r : re, RegexOpt.concat r r2)
     (zipper_map context_to_re_opt (derive_down c r1 ctx)).
@@ -255,73 +255,6 @@ Proof.
     rewrite IHr1.
     reflexivity.
 Qed.      
-
-
-(* Note: this has been subsumed by [zipper_map_post_compose_concat'] above *)  
-Lemma zipper_map_post_compose_concat : forall c r1 r2,
-  (zipper_map context_to_re (derive_down c r1 [r2])) =
-  set_map (λ r : re, Concat r r2)
-    (zipper_map context_to_re (derive_down c r1 [])).
-Proof.
-  intros. revert c r2.
-  induction r1; intros.
-  - (* Void *)
-    simpl. set_solver.
-  - (* Epsilon *)
-    simpl. set_solver.
-  - (* Atom *)
-    unfold derive_down. 
-    destruct (c =? c0)%char eqn:E.
-    + (* c0 = c *)
-      unfold zipper_map.
-      rewrite !set_map_singleton_re_gset.
-      rewrite empty_context_is_epsilon.
-      unfold context_to_re.
-      simpl.
-      rewrite set_map_singleton_re_re.
-      reflexivity.
-    + (* c0 <> c *)
-      replace (zipper_map context_to_re ∅) with (∅ : gset re) by set_solver.
-      set_solver.
-  - (* Union *)
-    simpl.
-    unfold zipper_union. 
-    rewrite !zipper_map_union_comm.
-    rewrite IHr1_1.
-    set_solver.
-  - (* Concat *)
-    simpl.
-    destruct (isEmpty r1_1) eqn:E.
-    + (* isEmpty r1_1 = true *)
-      unfold zipper_union. 
-      rewrite !zipper_map_union_comm.
-      destruct r1_1 eqn:E1; simpl.
-      * (* r1_1 = Void *)
-        set_solver.
-      * (* r1_1 = Epsilon *)
-        set_solver.
-      * (* r1_1 = Atom c *)
-        inversion E.
-      * (* r1_1 = Union r1 r3 *)
-        admit. 
-      * (* r1_1 = Concat r1 r3 *)
-        inversion E.
-        rewrite andb_true_iff in H0. 
-        destruct H0 as [H1 H2].
-        rewrite H1. 
-        admit. 
-      * (* r1_1 = Star *)
-        admit. (* TODO *)
-    + (* isEmpty r1_1 = false *)
-      unfold zipper_map.
-      admit. (* TODO *) 
-  - (* Star *)
-    unfold zipper_map in *.
-    specialize (IHr1 c r2).
-    replace (derive_down c (Star r1) []) with (derive_down c r1 [Star r1]) 
-      by auto.
-    admit. (* TODO *)
-Admitted.    
         
 (* Inversion lemma for when an element is in a singleton set *)
 Lemma mem_singleton_set : forall (x : context) (ctx : context),
@@ -355,7 +288,7 @@ Proof.
       rewrite H. simpl. 
       unfold zipper_map.
       rewrite set_map_singleton_re_gset. 
-      rewrite empty_context_is_epsilon. reflexivity.
+      rewrite empty_context_opt_is_epsilon. reflexivity.
      + (* c <> c0 *)
        simpl. unfold context_to_re.
        unfold focus, derive. simpl.
@@ -394,17 +327,33 @@ Proof.
       simpl. 
       rewrite !zipper_union_empty_r_L.
       rewrite E1. cbn.
-      destruct (isEmpty r2) eqn:E2; 
-        rewrite zipper_union_empty_r_L;
-        unfold zipper_union;
-        rewrite zipper_map_union_comm;
-        unfold underlying_zipper_set, derive, focus;
-        rewrite !set_map_singleton_zipper;
+      destruct (isEmpty r2) eqn:E2.
+      * (* isEmpty r2 = true *)
+        rewrite zipper_union_empty_r_L.
+        unfold zipper_union.
+        rewrite zipper_map_union_comm.
+        unfold underlying_zipper_set, derive, focus.
+        rewrite !set_map_singleton_zipper.
         cbn;
-        rewrite !zipper_union_empty_r_L;
-        rewrite E1, E2;
-        rewrite zipper_map_post_compose_concat;
-        reflexivity.
+        rewrite !zipper_union_empty_r_L.
+        rewrite E1, E2.
+        replace [r2] with ([] ++ [r2]). 
+        ++ rewrite zipper_map_post_compose_concat_opt.
+           admit. (* TODO *)
+        ++ apply app_nil_l.
+      * (* isEmpty r2 = false *)
+        rewrite zipper_union_empty_r_L.
+        unfold zipper_union.
+        rewrite zipper_map_union_comm.
+        unfold underlying_zipper_set, derive, focus.
+        rewrite !set_map_singleton_zipper.
+        cbn;
+        rewrite !zipper_union_empty_r_L.
+        rewrite E1, E2.
+        replace [r2] with ([] ++ [r2]). 
+        ++ rewrite zipper_map_post_compose_concat_opt.
+           admit. (* TODO *)
+        ++ apply app_nil_l.
     + (* isEmpty r1 = false *)
       simpl. rewrite E1; cbn.
       rewrite zipper_union_empty_r_L.
@@ -415,8 +364,10 @@ Proof.
       rewrite E1. 
       cbn. 
       rewrite zipper_union_empty_r_L. 
-      rewrite zipper_map_post_compose_concat.      
-      reflexivity.
+      replace [r2] with ([] ++ [r2]). 
+      ++ rewrite zipper_map_post_compose_concat_opt.      
+         admit. (* TODO *)
+      ++ apply app_nil_l.
   - (* Star *)
     simpl. 
     rewrite set_map_singleton_zipper. 
@@ -426,10 +377,20 @@ Proof.
     unfold underlying_zipper_set, derive, focus. 
     rewrite set_map_singleton_zipper. 
     unfold derive_up. 
-    destruct (isEmpty r) eqn:E;
-      cbn;
-      rewrite !zipper_union_empty_r_L;
-      rewrite zipper_map_post_compose_concat;
-      reflexivity.
-Qed.
+    destruct (isEmpty r) eqn:E.
+    + (* isEmpty r = true *)
+      cbn.
+      rewrite !zipper_union_empty_r_L.
+      replace [Star r] with ([] ++ [Star r]).
+      ++ rewrite zipper_map_post_compose_concat_opt.
+         admit. (* TODO *)
+      ++ apply app_nil_l.
+    + (* isEmpty r = false *)
+      cbn.
+      rewrite !zipper_union_empty_r_L.
+      replace [Star r] with ([] ++ [Star r]).
+       ++ rewrite zipper_map_post_compose_concat_opt.
+         admit. (* TODO *)
+      ++ apply app_nil_l.
+Admitted.
 
