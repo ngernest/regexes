@@ -109,7 +109,6 @@ Proof.
         unfold set_map. 
         rewrite elements_singleton. 
         simpl. 
-        simpl. 
         set_solver.
       * (* ctx = r :: ctx' *)
         simpl.

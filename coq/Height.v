@@ -106,7 +106,7 @@ Lemma max_height_union_singleton : forall (r : re) (rs : gset re),
   max_height_re_set ({[ r ]} ∪ rs) = max (re_height r) (max_height_re_set rs).
 Proof.
   intros r rs. 
-  unfold max_height_re_set. Search (set_fold). 
+  unfold max_height_re_set.
   rewrite set_fold_union_strong. 
   - rewrite set_fold_singleton. 
     rewrite set_fold_comm_acc. reflexivity.
