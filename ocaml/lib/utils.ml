@@ -1,9 +1,17 @@
 open Regex 
+open Antimirov
 open Extracted_brzozowski_zipper
 
-(** Converts a regex to a string *)
-let string_of_re (r : re) : string = 
-  Base.Sexp.to_string_hum (sexp_of_re r) 
+(** Represents a regex as a string using infix notation *)
+let rec string_of_re (r : re) : string = 
+  let open Printf in 
+  match r with 
+  | Void -> "⊥"
+  | Epsilon -> "ε"
+  | Atom c -> sprintf "%c" c
+  | Concat (r1, r2) -> sprintf "(%s ⋅ %s)" (string_of_re r1) (string_of_re r2)
+  | Union (r1, r2) -> sprintf "(%s + %s)" (string_of_re r1) (string_of_re r2)
+  | Star r' -> sprintf "(%s)*" (string_of_re r')
   
 (** Converts a [context] to a string *)
 let string_of_ctx (ctx : context) : string = 
@@ -19,6 +27,21 @@ let string_of_zipper (z : zipper) : string =
   | [] -> "∅"
   | ctxs -> Printf.sprintf "{ %s }" 
     (Base.String.concat ~sep:", " (List.map string_of_ctx ctxs)) 
+
+(** Converts a list of [re] elements to a string *)    
+let string_of_re_list (rs : re list) : string = 
+  match rs with 
+  | [] -> "∅"
+  | _ -> let contents = Base.String.concat ~sep:"; " (List.map string_of_re rs) in 
+    Printf.sprintf "{ %s }" contents
+
+(** Converts a [RegexSet.t] to a string *)    
+let string_of_regex_set (regex_set : RegexSet.t) : string = 
+  let rs : re list = RegexSet.elements regex_set in 
+  match rs with 
+  | [] -> "∅"
+  | _ -> Printf.sprintf "{ %s }" 
+    (Base.String.concat ~sep:", " (List.map string_of_re rs)) 
 
 (** Converts a [context] to a [re] *)
 let context_to_re (ctx : context) : re = 
