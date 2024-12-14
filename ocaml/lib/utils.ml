@@ -29,13 +29,13 @@ let context_to_re (ctx : context) : re =
 let postprocess_regex_list (rs : re list) : re list = 
   Base.List.dedup_and_sort ~compare:compare_re (List.map optimize_re' rs)  
 
-(** Checks whether a regex containing [Alt]s is sorted (i.e. all the arguments 
-    to [Alt]s are sorted in increasing order wrt [compare_re]) *)  
+(** Checks whether a regex containing [Union]s is sorted (i.e. all the arguments 
+    to [Union]s are sorted in increasing order wrt [compare_re]) *)  
 let rec is_sorted (r : re) : bool = 
   match r with 
-  | Alt (r1, Alt (r2, r3)) -> compare_re r1 r2 <= 0 && is_sorted (Alt (r2, r3))
-  | Alt (r1, r2) -> is_sorted r1 && is_sorted r2 && compare_re r1 r2 <= 0
-  | Seq (r1, r2) -> is_sorted r1 && is_sorted r2 
+  | Union (r1, Union (r2, r3)) -> compare_re r1 r2 <= 0 && is_sorted (Union (r2, r3))
+  | Union (r1, r2) -> is_sorted r1 && is_sorted r2 && compare_re r1 r2 <= 0
+  | Concat (r1, r2) -> is_sorted r1 && is_sorted r2 
   | Star r' -> is_sorted r' 
   | _ -> true 
 

@@ -11,9 +11,9 @@ open Base
 type re = 
   | Void 
   | Eps 
-  | Char of char 
-  | Seq of re * re 
-  | Alt of re * re 
+  | Atom of char 
+  | Concat of re * re 
+  | Union of re * re 
   | Star of re
 [@@deriving sexp]  
 
@@ -23,10 +23,10 @@ let rec omatch (r : re) (k : char list -> bool) (cs : char list) : bool =
   match (r, cs) with
   | Void, _ -> false
   | Eps, _ -> k cs
-  | Char _, [] -> false
-  | Char c, c' :: cs -> if Char.equal c c' then k cs else false
-  | Alt (r1, r2), _ -> omatch r1 k cs || omatch r2 k cs
-  | Seq (r1, r2), _ -> omatch r1 (fun s' -> omatch r2 k s') cs
+  | Atom _, [] -> false
+  | Atom c, c' :: cs -> if Char.equal c c' then k cs else false
+  | Union (r1, r2), _ -> omatch r1 k cs || omatch r2 k cs
+  | Concat (r1, r2), _ -> omatch r1 (fun s' -> omatch r2 k s') cs
   | Star r0, _ -> k cs || omatch r0 (fun s' -> omatch r k s') cs
 
 (** Determines whether a string matches a regex *)
@@ -48,7 +48,7 @@ let omatchtop (r : re) (cs : char list) : bool =
 (** Same as [omatch], but with an extra argument [b], which tracks whether 
     the character has been consumed since the start of the current iteration. 
     Intuition: 
-    - [b] is set to true after a successful [Char c] match 
+    - [b] is set to true after a successful [Atom c] match 
     - [b] is cleared before matching the body [r0] of an iteration [Star r0] 
     - [b] is passed along unchanged for all other cases *)
 let rec re_match (r : re) (k : bool -> char list -> bool) 
@@ -56,10 +56,10 @@ let rec re_match (r : re) (k : bool -> char list -> bool)
   match (r, cs) with
   | Void, _ -> false
   | Eps, _ -> k b cs
-  | Char _, [] -> false
-  | Char c, c' :: s' -> Char.equal c c' && k true s'
-  | Alt (r1, r2), _ -> re_match r1 k b cs || re_match r2 k b cs
-  | Seq (r1, r2), _ -> re_match r1 (fun b' s' -> re_match r2 k b' s') b cs
+  | Atom _, [] -> false
+  | Atom c, c' :: s' -> Char.equal c c' && k true s'
+  | Union (r1, r2), _ -> re_match r1 k b cs || re_match r2 k b cs
+  | Concat (r1, r2), _ -> re_match r1 (fun b' s' -> re_match r2 k b' s') b cs
   | Star r0, _ ->
     (* [k'] is a single-use continuation, used only in the [Star] case 
       (Filinski says the purpose of [k'] is to satsify some syntactic 
@@ -86,12 +86,12 @@ type cont =
 
 let rec fmatch (r : re) (k : cont) (b : bool) (s : char list) : bool =
   match (r, s) with
-  | Char _, [] -> false
-  | Char c, c' :: s' -> Char.equal c c' && apply k true s'
+  | Atom _, [] -> false
+  | Atom c, c' :: s' -> Char.equal c c' && apply k true s'
   | Eps, _ -> apply k b s
-  | Seq (r1, r2), _ -> fmatch r1 (CThen (r2, k)) b s
+  | Concat (r1, r2), _ -> fmatch r1 (CThen (r2, k)) b s
   | Void, _ -> false
-  | Alt (r1, r2), _ -> fmatch r1 k b s || fmatch r2 k b s
+  | Union (r1, r2), _ -> fmatch r1 k b s || fmatch r2 k b s
   | Star r0, _ -> apply k b s || apply (CThen (r0, CStar (r0, k))) false s
 
 (** Builds up the body of the continuation *)
@@ -162,14 +162,14 @@ type pgm = ccomp list * contno
     - the updated allocation counter [n'], where [n' = n + |gs| ] *)
 let rec trans (r : re) (i : contno) (n : int) : comp * ccomp list * int =
   match r with
-  | Char c -> (Expect (c, i), [], n)
+  | Atom c -> (Expect (c, i), [], n)
   | Eps -> (Cont (true, i), [], n)
-  | Seq (r1, r2) ->
+  | Concat (r1, r2) ->
     let f2, gs2, n2 = trans r2 i n in
     let f1, gs1, n1 = trans r1 (CN n2) (n2 + 1) in
     (f1, gs2 @ [ (true, f2) ] @ gs1, n1)
   | Void -> (Fail, [], n)
-  | Alt (r1, r2) ->
+  | Union (r1, r2) ->
     let f1, gs1, n1 = trans r1 i n in
     let f2, gs2, n2 = trans r2 i n1 in
     (Or (f1, f2), gs1 @ gs2, n2)

@@ -22,7 +22,7 @@ let gen_re_char : (re * char) Generator.t =
 
 (** A shrinker for regexes:
     - All characters are shrunk to [Epsilon]
-    - For [Star], [Seq], and [Alt], we shrink via structural recursion and 
+    - For [Star], [Concat], and [Union], we shrink via structural recursion and 
       use the smart constructors to create shrunken regexes *)    
 let shrink_re : re Shrinker.t = 
   let open Base in 
@@ -30,11 +30,11 @@ let shrink_re : re Shrinker.t =
   let rec aux (r : re) : re Sequence.t =
     begin match r with 
     | Epsilon | Void -> Sequence.empty 
-    | Char _ -> Sequence.singleton Epsilon
+    | Atom _ -> Sequence.singleton Epsilon
     | Star r' -> Sequence.map ~f:star (aux r') 
-    | Seq (r1, r2) -> 
+    | Concat (r1, r2) -> 
       let%map r1' = aux r1 and r2' = aux r2 in seq r1' r2'
-    | Alt (r1, r2) -> 
+    | Union (r1, r2) -> 
       let%map r1' = aux r1 and r2' = aux r2 in alt r1' r2'
     end
   in 
@@ -48,14 +48,14 @@ let rec gen_regex_string (r : re) : (string Generator.t) option =
   match r with 
   | Void -> None
   | Epsilon -> Some (return "")
-  | Char c -> Some (return (Base.Char.to_string c))
-  | Alt (r1, r2) -> 
+  | Atom c -> Some (return (Base.Char.to_string c))
+  | Union (r1, r2) -> 
     begin match (gen_regex_string r1, gen_regex_string r2) with 
     | None, None -> None
     | Some g1, _ -> Some g1 
     | _, Some g2 -> Some g2
     end 
-  | Seq (r1, r2) -> 
+  | Concat (r1, r2) -> 
     begin match (gen_regex_string r1, gen_regex_string r2) with 
     | Some g1, Some g2 -> 
       Some (let%map s1 = g1 and s2 = g2 in s1 ^ s2)
@@ -98,7 +98,7 @@ let gen_re_char_nonempty_antimirov : (re * char) Generator.t =
 let shrink_re_char : (re * char) Shrinker.t = 
   Shrinker.both shrink_re Shrinker.char  
 
-(** Generates a regex that consists of an [Alt] at the top-level *)  
+(** Generates a regex that consists of an [Union] at the top-level *)  
 let gen_alt : re Generator.t = 
   let open Generator.Let_syntax in 
   let%map r1 = gen_optimized_re and r2 = gen_optimized_re in 
@@ -142,7 +142,7 @@ let%quick_test "the zipper of a union is the union of the zippers"
     (r2 : re [@generator gen_optimized_re] [@shrinker shrink_re]) 
     (c : char [@generator Generator.of_list ['a'; 'b']]) -> 
       let lhs = postprocess_regex_list @@ 
-        underlying_zipper_set (Alt (r1, r2)) c in 
+        underlying_zipper_set (Union (r1, r2)) c in 
       let rhs = postprocess_regex_list @@ 
         ListSet.union (underlying_zipper_set r1 c) (underlying_zipper_set r2 c) in 
       assert (List.equal equal_re lhs rhs);
@@ -208,7 +208,7 @@ let%quick_test ("Brzozowski is always contained in the set of Antimirov derivati
 
 let%expect_test {| Example where a Brzozowski derivative is not contained in the set of Antimirov derivatives 
   (e.g. when the Brzozowski derivative is [Void] and the Antimirov derivative set is the empty set) |} = 
-  let bderiv = Brzozowski.bderiv (Char 'b') 'T' in 
+  let bderiv = Brzozowski.bderiv (Atom 'b') 'T' in 
   Stdio.printf "%s\n" (string_of_re bderiv);
   [%expect {| Void |}]
 
@@ -227,21 +227,3 @@ let%quick_test ("Brzozowski contained in Antimirov set when it is non-empty
     "Assert_failure lib/quickcheck_properties.ml:220:4"
     |}]
   
-(******)
-
-let%quick_test "TODO" 
-  [@generator gen_re_char] [@shrink shrink_re_char] [@config config] = 
-  fun (r : re) (c : char) -> 
-    let z = derive_down c r [Star r] in 
-    assert (not (ListSet.is_empty z) && ListSet.mem [Star r] z);
-  [%expect.unreachable];
-  [%expect {|
-    ("quick test: test failed" (input (Epsilon T)))
-    (* CR require-failed: lib/quickcheck_properties.ml:232:0.
-       Do not 'X' this CR; instead make the required property true,
-       which will make the CR disappear.  For more information, see
-       [Expect_test_helpers_base.require]. *)
-    "Assert_failure lib/quickcheck_properties.ml:236:4"
-    |}]
-    
-
