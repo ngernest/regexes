@@ -231,6 +231,25 @@ Proof.
     cbn.    
 Admitted.
 
+Lemma star_helper : forall c r1 r2,
+  (zipper_map context_to_re (derive_down c (Star r1) [r2])) =
+  set_map (λ r : re, Concat r r2)
+    (zipper_map context_to_re (derive_down c (Star r1) [])).
+Proof.
+  intros.
+  revert c r2.
+  remember (Star r1) as r'.
+  induction r'; intros.
+  - inversion Heqr'.
+  - inversion Heqr'.
+  - inversion Heqr'.
+  - inversion Heqr'.
+  - inversion Heqr'.
+  - admit. (* TODO: figure out a star case *)
+Admitted. 
+  
+
+
 (* TODO: try to prove this *)
 Lemma zipper_map_post_compose_concat : forall c r1 r2,
   (zipper_map context_to_re (derive_down c r1 [r2])) =
@@ -290,10 +309,10 @@ Proof.
       unfold zipper_map.
       admit. (* TODO *) 
   - (* Star *)
-    simpl. 
     unfold zipper_map in *.
-    specialize (IHr1 c (Star r1)).
-    rewrite IHr1.
+    specialize (IHr1 c r2).
+    replace (derive_down c (Star r1) []) with (derive_down c r1 [Star r1]) 
+      by auto.
     admit. (* TODO *)
 Admitted.    
         
@@ -369,25 +388,15 @@ Proof.
       rewrite !zipper_union_empty_r_L.
       rewrite E1. cbn.
       destruct (isEmpty r2) eqn:E2; 
-        rewrite zipper_union_empty_r_L.
-      * (* isEmpty r2 = true *)
-        unfold zipper_union.
-        rewrite zipper_map_union_comm. 
-        unfold underlying_zipper_set, focus, derive. 
-        rewrite !set_map_singleton_zipper.
-        cbn.
-        rewrite !zipper_union_empty_r_L. 
-        rewrite E1, E2.
-        rewrite zipper_map_post_compose_concat. reflexivity.
-      * (* isEmpty r2 = false *)
-        unfold zipper_union.
-        rewrite zipper_map_union_comm. 
-        unfold underlying_zipper_set, derive, focus.
-        rewrite !set_map_singleton_zipper.
-        cbn.
-        rewrite !zipper_union_empty_r_L. 
-        rewrite E1, E2.
-        rewrite zipper_map_post_compose_concat.
+        rewrite zipper_union_empty_r_L;
+        unfold zipper_union;
+        rewrite zipper_map_union_comm;
+        unfold underlying_zipper_set, derive, focus;
+        rewrite !set_map_singleton_zipper;
+        cbn;
+        rewrite !zipper_union_empty_r_L;
+        rewrite E1, E2;
+        rewrite zipper_map_post_compose_concat;
         reflexivity.
     + (* isEmpty r1 = false *)
       simpl. rewrite E1; cbn.
