@@ -1,6 +1,6 @@
 Require Export List Ascii Bool.
 Import ListNotations.
-Require Export Regex Height.
+Require Export Regex Height RegexOpt.
 Require Import Regex EdelmannGset Antimirov RegexOpt.
 From stdpp Require Import gmap sets fin_sets.
 
@@ -184,14 +184,14 @@ Lemma zipper_map_union_comm : forall (z1 z2 : zipper) (f : context -> re),
   zipper_map f (z1 ∪ z2) = zipper_map f z1 ∪ zipper_map f z2.
 Proof. intros. set_solver. Qed.  
 
-(* Stronger version of [zipper_map_post_compose_concat] where 
-   we generalize over all contexts [ctx] *)
+(* TODO: figure out how to use [zipper_map_post_compose_concat'] 
+   in the main Antimirov - Zipper equivalence proof *)
 Lemma zipper_map_post_compose_concat' : forall c r1 r2 ctx,
-  (zipper_map context_to_re (derive_down c r1 (r2 :: ctx))) =
-  set_map (λ r : re, Concat r r2)
-    (zipper_map context_to_re (derive_down c r1 ctx)).
+  zipper_map context_to_re_opt (derive_down c r1 (ctx ++ [r2])) =
+  set_map (λ r : re, RegexOpt.concat r r2)
+    (zipper_map context_to_re_opt (derive_down c r1 ctx)).
 Proof.
-  intros. revert r2.
+  intros. revert c r2 ctx.
   induction r1; intros.
   - (* Void *)    
     simpl. set_solver.
@@ -199,25 +199,29 @@ Proof.
     simpl. set_solver.
   - (* Atom *)
     unfold derive_down. 
-    destruct (c0 =? c)%char eqn:E.
+    destruct (c =? c0)%char eqn:E.
     + (* c0 = c *)
       unfold zipper_map.
       rewrite !set_map_singleton_re_gset.
       unfold context_to_re. simpl. 
-      induction ctx.
+      induction ctx as [|r ctx' IHctx'].
       * (* ctx = [] *)
         simpl. 
         unfold set_map. 
         rewrite elements_singleton. 
         simpl. 
         set_solver.
-      * (* ctx = r2 :: ctx *)
-        cbn.
+      * (* ctx = r :: ctx' *)
+        simpl.
         rewrite set_map_singleton_re_re. 
-        assert (fold_left Concat ctx (Concat (Concat Epsilon r2) a) = 
-          Concat (fold_left Concat ctx (Concat Epsilon a)) r2).
-        { admit. (* TODO: this is not true! Concat is not commutative *) }
-        admit. (* TODO *)
+        unfold context_to_re_opt.
+        simpl. 
+        replace (RegexOpt.concat Epsilon r) with r. 
+        ++ rewrite fold_left_app.
+           simpl. 
+           reflexivity.
+        ++ unfold RegexOpt.concat.
+           destruct r; auto.
     + (* c0 <> c *)
       replace (zipper_map context_to_re ∅) with (∅ : gset re) by set_solver.
       set_solver.
@@ -228,29 +232,32 @@ Proof.
     rewrite IHr1_1.
     set_solver.
   - (* Concat *)
-    cbn.    
-Admitted.
+    simpl.
+    unfold zipper_union.
+    destruct (isEmpty r1_1) eqn:E.
+    + (* isEmpty r1_1 = true *)    
+      rewrite !zipper_map_union_comm.
+      rewrite app_comm_cons.
+      specialize (IHr1_1 c r2 (r1_2 :: ctx)).
+      rewrite IHr1_1.
+      specialize (IHr1_2 c r2 ctx).
+      rewrite IHr1_2.
+      set_solver.
+    + (* isEmpty r1_1 = false *)
+      rewrite app_comm_cons.
+      specialize (IHr1_1 c r2 (r1_2 :: ctx)).
+      rewrite IHr1_1.
+      reflexivity.
+  - (* Star *)
+    simpl. 
+    rewrite app_comm_cons.
+    specialize (IHr1 c r2 (Star r1 :: ctx)).
+    rewrite IHr1.
+    reflexivity.
+Qed.      
 
-Lemma star_helper : forall c r1 r2,
-  (zipper_map context_to_re (derive_down c (Star r1) [r2])) =
-  set_map (λ r : re, Concat r r2)
-    (zipper_map context_to_re (derive_down c (Star r1) [])).
-Proof.
-  intros.
-  revert c r2.
-  remember (Star r1) as r'.
-  induction r'; intros.
-  - inversion Heqr'.
-  - inversion Heqr'.
-  - inversion Heqr'.
-  - inversion Heqr'.
-  - inversion Heqr'.
-  - admit. (* TODO: figure out a star case *)
-Admitted. 
-  
 
-
-(* TODO: try to prove this *)
+(* Note: this has been subsumed by [zipper_map_post_compose_concat'] above *)  
 Lemma zipper_map_post_compose_concat : forall c r1 r2,
   (zipper_map context_to_re (derive_down c r1 [r2])) =
   set_map (λ r : re, Concat r r2)

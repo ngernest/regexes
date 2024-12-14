@@ -66,6 +66,25 @@ Fixpoint derive_down (c : char) (e : re) (ctx : context) : zipper :=
   | _ => ∅ 
   end.
 
+Definition context_to_re_opt (ctx : context) : re :=
+  List.fold_left RegexOpt.concat ctx Epsilon.
+
+Lemma empty_context_opt_is_epsilon : context_to_re_opt [] = Epsilon.  
+Proof. cbn. reflexivity. Qed.
+
+Fixpoint derive_down_opt (c : char) (e : re) (ctx : context) : zipper :=
+  match e with
+  | Atom cl => if Ascii.eqb cl c then {[ ctx ]} else ∅ 
+  | Regex.Union l r => zipper_union (derive_down_opt c l ctx) (derive_down_opt c r ctx)
+  | Concat l r => 
+    if (isEmpty l) then
+      zipper_union (derive_down_opt c l (r :: ctx)) (derive_down_opt c r ctx)
+    else
+      derive_down_opt c l (r :: ctx)
+  | Star e' => derive_down_opt c e' (e :: ctx) 
+  | _ => ∅ 
+  end.
+
 (* Upwards phase of Brzozowski's derivation on zippers. *)
 Fixpoint derive_up (c : char) (ctx : context) : zipper :=
   match ctx with
