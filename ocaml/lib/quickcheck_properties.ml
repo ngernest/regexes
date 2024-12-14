@@ -227,21 +227,3 @@ let%quick_test ("Brzozowski contained in Antimirov set when it is non-empty
     "Assert_failure lib/quickcheck_properties.ml:220:4"
     |}]
   
-(******)
-
-let%quick_test "TODO" 
-  [@generator gen_re_char] [@shrink shrink_re_char] [@config config] = 
-  fun (r : re) (c : char) -> 
-    let z = derive_down c r [Star r] in 
-    assert (not (ListSet.is_empty z) && ListSet.mem [Star r] z);
-  [%expect.unreachable];
-  [%expect {|
-    ("quick test: test failed" (input (Epsilon T)))
-    (* CR require-failed: lib/quickcheck_properties.ml:232:0.
-       Do not 'X' this CR; instead make the required property true,
-       which will make the CR disappear.  For more information, see
-       [Expect_test_helpers_base.require]. *)
-    "Assert_failure lib/quickcheck_properties.ml:236:4"
-    |}]
-    
-
