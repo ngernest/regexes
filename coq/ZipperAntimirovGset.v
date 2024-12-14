@@ -184,6 +184,8 @@ Lemma zipper_map_union_comm : forall (z1 z2 : zipper) (f : context -> re),
   zipper_map f (z1 ∪ z2) = zipper_map f z1 ∪ zipper_map f z2.
 Proof. intros. set_solver. Qed.  
 
+(* Stronger version of [zipper_map_post_compose_concat] where 
+   we generalize over all contexts [ctx] *)
 Lemma zipper_map_post_compose_concat' : forall c r1 r2 ctx,
   (zipper_map context_to_re (derive_down c r1 (r2 :: ctx))) =
   set_map (λ r : re, Concat r r2)
@@ -209,8 +211,12 @@ Proof.
         rewrite elements_singleton. 
         simpl. 
         set_solver.
-      * (* ctx = r :: ctx *)
+      * (* ctx = r2 :: ctx *)
         cbn.
+        rewrite set_map_singleton_re_re. 
+        assert (fold_left Concat ctx (Concat (Concat Epsilon r2) a) = 
+          Concat (fold_left Concat ctx (Concat Epsilon a)) r2).
+        { admit. (* TODO: this is not true! Concat is not commutative *) }
         admit. (* TODO *)
     + (* c0 <> c *)
       replace (zipper_map context_to_re ∅) with (∅ : gset re) by set_solver.
@@ -285,7 +291,9 @@ Proof.
       admit. (* TODO *) 
   - (* Star *)
     simpl. 
-    unfold zipper_map. 
+    unfold zipper_map in *.
+    specialize (IHr1 c (Star r1)).
+    rewrite IHr1.
     admit. (* TODO *)
 Admitted.    
         
