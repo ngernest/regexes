@@ -50,23 +50,12 @@ Lemma gset_elements_doubleton {A : Type} `{Countable A} (x1 x2 : A) :
   elements ({[ x1; x2 ]} : gset A) = [x1; x2] 
   \/ elements ({[ x1; x2 ]} : gset A) = [x2; x1].
 Proof. 
-  intros. 
-  assert (x1 ∈ ({[x1; x2]} : gset A)) as H1 by set_solver.
-  assert (x2 ∈ ({[x1; x2]} : gset A)) as H2 by set_solver.
-  assert (Hperm : NoDup (elements ({[x1; x2]} : gset A)) ∧
-                  ∀ x, x ∈ ({[x1; x2]} : gset A) ↔ x ∈ elements ({[x1; x2]} : gset A)).
-  { Search NoDup. admit. }
-  destruct Hperm as [Hnodup Hiff].
-  assert (Hlist : Permutation (elements ({[x1; x2]} : gset A)) [x1; x2]).
-  { apply NoDup_Permutation; auto.
-    - constructor. set_solver. constructor. set_solver. apply NoDup_nil_2.
-    - intros. split. intros. apply Hiff in H3. set_solver.
-      intros. set_solver.
-  }
-  (* A permutation of a 2-element list is either the list itself or its reverse. *)
-  (* apply Permutation_cons_inv in Hlist.
-  destruct Hlist as [-> | ->]; auto. *)
-Admitted.
+  intros. apply Permutation_length_2_inv. apply Permutation_sym.
+  replace {[x1; x2]} with ((list_to_set [x1; x2]) : gset A).
+  apply elements_list_to_set.
+  apply NoDup_cons_2. set_solver. apply NoDup_singleton.
+  unfold list_to_set. set_solver.
+Qed.
 
 (** Folding a function [f] over a singleton set is just the same as applying 
     [f] to the element in the set, along with the base case *)
@@ -80,14 +69,17 @@ Qed.
 
 (* Essentially inlining the definition of foldr for a set w/ 2 elements *)
 Lemma set_fold_two_elements (f : re -> nat -> nat) (b : nat) (r1 r2 : re) :
-  set_fold f b ({[ r1; r2 ]} : gset re) = f r1 (f r2 b).
+  r1 ≠ r2 -> 
+    set_fold f b ({[ r1; r2 ]} : gset re) = f r1 (f r2 b) \/
+    set_fold f b ({[ r1; r2 ]} : gset re) = f r2 (f r1 b).
 Proof. 
-  intros. unfold set_fold. simpl. replace (elements {[r1; r2]}) with [r1; r2].
-  reflexivity. Search "elements". 
-  replace ({[r1; r2]}) with (list_to_set [r1; r2] : gset re). 
-  (* apply elements_list_to_set. *)
-Admitted. (* TODO: not sure how to use [set_fold_ind_L] here *)  
-  
+  intros. unfold set_fold. simpl.
+  eremember gset_elements_doubleton as H1. clear HeqH1.
+  specialize H1 with r1 r2. apply H1 in H. destruct H.
+  - left. rewrite H. reflexivity.
+  - right. rewrite H. reflexivity.
+Qed.
+
 (** Mapping a function [f] over a singleton set returns a singleton 
     set containing the result [f x].  *)
 Lemma set_map_singleton (f : re -> re) (x : re):
@@ -95,47 +87,39 @@ Lemma set_map_singleton (f : re -> re) (x : re):
 Proof.
   unfold set_map.
   rewrite elements_singleton.
-  simpl.
-  set_solver.
+  simpl. set_solver.
 Qed.  
   
 (** The max height of a singleton regex set is just the height of the 
     regex contained in the set *)  
 Lemma max_height_singleton : forall (r : re),
-  max_height_re_set {[r]} = re_height r.
+  max_height_re_set {[ r ]} = re_height r.
 Proof.
   induction r; 
-    unfold max_height_re_set; 
-    simpl in *;
-    rewrite set_fold_singleton; 
-    reflexivity.
+  unfold max_height_re_set; 
+  simpl in *;
+  rewrite set_fold_singleton; 
+  reflexivity.
 Qed.    
 
 Lemma max_height_union_singleton : forall (r : re) (rs : gset re),
   max_height_re_set ({[ r ]} ∪ rs) = max (re_height r) (max_height_re_set rs).
 Proof.
   intros r rs. 
-  revert r.
-  induction rs using set_ind_L.
-  - (* rs = ∅ *) 
-    intros. rewrite max_height_empty_set.
-    rewrite union_empty_r_L.
-    rewrite Nat.max_0_r.
-    rewrite max_height_singleton.
+  unfold max_height_re_set. Search (set_fold). 
+  rewrite set_fold_union_strong. 
+  - rewrite set_fold_singleton. 
+    rewrite set_fold_comm_acc. reflexivity.
+    { intros. rewrite Nat.max_comm. rewrite <- Nat.max_assoc. 
+      rewrite Nat.max_comm with (n := y). reflexivity. }
+  - apply base.PreOrder_instance_0.
+  - intros. apply reflexive_proper. 
+  - intros. rewrite Nat.max_assoc. rewrite Nat.max_id.
     reflexivity.
-  - (* rs = X ∪ {[ x ]} *)
-    assert (max_height_re_set ({[ x ]} ∪ X) = re_height x `max` max_height_re_set X).
-    { specialize IHrs with x. apply IHrs. }
-    intros r. specialize IHrs with r.
-    rewrite H0.
-    rewrite union_assoc_L.
-    assert (max_height_re_set ({[r; x]}) = re_height r `max` re_height x).
-    { unfold max_height_re_set. 
-      rewrite set_fold_two_elements. 
-      rewrite Nat.max_0_r, Nat.max_comm. 
-      reflexivity. }  
-Admitted. (* TODO: not sure how to use [H1] here *)    
-
+  - intros. rewrite Nat.max_comm. rewrite <- Nat.max_assoc. 
+    rewrite Nat.max_comm with (n := b'). reflexivity.
+Qed.
+  
 (** The max height over a union of two sets is just the max height of each 
     of the constituent subsets *)
 Lemma max_height_union (s1 s2 : gset re) :
@@ -150,11 +134,11 @@ Proof.
     rewrite union_empty_r_L.
     reflexivity.
   - (* s2 = {[ x ]} ∪ X *)
-    intros. 
-    rewrite union_assoc_L.
+    intros. rewrite union_assoc_L.
     remember (s1 ∪ {[ x ]}) as rs.
+    remember IHs2 as IHs2'. clear HeqIHs2'.
     specialize IHs2 with rs. subst. 
-    rewrite IHs2. subst.
+    rewrite IHs2. 
     rewrite max_height_union_singleton.
     rewrite union_comm_L.
     rewrite max_height_union_singleton.
@@ -258,8 +242,7 @@ Lemma size_map_upper_bound :
   forall (f : re -> re) (s : gset re),
   size ((set_map f s) : gset re) <= size s.
 Proof.
-  intros f s.
-  simpl.
+  intros f s. simpl.
   induction s using set_ind_L; eauto.
   rewrite set_map_union_L.
   rewrite set_map_singleton. 
@@ -275,8 +258,7 @@ Proof.
     assert (
       size (set_map f X : gset re) - size (set_map f X ∩ {[ f x ]} : gset re) 
       <= size X
-    ) by lia.
-    X.
+    ) by lia. X.
   - rewrite <- size_union_alt. auto.
 Qed. 
   
@@ -301,7 +283,6 @@ Proof.
     assert (({[ r2 ]} : gset re) ∩ {[ r1 ]} = ∅) by set_solver. 
     rewrite H0. rewrite size_empty. lia. 
 Qed.
-  
 
 (* The size of the set [A_der r] (which overapproximates the set of 
    Antimirov derivatives) is linear in the size of the original regex *)
@@ -332,8 +313,7 @@ Proof.
     rewrite set_size_union_bound.
     rewrite size_union_alt.
     rewrite size_difference_alt.
-    rewrite size_singleton. 
-    X.
+    rewrite size_singleton. X.
   - (* Concat *)
     simpl.
     repeat (rewrite size_union_alt).
@@ -341,8 +321,7 @@ Proof.
       <= size (A_der r1 : gset re)).
     { rewrite size_map_upper_bound. lia. } 
     simpl in *. 
-    repeat (rewrite size_difference_alt). 
-    X.
+    repeat (rewrite size_difference_alt). X.
   - (* Star *)
     simpl.
     rewrite size_union_alt. 
@@ -351,8 +330,7 @@ Proof.
     { rewrite size_map_upper_bound. lia. }
     simpl in *.
     rewrite size_difference_alt.
-    rewrite size_singleton.
-    X.
+    rewrite size_singleton. X.
 Qed.
   
 (* There exists some constant [k] which upper bounds the size of all Antimirov derivatives w.r.t. a string *) 
@@ -363,10 +341,9 @@ Proof.
   intros. 
   destruct A_der_linear as [k H].
   exists k. intros.
-Admitted. (* TODO *)  
-  (* TOOD: need to use some result that all elements of [a_der_str r s] ∈ [A_Der]
-     - need to think about whether [A_der] is actually linear in the size of [r]
-   *)
-
-  
-
+  specialize H with r. 
+  replace (set_size (a_der_str r s)) with (size (a_der_str r s)).
+  eapply transitivity.
+  apply subseteq_size. apply a_finite. apply H. 
+  unfold size. reflexivity.
+Qed. 
