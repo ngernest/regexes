@@ -66,25 +66,6 @@ Fixpoint derive_down (c : char) (e : re) (ctx : context) : zipper :=
   | _ => ∅ 
   end.
 
-Definition context_to_re_opt (ctx : context) : re :=
-  List.fold_left RegexOpt.concat ctx Epsilon.
-
-Lemma empty_context_opt_is_epsilon : context_to_re_opt [] = Epsilon.  
-Proof. cbn. reflexivity. Qed.
-
-Fixpoint derive_down_opt (c : char) (e : re) (ctx : context) : zipper :=
-  match e with
-  | Atom cl => if Ascii.eqb cl c then {[ ctx ]} else ∅ 
-  | Regex.Union l r => zipper_union (derive_down_opt c l ctx) (derive_down_opt c r ctx)
-  | Concat l r => 
-    if (isEmpty l) then
-      zipper_union (derive_down_opt c l (r :: ctx)) (derive_down_opt c r ctx)
-    else
-      derive_down_opt c l (r :: ctx)
-  | Star e' => derive_down_opt c e' (e :: ctx) 
-  | _ => ∅ 
-  end.
-
 (* Upwards phase of Brzozowski's derivation on zippers. *)
 Fixpoint derive_up (c : char) (ctx : context) : zipper :=
   match ctx with
@@ -111,7 +92,6 @@ Instance ZipperSingleton : Singleton zipper zipper := {
 Definition derive (c : char) (z : zipper) : zipper :=
   set_fold zipper_union ∅  
     (set_map (derive_up c) z : zipper).
-
     
 
 (* Generalisation of derivatives to words. *)
@@ -124,10 +104,7 @@ Fixpoint derive_word (w : word) (z : zipper) : zipper :=
 (* Note: the following 3 functions return [Prop] instead of [bool], 
    as is the case for their implementations in [Edelmann.v].
    This is because there does not exist a version of [existsb] for [gset]s 
-   ([existsb] comes from [ListSet] only).
-   
-   TODO: can we pattern match on [gset]s and implement our own version of 
-   [existsb] for [gset bool]? *)  
+   ([existsb] comes from [ListSet] only). *)  
 
 (* Checks if the zipper z accept the empty word *)
 Definition zipper_nullable (z : zipper) : Prop :=

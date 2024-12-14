@@ -1,11 +1,11 @@
 Require Export List Ascii Bool.
 Import ListNotations.
-Require Export Regex Height RegexOpt.
-Require Import Regex EdelmannGset Antimirov RegexOpt.
+Require Export Regex Height.
+Require Import Regex EdelmannGset Antimirov.
 From stdpp Require Import gmap sets fin_sets.
 
-(* Work in progress: proving that the underlying sets 
-   for zippers & Antimirov derivatives are equivalent *)
+(* Proving that the underlying sets for zippers 
+  & Antimirov derivatives are equivalent *)
 (******************************************************************************)
 
 (* Maps a function over a zipper, returning a set of regexes *)
@@ -33,12 +33,6 @@ Definition underlying_zipper_set (r : re) (c : char) : gset re :=
 Definition underlying_antimirov_set (r : re) (c : char) : gset re :=
   a_der r c.
 
-(* Typeclass instance needed to make [singleton_empty_ctx_is_singleton_epsilon] 
-  below typecheck *)
-Instance SingletonReZipper : Singleton re zipper := {
-  singleton := fun r => {[ [r] ]}
-}.
-
   
 (* Typeclass instance needed to make [zipper_union_empty_r_L] below typecheck *)
 Instance ZipperEmpty : Empty zipper := {
@@ -53,79 +47,6 @@ Proof.
   replace (gset_union z ∅) with (z ∪ ∅) by set_solver. 
   set_solver.
 Qed.  
-
-Instance SingletonCtxZipper : Singleton context zipper := {
-  singleton := fun ctx => {[ ctx ]}
-}.
-
-Instance EmptyZipper : Empty zipper := {
-  empty := ∅ 
-}.
-
-Instance UnionZipper : Union zipper := {
-  union := zipper_union
-}.
-
-Instance ElementsCtxRe : Elements context re := {
-  elements := fun ctx => [[ctx]]
-}.
-
-Instance ElementsCtxZipper : Elements context zipper := {
-  elements := fun z => elements z
-}.
-
-
-(* Mapping [context_to_re] over the singleton zipper containing the empty context
-  yields the singleton set containing [Epsilon ]*)
-Lemma singleton_empty_ctx_is_singleton_epsilon : 
-  @set_map _ _ _ _ _ _ EmptyZipper _ context_to_re ({[ [] ]} : zipper) = 
-  ({[ Epsilon ]} : zipper).
-Proof.
-  unfold set_map. set_solver.  
-Qed.  
-
-Lemma another : forall x (z : zipper),
-  x ∈ z -> x ∈ z ∪ {[[]]}.
-Proof.
-  Admitted.  
-
-
-Lemma zipper_union_distributes_over_derive_down: forall (c : char) (r1 r2 : re),
-  zipper_map context_to_re
-  (zipper_union
-    (derive_down c r1 [])
-    (derive_down c r2 [])) = 
-  (zipper_map context_to_re (derive_down c r1 [])) ∪ 
-    (zipper_map context_to_re (derive_down c r2 [])).
-Proof.
-  intros.
-  revert r1.
-  induction r2; unfold zipper_map; simpl; eauto; intros r1.
-  - (* Void *)
-    replace (set_map context_to_re ∅) with (∅ : gset re) by set_solver.
-    replace (set_map context_to_re (derive_down c r1 []) ∪ ∅) 
-      with (set_map context_to_re (derive_down c r1 []) : gset re) 
-      by set_solver.
-    unfold zipper_union.
-    rewrite zipper_union_empty_r_L.
-    reflexivity.
-  - (* Epsilon *)
-    replace (set_map context_to_re ∅) with (∅ : gset re) by set_solver.
-    remember (derive_down c r1 []) as z.
-    rewrite zipper_union_empty_r_L.
-    set_solver.
-  - (* Atom *)
-    destruct (c0 =? c)%char eqn:E. 
-    + (* c0 = c *)
-      set_unfold. intros. split; intros.
-      * (* -> *) 
-      destruct H as [x0 [H1 H2]].
-      left.
-      exists x0. split; auto. 
-      subst.
-      unfold zipper_union in H2.
-Admitted.       
-      
 
 Lemma set_map_singleton_zipper : forall (ctx : context) (f : context -> zipper),
   set_map f ({[ ctx ]} : zipper) = f ctx.
@@ -155,20 +76,6 @@ Proof.
 Qed.
 
 (******************************************************************************)
-
-(* The zipper of a union is the union of two zippers *)
-Lemma zipper_union_homomorphism : forall (r1 r2 : re) (c : char),
-  underlying_zipper_set (Regex.Union r1 r2) c = 
-  underlying_zipper_set r1 c ∪ underlying_zipper_set r2 c.
-Proof.
-  intros.
-  unfold underlying_zipper_set. 
-  induction r2; unfold derive, focus; 
-    cbn; eauto.
-  - (* Void *)
-    rewrite !zipper_union_empty_r_L.
-    rewrite !set_map_singleton_zipper.
-Admitted.
 
 (* [zipper_map] and [∪] commutes *)
 Lemma zipper_map_union_comm : forall (z1 z2 : zipper) (f : context -> re),
@@ -202,13 +109,11 @@ Proof.
         unfold set_map. 
         rewrite elements_singleton. 
         simpl. 
-        unfold context_to_re_opt. 
         simpl. 
         set_solver.
       * (* ctx = r :: ctx' *)
         simpl.
         rewrite set_map_singleton_re_re. 
-        unfold context_to_re_opt.
         simpl. 
         rewrite fold_left_app.
         simpl. 
@@ -246,11 +151,6 @@ Proof.
     rewrite IHr1.
     reflexivity.
 Qed.      
-        
-(* Inversion lemma for when an element is in a singleton set *)
-Lemma mem_singleton_set : forall (x : context) (ctx : context),
-  x ∈ ({[ ctx ]} : zipper) -> x = ctx.
-Proof. intros. set_solver. Qed.  
 
 (* The underlying sets for zippers & Antimirov derivatives are equivalent *)
 Lemma zipper_antimirov_equivalent : forall (r : re) (c : char),
