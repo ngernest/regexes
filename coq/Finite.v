@@ -63,26 +63,3 @@ Proof. induction s; intros; simpl.
     apply re_in_A_der. intros. 
     eapply subset_trans. apply IHs. eapply A_der_subset. apply H. 
 Qed.
-
-Definition all_chars : gset char := 
-  list_to_set (map Ascii.ascii_of_nat (seq 0 128)).
-
-Lemma char_in_all : forall (c : char), c ∈ all_chars.
-Proof. Admitted.
-
-(** Generates all possible Brzozowski derivatives wrt any string *)
-(* Fixpoint B_der (r : re) : gset re :=
-  match r with
-  | Void => {[ Void ]}
-  | Epsilon => {[ Void; Epsilon ]}
-  | Atom b => {[ Void; Epsilon; Atom b ]}
-  | Union r1 r2 => 
-    set_map (fun '(r1', r2') => Union r1' r2') (cprod (B_der r1) (B_der r2))
-  | Concat r1 r2 => (set_map (fun '(r1', r2') => Union r1' r2')
-      (cprod (set_map (fun r' => Concat r' r2 : re) (B_der r1) : gset re) 
-      (B_der r2))) 
-      ∪ (set_map (fun r' => Concat r' r2) (B_der r1) : gset re)
-  | Star r => (set_bind (fun r' => B_der (Concat r' (Star r))) (B_der r)) ∪ {[ Star r ]}
-  end. *)
-
-(* Definition B_der (r : re) : gset re :=  {fold sum a | a ⊂ A(r)}. *)

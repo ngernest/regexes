@@ -15,7 +15,7 @@ Fixpoint re_size (r : re) : nat :=
   | Atom _ => 2
   | Concat re1 re2 => 1 + re_size re1 + re_size re2
   | Union re1 re2 => 1 + re_size re1 + re_size re2
-  | Star re' => 1 + re_size re'
+  | Star re => 1 + re_size re
   end.
 
 (** Computes the height of a regex 
@@ -27,7 +27,7 @@ Fixpoint re_height (r : re) : nat :=
   | Atom _ => 1
   | Concat re1 re2 => 1 + max (re_height re1) (re_height re2)
   | Union re1 re2 => 1 + max (re_height re1) (re_height re2)
-  | Star re' => 1 + re_height re'
+  | Star re => 1 + re_height re
   end.
 
 (** Computes the maximum height of a set of regexes *)
@@ -35,20 +35,38 @@ Definition max_height_re_set (rs : gset re) : nat :=
   set_fold (fun r acc => max (re_height r) acc) 0 rs.
 
 (** Empty set has [max_height = 0] *)
-Lemma max_height_empty_set : 
-  max_height_re_set ∅ = 0. 
+Lemma max_height_empty_set : max_height_re_set ∅ = 0. 
 Proof.
   unfold max_height_re_set.
   apply set_fold_empty.
 Qed.
 
 Lemma gset_elements_singleton {A : Type} `{Countable A} (x : A) :
-  elements (({[ x ]}) : gset A) = [x].
-Proof.
-  simpl. 
-  set_unfold.
-  rewrite elements_singleton. reflexivity.
-Qed.
+  elements ({[ x ]} : gset A) = [x].
+Proof. rewrite elements_singleton. reflexivity. Qed.
+
+Lemma gset_elements_doubleton {A : Type} `{Countable A} (x1 x2 : A) :
+  x1 ≠ x2 ->
+  elements ({[ x1; x2 ]} : gset A) = [x1; x2] 
+  \/ elements ({[ x1; x2 ]} : gset A) = [x2; x1].
+Proof. 
+  intros. 
+  assert (x1 ∈ ({[x1; x2]} : gset A)) as H1 by set_solver.
+  assert (x2 ∈ ({[x1; x2]} : gset A)) as H2 by set_solver.
+  assert (Hperm : NoDup (elements ({[x1; x2]} : gset A)) ∧
+                  ∀ x, x ∈ ({[x1; x2]} : gset A) ↔ x ∈ elements ({[x1; x2]} : gset A)).
+  { Search NoDup. admit. }
+  destruct Hperm as [Hnodup Hiff].
+  assert (Hlist : Permutation (elements ({[x1; x2]} : gset A)) [x1; x2]).
+  { apply NoDup_Permutation; auto.
+    - constructor. set_solver. constructor. set_solver. apply NoDup_nil_2.
+    - intros. split. intros. apply Hiff in H3. set_solver.
+      intros. set_solver.
+  }
+  (* A permutation of a 2-element list is either the list itself or its reverse. *)
+  (* apply Permutation_cons_inv in Hlist.
+  destruct Hlist as [-> | ->]; auto. *)
+Admitted.
 
 (** Folding a function [f] over a singleton set is just the same as applying 
     [f] to the element in the set, along with the base case *)
@@ -62,9 +80,13 @@ Qed.
 
 (* Essentially inlining the definition of foldr for a set w/ 2 elements *)
 Lemma set_fold_two_elements (f : re -> nat -> nat) (b : nat) (r1 r2 : re) :
-  set_fold f b ({[ r1; r2 ]} : gset re) = f r2 (f r1 b).
-Proof. Admitted. (* TODO: not sure how to use [set_fold_ind_L] here *)  
-  
+  set_fold f b ({[ r1; r2 ]} : gset re) = f r1 (f r2 b).
+Proof. 
+  intros. unfold set_fold. simpl. replace (elements {[r1; r2]}) with [r1; r2].
+  reflexivity. Search "elements". 
+  replace ({[r1; r2]}) with (list_to_set [r1; r2] : gset re). 
+  (* apply elements_list_to_set. *)
+Admitted. (* TODO: not sure how to use [set_fold_ind_L] here *)  
   
 (** Mapping a function [f] over a singleton set returns a singleton 
     set containing the result [f x].  *)
@@ -89,12 +111,10 @@ Proof.
     reflexivity.
 Qed.    
 
-
-
 Lemma max_height_union_singleton : forall (r : re) (rs : gset re),
   max_height_re_set ({[ r ]} ∪ rs) = max (re_height r) (max_height_re_set rs).
 Proof.
-  intros r rs.
+  intros r rs. 
   revert r.
   induction rs using set_ind_L.
   - (* rs = ∅ *) 
@@ -113,10 +133,8 @@ Proof.
     { unfold max_height_re_set. 
       rewrite set_fold_two_elements. 
       rewrite Nat.max_0_r, Nat.max_comm. 
-      reflexivity. }    
+      reflexivity. }  
 Admitted. (* TODO: not sure how to use [H1] here *)    
-    
-  
 
 (** The max height over a union of two sets is just the max height of each 
     of the constituent subsets *)
