@@ -297,7 +297,7 @@ Proof.
     admit. (* TODO *)
 Admitted.    
         
-
+(* Inversion lemma for when an element is in a singleton set *)
 Lemma mem_singleton_set : forall (x : context) (ctx : context),
   x ∈ ({[ ctx ]} : zipper) -> x = ctx.
 Proof. intros. set_solver. Qed.  
@@ -405,49 +405,15 @@ Proof.
     simpl. 
     rewrite set_map_singleton_zipper. 
     rewrite <- IHr.
-    X.    
-    cbn in *.
-    rewrite zipper_union_empty_r_L in *. 
-    rewrite zipper_union_empty_r_L in H0.
-    destruct r; cbn in *.
-    + (* Void *)       
-      inversion H0.
-    + (* Epsilon *)
-      inversion H0.
-    + (* Atom *)
-      destruct (c0 =? c)%char eqn:E.
-      * (* c0 = c *)
-        apply mem_singleton_set in H0.
-        subst. 
-        cbn. 
-        exists Epsilon. split; auto.
-        specialize (IHr Epsilon).
-        apply IHr. 
-        assert (c = c0).
-        { apply Ascii.eqb_eq. 
-          rewrite Ascii.eqb_sym.
-          assumption. }
-        destruct (char_dec c c0) eqn:E'; set_solver.
-      * (* c0 <> c *)
-        inversion H0.
-    + (* Union *)
-      unfold zipper_union in *. 
-      set_unfold.
-      destruct H0 as [H1 | H2].
-      * (* derive_down c r1 [Star (Union r1 r2)] *)
-        eexists. split.
-        ++ admit. (* TODO *)
-        ++ apply IHr. left.
-           admit.  (* TODO *)
-   (* Issue: for [Star], [derive_down] just accumulates an increasing list of [r]s :
+    cbn.
+    rewrite !zipper_union_empty_r_L.
+    unfold underlying_zipper_set, derive, focus. 
+    rewrite set_map_singleton_zipper. 
+    unfold derive_up. 
+    destruct (isEmpty r) eqn:E;
+      cbn;
+      rewrite !zipper_union_empty_r_L;
+      rewrite zipper_map_post_compose_concat;
+      reflexivity.
+Qed.
 
-      derive_up c [Star r]
-      === zipper_union (derive_down c (Star r) []) (derive_up c [])
-      === zipper_union (derive_down c (Star r) []) ∅ 
-      === derive_down c (Star r) []
-      === derive down c r [r; Star r]
-      === derive down c r [r; r; Star r]
-      === ... 
-    
-    *)
-Admitted. (* TODO *)  
