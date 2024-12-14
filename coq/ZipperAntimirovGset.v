@@ -184,6 +184,47 @@ Lemma zipper_map_union_comm : forall (z1 z2 : zipper) (f : context -> re),
   zipper_map f (z1 ∪ z2) = zipper_map f z1 ∪ zipper_map f z2.
 Proof. intros. set_solver. Qed.  
 
+Lemma zipper_map_post_compose_concat' : forall c r1 r2 ctx,
+  (zipper_map context_to_re (derive_down c r1 (r2 :: ctx))) =
+  set_map (λ r : re, Concat r r2)
+    (zipper_map context_to_re (derive_down c r1 ctx)).
+Proof.
+  intros. revert r2.
+  induction r1; intros.
+  - (* Void *)    
+    simpl. set_solver.
+  - (* Epsilon *)
+    simpl. set_solver.
+  - (* Atom *)
+    unfold derive_down. 
+    destruct (c0 =? c)%char eqn:E.
+    + (* c0 = c *)
+      unfold zipper_map.
+      rewrite !set_map_singleton_re_gset.
+      unfold context_to_re. simpl. 
+      induction ctx.
+      * (* ctx = [] *)
+        simpl. 
+        unfold set_map. 
+        rewrite elements_singleton. 
+        simpl. 
+        set_solver.
+      * (* ctx = r :: ctx *)
+        cbn.
+        admit. (* TODO *)
+    + (* c0 <> c *)
+      replace (zipper_map context_to_re ∅) with (∅ : gset re) by set_solver.
+      set_solver.
+  - (* Union *)
+    simpl.
+    unfold zipper_union. 
+    rewrite !zipper_map_union_comm.
+    rewrite IHr1_1.
+    set_solver.
+  - (* Concat *)
+    cbn.    
+Admitted.
+
 (* TODO: try to prove this *)
 Lemma zipper_map_post_compose_concat : forall c r1 r2,
   (zipper_map context_to_re (derive_down c r1 [r2])) =
@@ -248,6 +289,10 @@ Proof.
     admit. (* TODO *)
 Admitted.    
         
+
+Lemma mem_singleton_set : forall (x : context) (ctx : context),
+  x ∈ ({[ ctx ]} : zipper) -> x = ctx.
+Proof. intros. set_solver. Qed.  
 
 (* The underlying sets for zippers & Antimirov derivatives are equivalent *)
 Lemma zipper_antimirov_equivalent : forall (r : re) (c : char),
@@ -352,7 +397,40 @@ Proof.
     simpl. 
     rewrite set_map_singleton_zipper. 
     rewrite <- IHr.
-  
+    X.    
+    cbn in *.
+    rewrite zipper_union_empty_r_L in *. 
+    rewrite zipper_union_empty_r_L in H0.
+    destruct r; cbn in *.
+    + (* Void *)       
+      inversion H0.
+    + (* Epsilon *)
+      inversion H0.
+    + (* Atom *)
+      destruct (c0 =? c)%char eqn:E.
+      * (* c0 = c *)
+        apply mem_singleton_set in H0.
+        subst. 
+        cbn. 
+        exists Epsilon. split; auto.
+        specialize (IHr Epsilon).
+        apply IHr. 
+        assert (c = c0).
+        { apply Ascii.eqb_eq. 
+          rewrite Ascii.eqb_sym.
+          assumption. }
+        destruct (char_dec c c0) eqn:E'; set_solver.
+      * (* c0 <> c *)
+        inversion H0.
+    + (* Union *)
+      unfold zipper_union in *. 
+      set_unfold.
+      destruct H0 as [H1 | H2].
+      * (* derive_down c r1 [Star (Union r1 r2)] *)
+        eexists. split.
+        ++ admit. (* TODO *)
+        ++ apply IHr. left.
+           admit.  (* TODO *)
    (* Issue: for [Star], [derive_down] just accumulates an increasing list of [r]s :
 
       derive_up c [Star r]
@@ -364,5 +442,4 @@ Proof.
       === ... 
     
     *)
-    admit.
 Admitted. (* TODO *)  
