@@ -18,7 +18,7 @@ let gen_optimized_re : re Generator.t =
 (** Generator that generates a pair consisting of a regex 
     and an lowercase character *)
 let gen_re_char : (re * char) Generator.t = 
-  Generator.both gen_optimized_re Generator.char_lowercase
+  Generator.both gen_optimized_re (Generator.of_list ['a'; 'b'])
 
 (** A shrinker for regexes:
     - All characters are shrunk to [Epsilon]
