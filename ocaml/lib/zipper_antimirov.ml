@@ -29,8 +29,8 @@ let zipper_antimirov_demo () =
       ~f:(fun (r, c) -> not @@ List.is_empty (underlying_zipper_set r c)))
     ~f:(fun (r, c) ->
       printf "r = %s \nc = %c\n" (string_of_re r) c;
-      let zset = List.map ~f:optimize_re' (underlying_zipper_set r c) in 
-      let aset = RegexSet.map optimize_re' (underlying_antimirov_set r c) in 
+      let zset = List.map ~f:optimize_re (underlying_zipper_set r c) in 
+      let aset = RegexSet.map optimize_re (underlying_antimirov_set r c) in 
     printf "Zippers   : %s\n" (string_of_re_list zset);
     printf "Antimirov : %s\n" (string_of_regex_set aset);
     printf "***************************************\n")

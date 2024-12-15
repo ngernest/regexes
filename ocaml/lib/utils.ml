@@ -50,7 +50,7 @@ let context_to_re (ctx : context) : re =
 (** Simplifies each element of a list of regexes using rewrite rules,
     sorts the resultant list and removes duplicates *)  
 let postprocess_regex_list (rs : re list) : re list = 
-  Base.List.dedup_and_sort ~compare:compare_re (List.map optimize_re' rs)  
+  Base.List.dedup_and_sort ~compare:compare_re (List.map optimize_re rs)  
 
 (** Checks whether a regex containing [Union]s is sorted (i.e. all the arguments 
     to [Union]s are sorted in increasing order wrt [compare_re]) *)  

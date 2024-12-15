@@ -13,7 +13,7 @@ open Sexplib.Conv
 (** Generates an optimized regex *)
 let gen_optimized_re : re Generator.t = 
   let open Generator.Let_syntax in 
-  quickcheck_generator_re >>| optimize_re'
+  quickcheck_generator_re >>| optimize_re
 
 (** Generator that generates a pair consisting of a regex 
     and an lowercase character *)
@@ -152,7 +152,7 @@ let%quick_test "underlying sets for zippers & Antimirov are the same"
   [@config config] = 
   fun (r : re [@generator gen_optimized_re] [@shrinker shrink_re]) 
     (c : char [@generator Generator.of_list ['a'; 'b']]) -> 
-    let input = optimize_re' r in 
+    let input = optimize_re r in 
     let lhs = postprocess_regex_list (underlying_zipper_set r c) in 
     let rhs = postprocess_regex_list @@ 
       RegexSet.to_list (aderiv c r) in 
@@ -165,9 +165,9 @@ let%quick_test {| flattening a zipper and flattening the Antimirov derivative se
   [@generator gen_re_char] [@shrinker shrink_re_char] [@config config] = 
   fun (r : re) (c : char) -> 
     let open Stdio in 
-    let input = optimize_re' r in 
-    let lhs = optimize_re' @@ flatten_zipper (derive c (focus r)) in 
-    let rhs = optimize_re' @@ RegexSet.fold 
+    let input = optimize_re r in 
+    let lhs = optimize_re @@ flatten_zipper (derive c (focus r)) in 
+    let rhs = optimize_re @@ RegexSet.fold 
       (fun r' acc -> alt r' acc) (aderiv c r) Void in 
     let result = equal_re lhs rhs in 
     assert (not (contains_void r));

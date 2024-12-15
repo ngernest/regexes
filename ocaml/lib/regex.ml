@@ -56,31 +56,13 @@ let star (re : re) : re =
   | Star re' -> Star re'
   | _ -> Star re
 
-(** Optimizes a regex *)  
+(** Optimizes a regex using rewrite rules provided by the aforementioned
+    smart constructors *)
 let rec optimize_re (r : re) : re = 
   match r with 
-  | Concat (r', Void) | Concat (Void, r') -> 
-      Void
-  | Concat (r', Epsilon) | Concat (Epsilon, r') 
-  | Union (r', Void) | Union (Void, r') -> 
-      optimize_re r' 
-  | Union (r1, Union (r2, r3)) -> 
-      alt (alt (optimize_re r1) (optimize_re r2)) (optimize_re r3)
-  | Union (r1, r2) when equal_re r1 r2 -> 
-      optimize_re r1 
-  | Star Void | Star Epsilon -> 
-      Epsilon 
-  | Star (Star r') -> 
-      optimize_re @@ star r'
-  | _ -> r
-
-(** Another version of [optimize_re] which just calls the
-   smart constructor  *)
-let rec optimize_re' (r : re) : re = 
-  match r with 
-  | Concat (r1, r2) -> seq (optimize_re' r1) (optimize_re' r2)
-  | Union (r1, r2) -> alt (optimize_re' r1) (optimize_re' r2) 
-  | Star r' -> star (optimize_re' r')
+  | Concat (r1, r2) -> seq (optimize_re r1) (optimize_re r2)
+  | Union (r1, r2) -> alt (optimize_re r1) (optimize_re r2) 
+  | Star r' -> star (optimize_re r')
   | _ -> r
 
 (** Determines if a regex contains [Void] *)  
@@ -90,7 +72,6 @@ let rec contains_void (r : re) : bool =
   | Union (r1, r2) | Concat (r1, r2) -> contains_void r1 || contains_void r2 
   | Star r' -> contains_void r' 
   | _ -> false  
-  
   
 (** Computes the {i size} (i.e. length) of a regex *)
 let rec re_size (r : re) : int =
