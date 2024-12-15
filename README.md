@@ -4,21 +4,25 @@ This repository contains our work mechanizing proofs related to Brzozowski & Ant
 
 ## Coq Environment Setup
 
-**Creating a new Opam Switch**
+### Creating a new Opam switch
 This project compiles with Coq 8.19.2 and OCaml 5.2.0. We recommend setting up a fresh Opam switch with these versions:
 ```bash
 opam switch create [switch-name] ocaml-base-compiler.5.2.0
 eval $(opam env)
 opam pin add coq 8.19.2
 ```
-We recommned viewing our Coq code in VS Code using the [coq-lsp](https://github.com/ejgallego/coq-lsp) VS Code extension (instead of VSCoq).
-- **Note**: if you are using VS Code, please open VS Code in the `coq` subdirectory by `cd`-ing to the `coq` subdirectory and running `code .` in the terminal (this is needed for `coq-lsp` to work properly).
-- Our Coq code uses the [`coq-std++`](https://gitlab.mpi-sws.org/iris/stdpp) library, which can be installed as follows:
+
+### Installing the `std++` library
+Our Coq code uses the [`coq-std++`](https://gitlab.mpi-sws.org/iris/stdpp) library, which can be installed as follows:
 ```bash
 opam repo add coq-released https://coq.inria.fr/opam/released
 opam install coq-stdpp
 ```
+
+### Compiling and viewing our code
 - To compile: `cd` into the [`coq`](./coq/) subdirectory & run `make` / `make clean` as appropriate. 
+- We recommend viewing our Coq code in VS Code using the [coq-lsp](https://github.com/ejgallego/coq-lsp) VS Code extension (instead of VSCoq).
+- **Note**: if you are using VS Code, please open VS Code in the `coq` subdirectory by `cd`-ing to the `coq` subdirectory and running `code .` in the terminal (this is needed for `coq-lsp` to work properly).
 
 ## Coq code 
 - [`Regex.v`](./coq/Regex.v): Definitions related to regular expressions (adapted from Jules)
@@ -29,9 +33,7 @@ opam install coq-stdpp
 - [`Height.v`](./coq/Height.v): Proofs that height and size of Antimirov derivatives are bounded
 - [`EdelmannGset.v`](./coq/EdelmannGset.v): Romain Edelmann's Coq formalization of the zipper representation of Brzozowski derivatives,
   modified to use `gset`s
-- [`ZipperAntimirovGset.v`](./coq/ZipperAntimirovGset.v): Proof that the underlying sets for zippers and Antimirov derivatives are equivalent
-
-We also referenced the code from the CS 6115 [lecture](https://www.cs.cornell.edu/courses/cs6115/2017fa/notes/SimpleLex.html) (Fall 2017) on regexes.
+- [`ZipperAntimirovGset.v`](./coq/ZipperAntimirovGset.v): Proof that the underlying sets of regexes for zippers and Antimirov derivatives are equivalent
  
 ## OCaml Code 
 The `ocaml` subdirectory contains executable implementations of regex matchers:
