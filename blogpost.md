@@ -20,4 +20,4 @@ In this project, we mechanize proofs that relate the two notions of derivatives 
 4. If we concatenate the elements within each context (list of regexes) contained in Edelmann’s zipper, we get the same set of regexes as the Antimirov derivative.
 
 Thus, we have proved notions of equivalence for Brzozowski-based matchers, Antimirov-based matchers, and the zipper representation of the Brzozowski derivative. 
-We also proved bounds on size, height, and finitude for these derivatives. Finally, we also implemented much of our work in OCaml to allow these derivative-based matchers to be executed.
+We also proved bounds on size, height, and finitude for these derivatives. Finally, we also implemented much of our work in OCaml to allow these derivative-based matchers to be executed. Our code is available on [GitHub](https://github.com/ngernest/regexes).
