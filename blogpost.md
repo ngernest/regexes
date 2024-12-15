@@ -21,8 +21,3 @@ We aim to prove similar results for Antimirov derivatives. Thus far, we've prove
 Moreover, we aim to explore some recent results published in Romain Edelmann's [PhD dissertation](https://infoscience.epfl.ch/server/api/core/bitstreams/4fcb9f0f-7ac1-484f-823c-c19de39dd9ff/content) from EPFL. In his thesis, Edelmann shows how Brzozowski derivatives can be implemented using a purely functional data structure called a [zipper](https://en.wikipedia.org/wiki/Zipper_(data_structure)). We'd like to prove that the zipper representation of Brzozowski derivatives is equivalent to the typical syntactic presentation of derivatives. Additionally, Edelmann mentions in passing that his zipper representation is "reminiscent of Antimirov derivatives." We'd like to examine whether we can formally prove Edelmann's observation, i.e. that the set of terms contained within a Brzozowski zipper is the same as the set of terms contained in the set of Antimirov derivatives (modulo some rewrite rules). 
 
 In addition, it is known that Brzozowski and Antimirov derivatives are both finite. We would like to prove this result in Coq. Edelmann proves in his thesis that Brzozowski derivatives are finite using some results regarding the finiteness of zippers. It would be interesting to see if we could build on this result when proving finiteness. 
-
-
-
-
-

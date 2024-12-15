@@ -1,4 +1,4 @@
-# Verified Derivative-Based Regular Expression Matching (Work in Progress)
+# Verified Derivative-Based Regular Expression Matching
 
 This repository contains our work mechanizing proofs related to Brzozowski & Antimirov derivatives. There are two subdirectories: [`coq`](./coq/) & [`ocaml`](./ocaml/), which contain Coq and OCaml code respectively. 
 
@@ -16,10 +16,14 @@ opam install coq-stdpp
 - [`Regex.v`](./coq/Regex.v): Definitions related to Regular Expressions (adapted from Jules)
 - [`Antimirov.v`](./coq/Antimirov.v): Antimirov derivatives
 - [`Brzozowski.v`](./coq/Brzozowski.v): Brzozowski derivatives
-- [`RegexOpt.v`](./coq/RegexOpt.v): Smart constructors for regexes
-- [`Edelmann.v`](./coq/Edelmann.v): Romain Edelmann's Coq formalization of the zipper representation of Brzozowski derivatives (with a few modifications so that it is consistent with the rest of other Coq files)
+- [`Equivalent.v`](./coq/Equivalent.v): Proof that Antimirov and Brzozowski matchers are equivalent
+- [`Finite.v`](./coq/Finite.v): Proof that there are finitely many Antimirov partial derivatives of a regex 
+- [`Height.v`](./coq/Height.v): Proofs that height and size of Antimirov derivatives are bounded
+- [`EdelmannGset.v`](./coq/EdelmannGset.v): Romain Edelmann's Coq formalization of the zipper representation of Brzozowski derivatives,
+  modified to use `gset`s
+- [`ZipperAntimirovGset.v`](./coq/EdelmannGset.v): Proof that the underlying sets for zippers and Antimirov derivatives are equivalent
 
-We also referenced the code from the CS 6115 lecture (Fall 2017) on regexes ([link](https://www.cs.cornell.edu/courses/cs6115/2017fa/notes/SimpleLex.html)).
+We also referenced the code from the CS 6115 [lecture](https://www.cs.cornell.edu/courses/cs6115/2017fa/notes/SimpleLex.html) (Fall 2017) on regexes.
  
 ## OCaml Code 
 The `ocaml` subdirectory contains executable implementations of regex matchers:
@@ -38,10 +42,13 @@ First, `cd` into the `ocaml` subdirectory. Then:
 - (Optional) Run `dune exec -- main` to see how QuickCheck falsifies the property that Brzozowski derivatives are always contained within the set of Antimirov derivatives (when the set is non-empty)
 
 ### Deprecated (outdated) project work
-- [`brzozowski_zipper.ml`](./ocaml/old/brzozowski_zipper.ml) contains an implementation of Brzozowski derivatives via zippers (translated from the Scala code in chapter 2.6 of [Edelmann's dissertation](https://infoscience.epfl.ch/server/api/core/bitstreams/4fcb9f0f-7ac1-484f-823c-c19de39dd9ff/content)) 
+- [`brzozowski_zipper.ml`](./ocaml/old/brzozowski_zipper.ml): An implementation of Brzozowski derivatives via zippers (translated from the Scala code in chapter 2.6 of [Edelmann's dissertation](https://infoscience.epfl.ch/server/api/core/bitstreams/4fcb9f0f-7ac1-484f-823c-c19de39dd9ff/content)) 
   - Note: We found out (via QuickCheck tests) that this file is buggy, possibly because we manually translated Edelmann's Scala code to OCaml. This file has been superceded by [`extracted_brzozowski_zipper.ml`](./ocaml/lib/extracted_brzozowski_zipper.ml). 
-- [`krishnaswami.ml`](./ocaml/old/krishnaswami.ml): builds a DFA corresponding to a regex using Antimirov derivatives (adapted from [Neel Krishnaswami's blogpost](https://semantic-domain.blogspot.com/2013/11/antimirov-derivatives-for-regular.html))
-- [`ListMonad.v`](./coq/old/ListMonad.v) : The list monad (currently unused in the rest of our Coq development)
+- [`krishnaswami.ml`](./ocaml/old/krishnaswami.ml): Builds a DFA corresponding to a regex using Antimirov derivatives (adapted from [Neel Krishnaswami's blogpost](https://semantic-domain.blogspot.com/2013/11/antimirov-derivatives-for-regular.html))
+- [`ListMonad.v`](./coq/old/ListMonad.v): The list monad (currently unused in the rest of our Coq development)
+- [`RegexOpt.v`](./coq/old/RegexOpt.v): Smart constructors for regexes
+- [`Edelmann.v`](./coq/old/Edelmann.v): Edelmann's code, using lists instead of `gset`s
+- [`ZipperAntimirov.v`](./coq/old/ZipperAntimirov.v): First attempt at proof that underlying sets for zippers and Antimirov derivatives are equivalent 
 - We previously tried to mechanize Filinski's JFP 2021 paper "Proof-directed program transformation: A functional account of efficient regular expression matching," but we decided to switch to work on Brzozowski/Antimirov derivatives instead. Our (previous) work involving the Filinski paper is contained in the following files:
   - [`harper.ml`](./ocaml/old/harper.ml): the code from "Proof-directed debugging" (Harper 1998), translated from SML to OCaml
   - [`filinski.ml`](./ocaml/old/filinski.ml): the code from "Proof-directed program transformation: A functional account of efficient regular expression matching" (Filinski 2021), translated from SML to OCaml 

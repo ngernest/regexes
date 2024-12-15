@@ -3,7 +3,7 @@ _build
 .vscode/*
 coq/.vscode/*
 .lia.cache
-.Makefile.D
+.Makefile.*
 Makefile.conf
 *.glob
 *.vo
