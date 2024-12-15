@@ -22,9 +22,10 @@ opam repo add coq-released https://coq.inria.fr/opam/released
 opam install coq-stdpp
 ```
 
-### Compiling and viewing our code
+### Compiling and viewing our Coq code
 - To compile: `cd` into the [`coq`](./coq/) subdirectory & run `make`/`make clean` as appropriate. 
-- We recommend viewing our Coq code in VS Code using the [coq-lsp](https://github.com/ejgallego/coq-lsp) VS Code extension (instead of VSCoq).
+- (Optional) We recommend viewing our Coq code in VS Code using the [coq-lsp](https://github.com/ejgallego/coq-lsp) VS Code extension (instead of VSCoq).
+    - To install `coq-lsp`: Run `opam install coq-lsp` and install the [corresponding VS Code extension](https://marketplace.visualstudio.com/items?itemName=ejgallego.coq-lsp).
 - **Note**: if you are using VS Code, open VS Code in the `coq` subdirectory by `cd`-ing to the `coq` subdirectory and running `code .` in the terminal (this is needed for `coq-lsp` to work properly).
 
 ## Coq Code 
