@@ -25,4 +25,3 @@ let three_matchers_demo () =
       printf "Antimirov matcher  : %s\n" (mk_accept_string antimirov_res);
       printf "Zipper matcher     : %s\n" (mk_accept_string zipper_res);
       printf "***************************************\n")
-

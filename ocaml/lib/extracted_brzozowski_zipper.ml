@@ -118,5 +118,3 @@ let flatten_zipper (z : zipper) : re =
     (fun acc ctx -> alt acc 
       (List.fold_left (fun acc' r -> seq acc' r) Epsilon ctx)) 
     Void z
-
-

@@ -4,8 +4,8 @@ open Antimirov
 open Quickcheck_properties
 open Utils
 
-(* Converts a [context] (used in Edelmann's zipper representation) to a regex 
-   by folding the [concat] smart constructor over the context *)
+(** Converts a [context] (used in Edelmann's zipper representation) to a regex 
+    by folding the [concat] smart constructor over the context *)
 let context_to_re (ctx : context) : re = 
   List.fold_left Regex.seq Epsilon ctx
 
