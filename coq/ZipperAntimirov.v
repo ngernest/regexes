@@ -1,7 +1,7 @@
 Require Export List Ascii Bool.
 Import ListNotations.
 Require Export Regex Height.
-Require Import Regex EdelmannGset Antimirov.
+Require Import Edelmann Antimirov.
 From stdpp Require Import gmap sets fin_sets.
 
 (** Proving that the underlying sets for zippers & Antimirov derivatives are equivalent *)
