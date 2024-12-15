@@ -5,20 +5,15 @@
 (generate_opam_files true)
 
 (source
- (github username/reponame))
+ (github ngernest/regexes))
 
-(authors "Author Name")
-
-(maintainers "Maintainer Name")
+(authors "Ernest Ng" "Laura Zielinski")
 
 (license "ISC")
 
-(documentation https://url/to/documentation)
-
 (package
  (name regexes)
- (synopsis "A short synopsis")
- (description "A longer description")
+ (synopsis "Regex matchers based on Brzozowski / Antimirov derivatives and zippers")
  (depends
   (stdio
    (>= v0.17.0))
@@ -35,7 +30,5 @@
   (base
    (>= v0.17.1))
   ocaml
-  dune)
- (tags
-  (topics "to describe" your project)))
+  dune))
   
