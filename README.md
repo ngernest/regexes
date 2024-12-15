@@ -13,7 +13,7 @@ opam install coq-stdpp
 - To compile: `cd` into the [`coq`](./coq/) subdirectory & run `make` / `make clean` as appropriate. 
 
 ## Coq code 
-- [`Regex.v`](./coq/Regex.v): Definitions related to Regular Expressions (adapted from Jules)
+- [`Regex.v`](./coq/Regex.v): Definitions related to regular expressions (adapted from Jules)
 - [`Antimirov.v`](./coq/Antimirov.v): Antimirov derivatives
 - [`Brzozowski.v`](./coq/Brzozowski.v): Brzozowski derivatives
 - [`Equivalent.v`](./coq/Equivalent.v): Proof that Antimirov and Brzozowski matchers are equivalent
@@ -21,7 +21,7 @@ opam install coq-stdpp
 - [`Height.v`](./coq/Height.v): Proofs that height and size of Antimirov derivatives are bounded
 - [`EdelmannGset.v`](./coq/EdelmannGset.v): Romain Edelmann's Coq formalization of the zipper representation of Brzozowski derivatives,
   modified to use `gset`s
-- [`ZipperAntimirovGset.v`](./coq/EdelmannGset.v): Proof that the underlying sets for zippers and Antimirov derivatives are equivalent
+- [`ZipperAntimirovGset.v`](./coq/ZipperAntimirovGset.v): Proof that the underlying sets for zippers and Antimirov derivatives are equivalent
 
 We also referenced the code from the CS 6115 [lecture](https://www.cs.cornell.edu/courses/cs6115/2017fa/notes/SimpleLex.html) (Fall 2017) on regexes.
  
