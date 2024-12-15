@@ -20,9 +20,9 @@ opam install coq-stdpp
 ```
 
 ### Compiling and viewing our code
-- To compile: `cd` into the [`coq`](./coq/) subdirectory & run `make` / `make clean` as appropriate. 
+- To compile: `cd` into the [`coq`](./coq/) subdirectory & run `make`/`make clean` as appropriate. 
 - We recommend viewing our Coq code in VS Code using the [coq-lsp](https://github.com/ejgallego/coq-lsp) VS Code extension (instead of VSCoq).
-- **Note**: if you are using VS Code, please open VS Code in the `coq` subdirectory by `cd`-ing to the `coq` subdirectory and running `code .` in the terminal (this is needed for `coq-lsp` to work properly).
+- **Note**: if you are using VS Code, open VS Code in the `coq` subdirectory by `cd`-ing to the `coq` subdirectory and running `code .` in the terminal (this is needed for `coq-lsp` to work properly).
 
 ## Coq Code 
 - [`Regex.v`](./coq/Regex.v): Definitions related to regular expressions (adapted from Jules)
@@ -63,7 +63,7 @@ We have two demo executables:
   
 (Note: we use QuickCheck to generate the random inputs. For reproducibility, we force QuickCheck to use the same seed across different invocations of the executable.)
 
-## Deprecated (outdated) project work
+## Deprecated Project Work
 - [`brzozowski_zipper.ml`](./ocaml/old/brzozowski_zipper.ml): An implementation of Brzozowski derivatives via zippers (translated from the Scala code in chapter 2.6 of [Edelmann's dissertation](https://infoscience.epfl.ch/server/api/core/bitstreams/4fcb9f0f-7ac1-484f-823c-c19de39dd9ff/content)) 
   - Note: We found out (via QuickCheck tests) that this file is buggy, possibly because we manually translated Edelmann's Scala code to OCaml. This file has been superceded by [`extracted_brzozowski_zipper.ml`](./ocaml/lib/extracted_brzozowski_zipper.ml)
 - [`krishnaswami.ml`](./ocaml/old/krishnaswami.ml): Builds a DFA corresponding to a regex using Antimirov derivatives (adapted from [Neel Krishnaswami's blogpost](https://semantic-domain.blogspot.com/2013/11/antimirov-derivatives-for-regular.html))
