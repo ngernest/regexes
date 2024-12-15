@@ -1,16 +1,28 @@
 # Verified Derivative-Based Regular Expression Matching
 
-This repository contains our work mechanizing proofs related to Brzozowski & Antimirov derivatives. There are two subdirectories: [`coq`](./coq/) & [`ocaml`](./ocaml/), which contain Coq and OCaml code respectively. 
+This repository contains our work mechanizing proofs related to Brzozowski & Antimirov derivatives. There are two subdirectories: [`coq`](./coq/) & [`ocaml`](./ocaml/), which contain Coq and OCaml code respectively. Instructions on running the demo executables are [demo](#demo) subection.
 
 ## Coq Environment Setup
-- This project compiles with Coq 8.19.2 and OCaml 5.2.0. We recommend setting up a fresh Opam switch with these versions, and use the [coq-lsp](https://github.com/ejgallego/coq-lsp) VS Code extension (instead of VSCoq). 
-- **Note**: if you are using VS Code, please open VS Code in the `coq` subdirectory by `cd`-ing to the `coq` subdirectory and running `code .` in the terminal (this is needed for `coq-lsp` to work properly).
-- Our Coq code uses the `coq-stdpp` library, which can be installed as follows:
+
+### Creating a new Opam switch
+This project compiles with Coq 8.19.2 and OCaml 5.2.0. We recommend setting up a fresh Opam switch with these versions:
+```bash
+opam switch create [switch-name] ocaml-base-compiler.5.2.0
+eval $(opam env)
+opam pin add coq 8.19.2
+```
+
+### Installing the `std++` library
+Our Coq code uses the [`coq-std++`](https://gitlab.mpi-sws.org/iris/stdpp) library, which can be installed as follows:
 ```bash
 opam repo add coq-released https://coq.inria.fr/opam/released
 opam install coq-stdpp
 ```
+
+### Compiling and viewing our code
 - To compile: `cd` into the [`coq`](./coq/) subdirectory & run `make` / `make clean` as appropriate. 
+- We recommend viewing our Coq code in VS Code using the [coq-lsp](https://github.com/ejgallego/coq-lsp) VS Code extension (instead of VSCoq).
+- **Note**: if you are using VS Code, please open VS Code in the `coq` subdirectory by `cd`-ing to the `coq` subdirectory and running `code .` in the terminal (this is needed for `coq-lsp` to work properly).
 
 ## Coq code 
 - [`Regex.v`](./coq/Regex.v): Definitions related to regular expressions (adapted from Jules)
@@ -21,25 +33,30 @@ opam install coq-stdpp
 - [`Height.v`](./coq/Height.v): Proofs that height and size of Antimirov derivatives are bounded
 - [`EdelmannGset.v`](./coq/EdelmannGset.v): Romain Edelmann's Coq formalization of the zipper representation of Brzozowski derivatives,
   modified to use `gset`s
-- [`ZipperAntimirovGset.v`](./coq/ZipperAntimirovGset.v): Proof that the underlying sets for zippers and Antimirov derivatives are equivalent
-
-We also referenced the code from the CS 6115 [lecture](https://www.cs.cornell.edu/courses/cs6115/2017fa/notes/SimpleLex.html) (Fall 2017) on regexes.
+- [`ZipperAntimirovGset.v`](./coq/ZipperAntimirovGset.v): Proof that the underlying sets of regexes for zippers and Antimirov derivatives are equivalent
  
 ## OCaml Code 
 The `ocaml` subdirectory contains executable implementations of regex matchers:
-- [`regex.ml`](./ocaml/lib/regex.ml): Regex definitions + smart constructors + helper functions (e.g. for computing regex size)
-- [`brzozowski.ml`](./ocaml/lib/brzozowski.ml): a regex matcher that uses Brzozowski derivatives
-- [`antimirov.ml`](./ocaml/lib/antimirov.ml): a regex matcher that uses Antimirov derivatives  
-- [`zipper.ml`](./ocaml/lib/zipper.ml) contains an implementation of [Huet's zipper](https://en.wikipedia.org/wiki/Zipper_(data_structure)) (adapted from chapter 2.3 of [Romain Edelmann's PhD dissertation](https://infoscience.epfl.ch/server/api/core/bitstreams/4fcb9f0f-7ac1-484f-823c-c19de39dd9ff/content))     
-- [`extracted_brzozowski_zipper.ml`](./ocaml/lib/extracted_brzozowski_zipper.ml): the Coq code from [`Edelmann.v`](./coq/Edelmann.v), extracted to OCaml 
-- [`quickcheck_properties.ml`](./ocaml/lib/quickcheck_properties.ml): QuickCheck properties regarding Antimirov / Brzozowski derivatives (which we used to figure out whether lemma statements were valid before proving them)     
+- [`regex.ml`](./ocaml/lib/regex.ml): Regex definitions + smart constructors + functions for computing regex height / size
+- [`brzozowski.ml`](./ocaml/lib/brzozowski.ml): Brzozowski derivative-based regex matcher
+- [`antimirov.ml`](./ocaml/lib/antimirov.ml): Antimirov derivative-based regex matcher
+- [`zipper.ml`](./ocaml/lib/zipper.ml) an implementation of [Huet's zipper](https://en.wikipedia.org/wiki/Zipper_(data_structure)) (adapted from chapter 2.3 of [Romain Edelmann's PhD dissertation](https://infoscience.epfl.ch/server/api/core/bitstreams/4fcb9f0f-7ac1-484f-823c-c19de39dd9ff/content))     
+- [`extracted_brzozowski_zipper.ml`](./ocaml/lib/extracted_brzozowski_zipper.ml): the zipper representation of Brzozowski derivatives, due to Romain Edelmann (extracted from the Coq code in [`Edelmann.v`](./coq/Edelmann.v))
+- [`quickcheck_properties.ml`](./ocaml/lib/quickcheck_properties.ml): QuickCheck random generators + properties regarding derivatives
+- [`utils.ml`](./ocaml/lib/utils.ml): Pretty-printers for regexes, other miscellaneous utils
+- [`zipper_antimirov.ml`](./ocaml/lib/zipper_antimirov.ml): The code for the demo illustrating that zippers and Antimirov derivatives represent the same set of regexes
+- [`three_matchers.ml`](./ocaml/lib/three_matchers.ml): The code for the demo illustrating that the three matchers (Brzozowski, Antimirov, zippers) behave the same
+given the same inputs
 
 ### Building & Testing the OCaml Code
 First, `cd` into the `ocaml` subdirectory. Then: 
 - Run `make install` to install all OCaml dependencies
 - Run `make` to build the OCaml code
-- (Optional) Run `make test` to run some QuickCheck tests regarding Antimirov derivatives (see [`antimirov.ml`](./ocaml/lib/antimirov.ml)) 
-- (Optional) Run `dune exec -- main` to see how QuickCheck falsifies the property that Brzozowski derivatives are always contained within the set of Antimirov derivatives (when the set is non-empty)
+- (Optional) Run `make test` to run our QuickCheck test suite
+
+### Demo 
+TODO
+
 
 ### Deprecated (outdated) project work
 - [`brzozowski_zipper.ml`](./ocaml/old/brzozowski_zipper.ml): An implementation of Brzozowski derivatives via zippers (translated from the Scala code in chapter 2.6 of [Edelmann's dissertation](https://infoscience.epfl.ch/server/api/core/bitstreams/4fcb9f0f-7ac1-484f-823c-c19de39dd9ff/content)) 
