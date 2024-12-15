@@ -1,6 +1,6 @@
 # Verified Derivative-Based Regular Expression Matching
 
-This repository contains our work mechanizing proofs related to Brzozowski & Antimirov derivatives. There are two subdirectories: [`coq`](./coq/) & [`ocaml`](./ocaml/), which contain Coq and OCaml code respectively. 
+This repository contains our work mechanizing proofs related to Brzozowski & Antimirov derivatives. There are two subdirectories: [`coq`](./coq/) & [`ocaml`](./ocaml/), which contain Coq and OCaml code respectively. Instructions on running the demo executables are [demo](#demo) subection.
 
 ## Coq Environment Setup
 
@@ -37,19 +37,26 @@ opam install coq-stdpp
  
 ## OCaml Code 
 The `ocaml` subdirectory contains executable implementations of regex matchers:
-- [`regex.ml`](./ocaml/lib/regex.ml): Regex definitions + smart constructors + helper functions (e.g. for computing regex size)
-- [`brzozowski.ml`](./ocaml/lib/brzozowski.ml): a regex matcher that uses Brzozowski derivatives
-- [`antimirov.ml`](./ocaml/lib/antimirov.ml): a regex matcher that uses Antimirov derivatives  
-- [`zipper.ml`](./ocaml/lib/zipper.ml) contains an implementation of [Huet's zipper](https://en.wikipedia.org/wiki/Zipper_(data_structure)) (adapted from chapter 2.3 of [Romain Edelmann's PhD dissertation](https://infoscience.epfl.ch/server/api/core/bitstreams/4fcb9f0f-7ac1-484f-823c-c19de39dd9ff/content))     
-- [`extracted_brzozowski_zipper.ml`](./ocaml/lib/extracted_brzozowski_zipper.ml): the Coq code from [`Edelmann.v`](./coq/Edelmann.v), extracted to OCaml 
-- [`quickcheck_properties.ml`](./ocaml/lib/quickcheck_properties.ml): QuickCheck properties regarding Antimirov / Brzozowski derivatives (which we used to figure out whether lemma statements were valid before proving them)     
+- [`regex.ml`](./ocaml/lib/regex.ml): Regex definitions + smart constructors + functions for computing regex height / size
+- [`brzozowski.ml`](./ocaml/lib/brzozowski.ml): Brzozowski derivative-based regex matcher
+- [`antimirov.ml`](./ocaml/lib/antimirov.ml): Antimirov derivative-based regex matcher
+- [`zipper.ml`](./ocaml/lib/zipper.ml) an implementation of [Huet's zipper](https://en.wikipedia.org/wiki/Zipper_(data_structure)) (adapted from chapter 2.3 of [Romain Edelmann's PhD dissertation](https://infoscience.epfl.ch/server/api/core/bitstreams/4fcb9f0f-7ac1-484f-823c-c19de39dd9ff/content))     
+- [`extracted_brzozowski_zipper.ml`](./ocaml/lib/extracted_brzozowski_zipper.ml): the zipper representation of Brzozowski derivatives, due to Romain Edelmann (extracted from the Coq code in [`Edelmann.v`](./coq/Edelmann.v))
+- [`quickcheck_properties.ml`](./ocaml/lib/quickcheck_properties.ml): QuickCheck random generators + properties regarding derivatives
+- [`utils.ml`](./ocaml/lib/utils.ml): Pretty-printers for regexes, other miscellaneous utils
+- [`zipper_antimirov.ml`](./ocaml/lib/zipper_antimirov.ml): The code for the demo illustrating that zippers and Antimirov derivatives represent the same set of regexes
+- [`three_matchers.ml`](./ocaml/lib/three_matchers.ml): The code for the demo illustrating that the three matchers (Brzozowski, Antimirov, zippers) behave the same
+given the same inputs
 
 ### Building & Testing the OCaml Code
 First, `cd` into the `ocaml` subdirectory. Then: 
 - Run `make install` to install all OCaml dependencies
 - Run `make` to build the OCaml code
-- (Optional) Run `make test` to run some QuickCheck tests regarding Antimirov derivatives (see [`antimirov.ml`](./ocaml/lib/antimirov.ml)) 
-- (Optional) Run `dune exec -- main` to see how QuickCheck falsifies the property that Brzozowski derivatives are always contained within the set of Antimirov derivatives (when the set is non-empty)
+- (Optional) Run `make test` to run our QuickCheck test suite
+
+### Demo 
+TODO
+
 
 ### Deprecated (outdated) project work
 - [`brzozowski_zipper.ml`](./ocaml/old/brzozowski_zipper.ml): An implementation of Brzozowski derivatives via zippers (translated from the Scala code in chapter 2.6 of [Edelmann's dissertation](https://infoscience.epfl.ch/server/api/core/bitstreams/4fcb9f0f-7ac1-484f-823c-c19de39dd9ff/content)) 
