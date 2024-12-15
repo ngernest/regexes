@@ -210,7 +210,7 @@ let%expect_test {| Example where a Brzozowski derivative is not contained in the
   (e.g. when the Brzozowski derivative is [Void] and the Antimirov derivative set is the empty set) |} = 
   let bderiv = Brzozowski.bderiv (Atom 'b') 'T' in 
   Stdio.printf "%s\n" (string_of_re bderiv);
-  [%expect {| Void |}]
+  [%expect {| ⊥ |}]
 
 let%quick_test ("Brzozowski contained in Antimirov set when it is non-empty 
   (this property is falsified!)"
