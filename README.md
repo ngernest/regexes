@@ -1,6 +1,9 @@
 # Verified Derivative-Based Regular Expression Matching
+(Final Project for [CS 6115](https://www.cs.cornell.edu/courses/cs6115/2024fa/), Fall 2024)
 
-This repository contains our work mechanizing proofs related to Brzozowski & Antimirov derivatives. There are two subdirectories: [`coq`](./coq/) & [`ocaml`](./ocaml/), which contain Coq and OCaml code respectively. Instructions on running the demo executables are in the [demo](#demo) section.
+This repo contains mechanized proofs about the equivalence of [Brzozowski](https://harrisongoldste.in/languages/2017/09/30/derivatives-of-regular-expressions.html) & [Antimirov derivatives](https://semantic-domain.blogspot.com/2013/11/antimirov-derivatives-for-regular.html), as well as the [zipper](https://en.wikipedia.org/wiki/Zipper_(data_structure)) representation of Brzozowski derivatives (from [Romain Edelmann's PhD dissertation](https://infoscience.epfl.ch/server/api/core/bitstreams/4fcb9f0f-7ac1-484f-823c-c19de39dd9ff/content)).
+
+There are two subdirectories: [`coq`](./coq/) & [`ocaml`](./ocaml/), which contain Coq and OCaml code respectively. Instructions on running the demo executables are in the [demo](#demo) subsection of this README.
 
 ## Coq Environment Setup
 
