@@ -152,7 +152,7 @@ Proof.
     + apply Nat.max_comm.
 Qed.    
 
-(* The height of each element in a regex set [X] is <= [max_height_re_set X]. *)
+(** The height of each element in a regex set [X] is <= [max_height_re_set X]. *)
 Lemma element_height_bounded_by_max_height :
   ∀ (X : nat) (rs : gset re),
     max_height_re_set rs <= X <-> 
