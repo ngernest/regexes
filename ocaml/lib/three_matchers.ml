@@ -8,6 +8,9 @@ open Core
 let mk_accept_string (b : bool) : string = 
   if b then "accepted" else "rejected"
 
+(** Generates 15 random (regex, string) pairs, and shows that the three regex 
+    matchers respectively based on Brzozowski / Antimirov / zippers return the same 
+    acceptance result *)  
 let three_matchers_demo () = 
   Quickcheck.iter
     ~seed:(`Deterministic "hello")

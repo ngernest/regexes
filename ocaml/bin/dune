@@ -1,7 +1,7 @@
-(executable
- (public_name main)
- (name main)
- (libraries lib base stdio))
+(executables
+ (names zipper_antimirov_demo matchers_demo)
+ (public_names zipper_antimirov_demo matchers_demo)
+ (libraries lib))
 
 (env
  (dev
