@@ -3,13 +3,7 @@ Require Import Regex.
 Require Import Antimirov. 
 Require Import Brzozowski.
 
-(** Proving that taking the Antimirov derivative wrt a word will always
-    generate a finite set *)
-
-(* Crashes Coq *)
-(* Definition a := ascii_of_nat 1.
-Definition b := ascii_of_nat 2.
-Compute (a_der_str (Union (Atom a) (Atom b)) [a]). *)
+(** Proving that there are finitely many Antimirov partial derivatives for a regex *)
 
 (** Generates the (overestimated) set containing all possible Antimirov derivatives of r, 
     with respect to any word *)
@@ -27,10 +21,7 @@ Fixpoint A_der (r : re) : gset re :=
 Lemma re_in_A_der : forall (r : re), r ∈ A_der r.
 Proof. induction r; simpl; set_solver. Qed.
 
-(** Let r be a regex. We know that A_der r is finite.
-    With this lemma, we show that the set of Antimirov derivatives of r 
-    with respect to any nonempty word is finite. 
-    i.e. {a_der r w | w ∈ Σ+} is finite *)
+(** If a ∈ A_der r, then all its partial derivatives are also in A_der r *)
 Lemma a_finite_char (r : re) : forall (a : re), a ∈ A_der r -> 
   forall (c : char), a_der a c ⊆ A_der r.
 Proof. 
@@ -55,7 +46,10 @@ Proof. induction r; X. Qed.
 Lemma subset_trans (A B C : gset re) : A ⊆ B -> B ⊆ C -> A ⊆ C.
 Proof. set_solver. Qed.
 
-(** Antimirov derivative wrt a string is finite *)
+(** Let r be a regex. We know that A_der r is finite.
+    With this lemma, we show that the set of Antimirov derivatives of r 
+    with respect to any nonempty word is finite
+    i.e. {a_der r w | w ∈ Σ+} is finite *)
 Theorem a_finite : forall (s : string) (r : re), a_der_str r s ⊆ A_der r.
 Proof. induction s; intros; simpl.
   - cut (r ∈ A_der r). set_solver. apply re_in_A_der.

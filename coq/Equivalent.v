@@ -2,9 +2,9 @@ From stdpp Require Import gmap sets fin_sets.
 Require Import Antimirov.
 Require Import Brzozowski.
 
-(** Proofs that Antimirov and Brzozowski derivatives are equivalent *)
+(** Proof that Antimirov and Brzozowski derivatives are equivalent *)
 
-(* if [isEmpty r = true], then the singleton set containing [r] is [nullable] *)
+(* If isEmpty r, then the singleton set containing r is nullable *)
 Lemma nullable_singleton : forall (r : re), 
   isEmpty r <-> nullable {[ r ]}.
 Proof. 
@@ -24,29 +24,28 @@ Proof.
   - destruct H2. exists (Star r). split; eauto.
 Qed.
 
-(* If the Antimirov matcher says that [s ~= r^n] for some n, 
-   then folding the Brzozowski derivative of [r^*] wrt each character in [s]
-   yields a regex that accepts the empty string *)
+(** If the Antimirov matcher says that s matches r^n for some n, 
+    then folding the Brzozowski derivative of r^* wrt each character in s
+    yields a regex that accepts the empty string *)
 Lemma star_help : forall (n : nat) (r : re) (s : string),
-  (∀ x0 : string, a_matches r x0 ↔ b_matches r x0) ->
-  a_matches (Concat_n n r) s → isEmpty (fold_left b_der s (Star r)).
+  (∀ x : string, a_matches r x <-> b_matches r x) ->
+  a_matches (Concat_n n r) s -> isEmpty (fold_left b_der s (Star r)).
 Proof. induction n.
   - X. apply nil_matches_Epsilon in H0. X. 
   - X. apply a_matches_Concat_destruct in H0. 
     destruct H0 as [s1 [s2 [H1 [H2 H3]]]].
-    apply IHn in H3. 
-    rewrite H1. 
+    apply IHn in H3. rewrite H1. 
     apply isEmpty_Star.
     apply H in H2. unfold b_matches in H2. 
     apply H2. apply H3. apply H.
 Qed.
 
-(* If the Brzozowski matcher says that [s ~= r^n] for some n, 
-   then folding the Brzozowski derivative of [r^*] wrt each character in [s]
-   yields a regex that accepts the empty string *)
+(** If the Brzozowski matcher says that s matches r^n for some n, 
+    then folding the Brzozowski derivative of r^* wrt each character in s
+    yields a regex that accepts the empty string *)
 Lemma star_help' : forall (n : nat) (r : re) (s : string),
-  (∀ x0 : string, a_matches r x0 ↔ b_matches r x0) ->
-  b_matches (Concat_n n r) s → a_matches (Star r) s.
+  (∀ x : string, a_matches r x <-> b_matches r x) ->
+  b_matches (Concat_n n r) s -> a_matches (Star r) s.
 Proof. induction n.
   - X. apply b_matches_Epsilon in H0. X. 
     unfold a_matches, nullable. X. destruct H0. 

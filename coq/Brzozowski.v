@@ -24,16 +24,20 @@ Lemma b_der_matches_2 (c : char) (r : re) (s : string) :
 Proof. revert s. induction r; X. apply isEmpty_matches_2 in H2. X. Qed.
 Hint Resolve b_der_matches_1 b_der_matches_2 : core.
 
+(** Brzozowski derivative wrt a string *)
 Definition b_der_str (r : re) (s : string) := fold_left b_der s r.
 
 (** True if r matches s, using b_der *)
 Definition b_matches (r : re) (s : string) : bool :=
   isEmpty (fold_left b_der s r).
 
-(* Brzozowski-based matcher agrees with the inductive proposition [matches] *)
+(** Brzozowski-based matcher agrees with the inductive proposition [matches] *)
 Lemma b_matches_matches (r : re) (s : string) : 
   b_matches r s = true <-> matches r s.
 Proof. unfold b_matches. split; revert r; induction s; X. Qed.
+
+(******************************************************************************)
+(** Lemmas about applying the Brzozowski derivative to a string *)
 
 Lemma b_der_Void : forall (s : string), fold_left b_der s Void = Void.
 Proof. induction s. reflexivity. simpl. apply IHs. Qed.
@@ -46,6 +50,7 @@ Proof.
   - simpl in *. intros. apply IHs. 
 Qed.
 
+(** If s matches r1 ⋅ r2, then s = s1 ++ s2 where s1 matches r1 and s2 matches r2 *)
 Lemma b_matches_Concat : forall (s : string) (r1 r2 : re),
   b_matches (Concat r1 r2) s ->
   exists s1 s2, (s = s1 ++ s2) /\ b_matches r1 s1 /\ b_matches r2 s2.
@@ -68,6 +73,7 @@ Proof.
     exists (a :: s1). exists s2. repeat split; X.
 Qed.
 
+(** If s matches r* and s ≠ [], then s = s1 ++ s2 where s1 matches r and s2 matches r* *)
 Lemma b_matches_Star : forall (s : string) (r : re),
   s ≠ [] -> b_matches (Star r) s ->
   exists s1 s2, (s = s1 ++ s2) /\ b_matches r s1 /\ b_matches (Star r) s2.
@@ -79,6 +85,7 @@ Proof.
   exists s1. exists s2. X. 
 Qed.
 
+(** If s1 matches r1 and s2 matches r2, then s1 ++ s2 matches r1 ⋅ r2 *)
 Lemma isEmpty_Concat : forall (s1 s2 : string) (r1 r2 : re),
    isEmpty (fold_left b_der s1 r1) ->
    isEmpty (fold_left b_der s2 r2) ->
@@ -92,6 +99,7 @@ Proof.
     apply orb_prop_intro. left. apply IHs1. apply H. apply H0.
 Qed.
 
+(** If s1 matches r and s2 matches r*, then s1 ++ s2 matches r* *)
 Lemma isEmpty_Star : forall (s1 s2 : string) (r : re),
    isEmpty (fold_left b_der s1 r) ->
    isEmpty (fold_left b_der s2 (Star r)) ->
@@ -101,7 +109,7 @@ Proof.
   X. apply isEmpty_Concat. apply H. apply H0. 
 Qed.
 
-(* If [s ~= ε], then [s = ε] *)
+(** If s matches ε, then s = ε *)
 Lemma b_matches_Epsilon : forall (s : string),
   b_matches Epsilon s -> s = [].
 Proof. 
@@ -109,7 +117,7 @@ Proof.
   rewrite  b_der_Void in H. contradiction H. 
 Qed.
 
-(* If [s ~= r*], then [s ~= r^n] for some [n] *)
+(** If s matches r*, then s matches r^n for some n *)
 Lemma b_matches_Star_Concat : forall (r : re) (s : string),
   b_matches (Star r) s -> 
   exists n, b_matches (Concat_n n r) s.

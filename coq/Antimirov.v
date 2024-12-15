@@ -4,9 +4,9 @@ Require Export Lia.
 
 (** If r is a regex and a is a char, then a partial derivative
     is a regex r' such that if r' accepts word s, then r accepts a ⋅ s.
-    We can construct sets of partial derivatives (Antimirov derivatives) *)
+    The Antimirov derivative returns a set of all partial derivatives *)
 
-(* Note that gsets are finite *)
+(** Note that gsets are finite *)
 Fixpoint a_der (r : re) (c : char) : gset re :=
   match r with
   | Void => ∅
@@ -32,7 +32,21 @@ Fixpoint a_der_str (r : re) (s : string) : gset re :=
       set union instead *)
 Definition a_der_set (rs : gset re) (c : char) : gset re :=
   set_bind (fun r => a_der r c) rs.
-  
+
+(** True if there is a regex in the set which matches the empty string *)
+Definition nullable (rs : gset re) : bool :=
+  let elem_of_bool (x : bool) (s : gset bool) := bool_decide (x ∈ s) in
+  elem_of_bool true (set_map (fun r => isEmpty r) rs).
+
+(** True if r matches s, using a_der_set *)
+Definition a_matches (r : re) (s : string) : bool :=
+  nullable (fold_left a_der_set s {[ r ]}).
+
+(** Alternate definition using a_der_str *)
+Definition a_matches' (r : re) (s : string) : bool :=
+  nullable (a_der_str r s).
+
+(******************************************************************************)
 (** Lemmas about a_der_set *)
 Lemma a_der_set_singleton (r : re) (c : char) : 
   a_der_set {[ r ]} c = a_der r c.
@@ -68,20 +82,6 @@ Proof.
   rewrite a_der_set_singleton. simpl. destruct char_dec. 
   intros. contradiction. reflexivity. 
 Qed.
-
-(** Matching principles for a_der *)
-(** True if there is a regex in the set which matches the empty string *)
-Definition nullable (rs : gset re) : bool :=
-  let elem_of_bool (x : bool) (s : gset bool) := bool_decide (x ∈ s) in
-  elem_of_bool true (set_map (fun r => isEmpty r) rs).
-
-(** True if r matches s, using a_der_set *)
-Definition a_matches (r : re) (s : string) : bool :=
-  nullable (fold_left a_der_set s {[ r ]}).
-
-(** Alternate definition using a_der_str *)
-Definition a_matches' (r : re) (s : string) : bool :=
-  nullable (a_der_str r s).
 
 (** Lemmas about fold_left a_der_set *)
 Lemma fold_left_empty (s : string) : fold_left a_der_set s ∅ = ∅.
@@ -171,8 +171,7 @@ Proof. set_solver. Qed.
 
 (** Lemmas about a_matches *)
 
-(* If [s ~= Concat r1 r2], then [s] can be decomposed as [s1 ++ s2] such that 
-   [s1 ~= r1] and [s2 ~= r2] *)
+(** If s matches r1 ⋅ r2, then s = s1 ++ s2 where s1 matches r1 and s2 matches r2 *)
 Lemma a_matches_Concat_destruct : forall (s : string) (r1 r2 : re),
   a_matches (Concat r1 r2) s ->
   exists s1 s2, (s = s1 ++ s2) /\ a_matches r1 s1 /\ a_matches r2 s2.
@@ -216,10 +215,9 @@ Proof.
       apply H3. set_solver.
 Qed.
 
-(* If [s1 ~= r1] and [s2 ~= r2], then [s1 ++ s2 ~= Concat r1 r2] *)
+(** If s1 matches r1 and s2 matches r2, then s1 ++ s2 matches r1 ⋅ r2 *)
 Lemma a_matches_Concat : forall (s1 s2 : string) (r1 r2 : re),
-  a_matches r1 s1 ->
-  a_matches r2 s2 ->
+  a_matches r1 s1 -> a_matches r2 s2 ->
   a_matches (Concat r1 r2) (s1 ++ s2).
 Proof. 
   induction s1. 
@@ -262,7 +260,7 @@ Proof.
   rewrite fold_left_empty in H0. inversion H0.
 Qed.
 
-(* If [s ~= r^*], then ∃ n s.t. [s ~= r^n] *)
+(* If s matches r^*, then ∃ n s.t. s matches r^n *)
 Lemma a_matches_Star_destruct : forall (s : string) (r : re),
   a_matches (Star r) s ->
   exists n, a_matches (Concat_n n r) s.
@@ -293,6 +291,7 @@ Proof.
     + apply H7.
 Qed.
 
+(** If s1 matches r and s2 matches r*, then s1 ++ s2 matches r* *)
 Lemma a_matches_Star : forall (s1 s2 : string) (r : re),
   a_matches r s1 ->
   a_matches (Star r) s2 ->
@@ -311,6 +310,7 @@ Proof.
     + apply H2.
 Qed.
 
+(******************************************************************************)
 (** What it means for a string to match a set of regexes.
     - [matches_set_here]: if [s] matches [r], then [s] matches any regex set 
       containing [r] 
@@ -390,6 +390,7 @@ Proof. intros; eapply matches_set_here; eauto; set_solver. Qed.
 Lemma matches_set_epsilon : matches_set [] {[Epsilon]}.
 Proof. eapply matches_set_here. apply matches_epsilon. set_solver. Qed.
 
+(** If s matches a partial derivative of r wrt a, then a :: s matches r *)
 Lemma a_der_matches_1 a r s : matches_set' s (a_der r a) -> matches r (a :: s).
 Proof. 
   revert s.
@@ -403,6 +404,7 @@ Proof.
   - simpl. reflexivity.
 Qed.
 
+(** If a :: s matches r, then s matches a partial derivative of r wrt a *)
 Lemma a_der_matches_2 a r s : matches r (a :: s) -> matches_set' s (a_der r a).
 Proof.
   revert s. induction r; X.

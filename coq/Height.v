@@ -57,8 +57,8 @@ Proof.
   unfold list_to_set. set_solver.
 Qed.
 
-(** Folding a function [f] over a singleton set is just the same as applying 
-    [f] to the element in the set, along with the base case *)
+(** Folding a function f over a singleton set is just the same as applying 
+    f to the element in the set, along with the base case *)
 Lemma set_fold_singleton (f : re -> nat -> nat) (b : nat) (r : re) :
   set_fold f b ({[ r ]} : gset re) = f r b.
 Proof.
@@ -67,11 +67,11 @@ Proof.
   simpl. reflexivity.
 Qed.  
 
-(* Essentially inlining the definition of foldr for a set w/ 2 elements *)
+(* Essentially inlining the definition of foldr for a set with 2 elements *)
 Lemma set_fold_two_elements (f : re -> nat -> nat) (b : nat) (r1 r2 : re) :
   r1 ≠ r2 -> 
-    set_fold f b ({[ r1; r2 ]} : gset re) = f r1 (f r2 b) \/
-    set_fold f b ({[ r1; r2 ]} : gset re) = f r2 (f r1 b).
+  set_fold f b ({[ r1; r2 ]} : gset re) = f r1 (f r2 b) \/
+  set_fold f b ({[ r1; r2 ]} : gset re) = f r2 (f r1 b).
 Proof. 
   intros. unfold set_fold. simpl.
   eremember gset_elements_doubleton as H1. clear HeqH1.
@@ -80,8 +80,8 @@ Proof.
   - right. rewrite H. reflexivity.
 Qed.
 
-(** Mapping a function [f] over a singleton set returns a singleton 
-    set containing the result [f x].  *)
+(** Mapping a function f over a singleton set returns a singleton 
+    set containing the result f x  *)
 Lemma set_map_singleton (f : re -> re) (x : re):
   set_map f ({[ x ]} : gset re) = ({[ f x ]} : gset re).
 Proof.
@@ -90,6 +90,9 @@ Proof.
   simpl. set_solver.
 Qed.  
   
+(******************************************************************************)
+(** Bounding the height of an Antimirov partial derivative *)
+
 (** The max height of a singleton regex set is just the height of the 
     regex contained in the set *)  
 Lemma max_height_singleton : forall (r : re),
@@ -216,14 +219,15 @@ Proof.
 Qed.
 
 (******************************************************************************)
+(** Bounding the number of Antimirov partial derivatives *)
 
-(* Nonexistent elements have an empty intersection with the original set *)
+(** Nonexistent elements have an empty intersection with the original set *)
 Lemma empty_intersection_with_absent_element : 
   forall (x : re) (X : gset re), x ∉ X -> X ∩ {[ x ]} = ∅.
 Proof. intros. set_solver. Qed.  
 
-(* Subtracting a nonexistent element from a set 
-   preserves the original set's size *)
+(** Subtracting a nonexistent element from a set 
+    preserves the original set's size *)
 Lemma removing_nonexistent_elem_preserves_size : 
   forall (x : re) (X : gset re), x ∉ X -> size (X ∖ {[ x ]}) = size X.
 Proof.
@@ -234,10 +238,8 @@ Proof.
   lia. assumption.
 Qed.  
 
-(* Calling [map] on a set results in a set whose size is at most 
-   the size of the original set. 
-   - Note: We need type annotations on the term [(set_map f s)], otherwise 
-     Coq can't figure out which typeclass instance to use for [size] *)
+(** Calling [map] on a set results in a set whose size is at most 
+    the size of the original set *)
 Lemma size_map_upper_bound : 
   forall (f : re -> re) (s : gset re),
   size ((set_map f s) : gset re) <= size s.
@@ -262,7 +264,7 @@ Proof.
   - rewrite <- size_union_alt. auto.
 Qed. 
   
-(* Union Bound for the size of two sets *)
+(** Union bound for the size of two sets *)
 Lemma set_size_union_bound : forall (rs1 rs2 : gset re),
   size (rs1 ∪ rs2) <= size rs1 + size rs2.
 Proof.
@@ -284,8 +286,8 @@ Proof.
     rewrite H0. rewrite size_empty. lia. 
 Qed.
 
-(* The size of the set [A_der r] (which overapproximates the set of 
-   Antimirov derivatives) is linear in the size of the original regex *)
+(** The size of the set [A_der r] (which overapproximates the set of 
+    Antimirov derivatives) is linear in the size of the original regex *)
 Theorem A_der_linear : exists (k : nat), 
   forall (r : re), size (A_der r) <= k * re_size r. 
 Proof.
@@ -333,7 +335,8 @@ Proof.
     rewrite size_singleton. X.
 Qed.
   
-(* There exists some constant [k] which upper bounds the size of all Antimirov derivatives w.r.t. a string *) 
+(** There exists some constant [k] which upper bounds the size of 
+    all Antimirov derivatives w.r.t. a string *) 
 Lemma num_antimirov_derivs_linear_in_re_size : exists (k : nat), 
   forall (s : string) (r : re),
     set_size (a_der_str r s) <= k * re_size r.

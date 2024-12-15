@@ -4,42 +4,39 @@ Require Export Regex Height.
 Require Import Regex EdelmannGset Antimirov.
 From stdpp Require Import gmap sets fin_sets.
 
-(* Proving that the underlying sets for zippers 
-  & Antimirov derivatives are equivalent *)
-(******************************************************************************)
+(** Proving that the underlying sets for zippers & Antimirov derivatives are equivalent *)
 
-(* Maps a function over a zipper, returning a set of regexes *)
+(** Maps a function over a zipper, returning a set of regexes *)
 Definition zipper_map (f : context -> re) (z : zipper) : gset re :=
   set_map f z.
 
-(* Converts a [context] (used in Edelmann's zipper representation) to a regex 
-   by folding the [concat] smart constructor over the context *)
+(** Converts a [context] (used in Edelmann's zipper representation) to a regex 
+    by folding the [concat] smart constructor over the context *)
 Definition context_to_re (ctx : context) : re :=
   List.fold_left Regex.Concat ctx Epsilon.
 
-(* Empty context corresponds to [Epsilon] *)
+(** Empty context corresponds to [Epsilon] *)
 Lemma empty_context_is_epsilon : 
   context_to_re [] = Epsilon.
 Proof.
   unfold context_to_re. simpl. reflexivity.
 Qed.    
 
-(* The underlying regex set that forms the zipper representation of 
-   Brozozwski derivatives (from Edelmann's dissertation) *)
+(** The underlying regex set that forms the zipper representation of 
+    Brozozwski derivatives (from Edelmann's dissertation) *)
 Definition underlying_zipper_set (r : re) (c : char) : gset re :=
   zipper_map context_to_re (derive c (focus r)).
   
-(* The underlying regex set formed after taking the Antimirov derivative *)
+(** The underlying regex set formed after taking the Antimirov derivative *)
 Definition underlying_antimirov_set (r : re) (c : char) : gset re :=
   a_der r c.
-
   
-(* Typeclass instance needed to make [zipper_union_empty_r_L] below typecheck *)
+(** Typeclass instance needed to make [zipper_union_empty_r_L] below typecheck *)
 Instance ZipperEmpty : Empty zipper := {
   empty := ∅ 
 }.
 
-(* The empty zipper is the right identity for the [zipper_union] operation *)
+(** The empty zipper is the right identity for the [zipper_union] operation *)
 Lemma zipper_union_empty_r_L : forall (z : zipper),
   zipper_union z ∅ = z.
 Proof.
@@ -76,15 +73,14 @@ Proof.
 Qed.
 
 (******************************************************************************)
-
-(* [zipper_map] and [∪] commutes *)
+(** zipper_map and ∪ commute *)
 Lemma zipper_map_union_comm : forall (z1 z2 : zipper) (f : context -> re),
   zipper_map f (z1 ∪ z2) = zipper_map f z1 ∪ zipper_map f z2.
 Proof. intros. set_solver. Qed.  
 
-(* Mapping over a zipper with [λr. Concat r r2] is the same 
-   as calling the zipper Brzozowski derivative with [r2] appended to 
-   the end of the context [ctx]. *)
+(** Mapping over a zipper with λr. Concat r r2 is the same 
+    as calling the zipper Brzozowski derivative with r2 appended to 
+    the end of the context ctx *)
 Lemma zipper_map_post_compose_concat : forall c r1 r2 ctx,
   zipper_map context_to_re (derive_down c r1 (ctx ++ [r2])) =
   set_map (λ r : re, Concat r r2)
@@ -151,7 +147,7 @@ Proof.
     reflexivity.
 Qed.      
 
-(* The underlying sets for zippers & Antimirov derivatives are equivalent *)
+(** The underlying sets for zippers & Antimirov derivatives are equivalent *)
 Lemma zipper_antimirov_equivalent : forall (r : re) (c : char),
   underlying_zipper_set r c = underlying_antimirov_set r c.
 Proof.
@@ -283,4 +279,3 @@ Proof.
           reflexivity.
       ++ apply app_nil_l.
 Qed.
-

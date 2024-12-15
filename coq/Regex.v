@@ -3,6 +3,7 @@ Export ListNotations BoolNotations.
 From stdpp Require Import gmap sets fin_sets.
 Open Scope list_scope.
 
+(** Code given by Jules *)
 Ltac simp tac :=
   repeat match goal with
   | |- ?x = ?x => reflexivity
