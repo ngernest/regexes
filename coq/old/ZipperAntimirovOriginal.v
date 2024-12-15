@@ -1,7 +1,7 @@
 Require Export List ListSet Ascii Bool.
 Import ListNotations.
 Require Export Regex Height.
-Require Import Regex Edelmann Antimirov RegexOpt.
+Require Import Regex EdelmannOriginal Antimirov RegexOpt.
 From stdpp Require Import gmap sets fin_sets.
 
 (* Work in progress: proving that the underlying sets 
@@ -77,7 +77,7 @@ Proof.
       simpl. repeat (rewrite empty_context_is_epsilon).
       reflexivity.
     + admit. (* TODO *)
-    + destruct (Edelmann.nullable r1_1) eqn:E2.
+    + destruct (EdelmannOriginal.nullable r1_1) eqn:E2.
       admit. (* TODO *)
 Admitted. (* TODO *)
   
@@ -123,11 +123,11 @@ Proof.
   induction r2; unfold derive, focus; 
     simpl; eauto.
   - (* Void *)
-    destruct (Edelmann.nullable r1); simpl; set_solver.
+    destruct (EdelmannOriginal.nullable r1); simpl; set_solver.
   - (* Epsilon *) 
-    destruct (Edelmann.nullable r1); simpl; set_solver.
+    destruct (EdelmannOriginal.nullable r1); simpl; set_solver.
   - (* Atom *)
-    destruct (Edelmann.nullable r1); simpl.
+    destruct (EdelmannOriginal.nullable r1); simpl.
     destruct ((c0 =? c)%char) eqn:E.
     + (* c0 = c *)
       simpl.
@@ -145,9 +145,9 @@ Proof.
       * (* c0 <> c *)
         simpl. set_solver.
   - (* Concat *)
-    destruct (Edelmann.nullable r1) eqn:E1; simpl.
+    destruct (EdelmannOriginal.nullable r1) eqn:E1; simpl.
     + (* nullable r1 = true *)
-      remember (Edelmann.nullable r2_1 || Edelmann.nullable r2_2) as nullable_bool.
+      remember (EdelmannOriginal.nullable r2_1 || EdelmannOriginal.nullable r2_2) as nullable_bool.
       destruct nullable_bool eqn:E2; simpl.
       * (* nullable_bool = true *)
         rewrite zipper_union_distributes_over_derive_down.
