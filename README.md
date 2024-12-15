@@ -1,6 +1,6 @@
 # Verified Derivative-Based Regular Expression Matching
 
-This repository contains our work mechanizing proofs related to Brzozowski & Antimirov derivatives. There are two subdirectories: [`coq`](./coq/) & [`ocaml`](./ocaml/), which contain Coq and OCaml code respectively. Instructions on running the demo executables are [demo](#demo) subection.
+This repository contains our work mechanizing proofs related to Brzozowski & Antimirov derivatives. There are two subdirectories: [`coq`](./coq/) & [`ocaml`](./ocaml/), which contain Coq and OCaml code respectively. Instructions on running the demo executables are in the [demo](#demo) subsection.
 
 ## Coq Environment Setup
 
@@ -55,8 +55,14 @@ First, `cd` into the `ocaml` subdirectory. Then:
 - (Optional) Run `make test` to run our QuickCheck test suite
 
 ### Demo 
-TODO
-
+We have 2 demo executables:       
+- `make demo1`: Generates 15 random (regex, string) pairs, and shows that the three regex 
+  matchers respectively based on Brzozowski / Antimirov / zippers return the same 
+  acceptance result      
+- `make demo2`: Generates 15 random (regex, char) pairs, and shows that the underlying
+  regex sets for both Antimirov & zippers are the same
+  
+(Note: we use QuickCheck to generate the random inputs. For reproducibility, we force QuickCheck to use the same seed across different invocations of the executable.)
 
 ### Deprecated (outdated) project work
 - [`brzozowski_zipper.ml`](./ocaml/old/brzozowski_zipper.ml): An implementation of Brzozowski derivatives via zippers (translated from the Scala code in chapter 2.6 of [Edelmann's dissertation](https://infoscience.epfl.ch/server/api/core/bitstreams/4fcb9f0f-7ac1-484f-823c-c19de39dd9ff/content)) 
