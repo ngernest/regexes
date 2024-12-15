@@ -3,9 +3,17 @@
 This repository contains our work mechanizing proofs related to Brzozowski & Antimirov derivatives. There are two subdirectories: [`coq`](./coq/) & [`ocaml`](./ocaml/), which contain Coq and OCaml code respectively. 
 
 ## Coq Environment Setup
-- This project compiles with Coq 8.19.2 and OCaml 5.2.0. We recommend setting up a fresh Opam switch with these versions, and use the [coq-lsp](https://github.com/ejgallego/coq-lsp) VS Code extension (instead of VSCoq). 
+
+**Creating a new Opam Switch**
+This project compiles with Coq 8.19.2 and OCaml 5.2.0. We recommend setting up a fresh Opam switch with these versions:
+```bash
+opam switch create [switch-name] ocaml-base-compiler.5.2.0
+eval $(opam env)
+opam pin add coq 8.19.2
+```
+We recommned viewing our Coq code in VS Code using the [coq-lsp](https://github.com/ejgallego/coq-lsp) VS Code extension (instead of VSCoq).
 - **Note**: if you are using VS Code, please open VS Code in the `coq` subdirectory by `cd`-ing to the `coq` subdirectory and running `code .` in the terminal (this is needed for `coq-lsp` to work properly).
-- Our Coq code uses the `coq-stdpp` library, which can be installed as follows:
+- Our Coq code uses the [`coq-std++`](https://gitlab.mpi-sws.org/iris/stdpp) library, which can be installed as follows:
 ```bash
 opam repo add coq-released https://coq.inria.fr/opam/released
 opam install coq-stdpp
