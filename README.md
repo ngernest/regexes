@@ -1,6 +1,6 @@
 # Verified Derivative-Based Regular Expression Matching
 
-This repository contains our work mechanizing proofs related to Brzozowski & Antimirov derivatives. There are two subdirectories: [`coq`](./coq/) & [`ocaml`](./ocaml/), which contain Coq and OCaml code respectively. Instructions on running the demo executables are in the [demo](#demo) subsection.
+This repository contains our work mechanizing proofs related to Brzozowski & Antimirov derivatives. There are two subdirectories: [`coq`](./coq/) & [`ocaml`](./ocaml/), which contain Coq and OCaml code respectively. Instructions on running the demo executables are in the [demo](#demo) section.
 
 ## Coq Environment Setup
 
